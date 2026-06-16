@@ -841,6 +841,18 @@ body:hover .cursor-dot {
   opacity: 0.6;
 }
 
+/* Emoji Animation */
+@keyframes emojiFloat {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-120px) scale(0.5);
+  }
+}
+
 /* Responsive */
 @media (max-width: 640px) {
   .container {

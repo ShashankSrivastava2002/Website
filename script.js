@@ -492,3 +492,32 @@
     card.addEventListener('mouseleave', () => { card.style.background = ''; });
   });
 })();
+
+// ============================================
+// RESUME DOWNLOAD EMOJI EFFECT
+// ============================================
+(function() {
+  const resumeLinks = document.querySelectorAll('.resume-link');
+  if (resumeLinks.length === 0) return;
+  
+  resumeLinks.forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      
+      // Create floating emoji
+      const emoji = document.createElement('div');
+      emoji.textContent = '😂';
+      emoji.style.position = 'fixed';
+      emoji.style.fontSize = '3rem';
+      emoji.style.pointerEvents = 'none';
+      emoji.style.zIndex = '10001';
+      emoji.style.left = (e.clientX - 24) + 'px';
+      emoji.style.top = (e.clientY - 24) + 'px';
+      emoji.style.animation = 'emojiFloat 2s ease-out forwards';
+      document.body.appendChild(emoji);
+      
+      // Remove after animation
+      setTimeout(() => emoji.remove(), 2000);
+    });
+  });
+})();

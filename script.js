@@ -285,8 +285,10 @@
   }
 
   function loop(time) {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    const c = getColor();
+    // Fill with dark background
+    ctx.fillStyle = '#1a1a2e';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    const c = { r: 0, g: 150, b: 255 };
 
     // Update nodes
     nodes.forEach(n => {
@@ -312,7 +314,7 @@
           ctx.beginPath();
           ctx.moveTo(nodes[i].x, nodes[i].y);
           ctx.lineTo(nodes[j].x, nodes[j].y);
-          ctx.strokeStyle = `rgba(${c.r},${c.g},${c.b},${(1-dist/130)*0.2})`;
+          ctx.strokeStyle = `rgba(${c.r},${c.g},${c.b},${(1-dist/130)*0.3})`;
           ctx.lineWidth = 0.6;
           ctx.stroke();
         }
@@ -325,7 +327,7 @@
           ctx.beginPath();
           ctx.moveTo(nodes[i].x, nodes[i].y);
           ctx.lineTo(mouseX, mouseY);
-          ctx.strokeStyle = `rgba(${c.r},${c.g},${c.b},${(1-dist/160)*0.3})`;
+          ctx.strokeStyle = `rgba(${c.r},${c.g},${c.b},${(1-dist/160)*0.4})`;
           ctx.lineWidth = 0.7;
           ctx.stroke();
         }

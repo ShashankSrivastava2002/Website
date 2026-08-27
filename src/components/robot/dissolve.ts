@@ -1,0 +1,107 @@
+import * as THREE from "three";
+
+/**
+ * The identity-swap dissolve.
+ *
+ * The reference doesn't scatter rigid pieces — the mesh gets swallowed by
+ * blocky chromatic noise and then resolves back out of it, which is a shader
+ * effect (the site is credited as Three.js + GLSL). We patch whatever material
+ * a mesh already has via `onBeforeCompile`, so the plating keeps its clearcoat
+ * and the human keeps its fabric shading; the dissolve rides on top.
+ *
+ * `uProgress` 0 = solid, 1 = fully voxelised and gone.
+ */
+
+export type DissolveUniforms = {
+  uProgress: { value: number };
+  uTime: { value: number };
+};
+
+/** Each rig needs its OWN uniforms — sharing one set means only one of the
+ *  two can be mid-dissolve at a time, which leaves a blank frame between them. */
+export function makeDissolveUniforms(): DissolveUniforms {
+  return { uProgress: { value: 0 }, uTime: { value: 0 } };
+}
+
+const VERT_HEAD = /* glsl */ `
+  uniform float uProgress;
+  uniform float uTime;
+  varying float vNoise;
+
+  // cheap 3D hash -> 0..1
+  float hash31(vec3 p) {
+    p = fract(p * 0.3183099 + vec3(0.1, 0.2, 0.3));
+    p *= 17.0;
+    return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
+  }
+`;
+
+const VERT_BODY = /* glsl */ `
+  // Quantise the vertex into blocks so the mesh breaks into cubes rather than
+  // melting. Block size grows as the dissolve runs.
+  float blocks = mix(46.0, 11.0, uProgress);
+  vec3 cell = floor(position * blocks) / blocks;
+  float n = hash31(cell + floor(uTime * 3.0) * 0.017);
+  vNoise = n;
+
+  // Each block leaves at its own moment, so the mesh comes apart unevenly.
+  float local = clamp((uProgress * 1.6) - n * 0.6, 0.0, 1.0);
+
+  vec3 quantised = cell + (blocks > 0.0 ? 0.5 / blocks : 0.0);
+  vec3 p = mix(position, quantised, local);
+  // push the freed blocks out along the normal
+  p += normal * local * local * 0.3 * (0.4 + n);
+  transformed = p;
+`;
+
+const FRAG_HEAD = /* glsl */ `
+  uniform float uProgress;
+  varying float vNoise;
+`;
+
+const FRAG_BODY = /* glsl */ `
+  float local = clamp((uProgress * 1.6) - vNoise * 0.6, 0.0, 1.0);
+
+  // Prismatic tint — the reference's blocks are rainbow, not monochrome. It
+  // rides as a BAND at the dissolve front: flooding the whole surface loses
+  // the material underneath and just reads as noise.
+  vec3 tint = 0.5 + 0.5 * cos(6.2831 * (vNoise + vec3(0.0, 0.33, 0.67)));
+  float edge = smoothstep(0.0, 0.18, local) * (1.0 - smoothstep(0.3, 0.72, local));
+  gl_FragColor.rgb = mix(gl_FragColor.rgb, tint, edge * 0.8);
+
+  // blocks fade out once they've travelled
+  gl_FragColor.a *= 1.0 - smoothstep(0.55, 1.0, local);
+  if (gl_FragColor.a < 0.01) discard;
+`;
+
+/** Patch a material once with the given uniform set. Safe to call repeatedly. */
+export function applyDissolve(mat: THREE.Material, u: DissolveUniforms) {
+  const m = mat as THREE.Material & {
+    __dissolvePatched?: boolean;
+    onBeforeCompile: (shader: THREE.WebGLProgramParametersWithUniforms) => void;
+  };
+  if (m.__dissolvePatched) return;
+  m.__dissolvePatched = true;
+
+  const prev = m.onBeforeCompile?.bind(m);
+
+  m.onBeforeCompile = (shader) => {
+    prev?.(shader);
+    shader.uniforms.uProgress = u.uProgress;
+    shader.uniforms.uTime = u.uTime;
+
+    shader.vertexShader = shader.vertexShader
+      .replace("#include <common>", `#include <common>\n${VERT_HEAD}`)
+      .replace("#include <begin_vertex>", `#include <begin_vertex>\n${VERT_BODY}`);
+
+    shader.fragmentShader = shader.fragmentShader
+      .replace("#include <common>", `#include <common>\n${FRAG_HEAD}`)
+      .replace(
+        "#include <dithering_fragment>",
+        `#include <dithering_fragment>\n${FRAG_BODY}`
+      );
+  };
+
+  m.transparent = true;
+  m.needsUpdate = true;
+}

@@ -1,7 +1,8 @@
 import type { Config } from "tailwindcss";
 
+// The site is styled almost entirely in globals.css; Tailwind is kept for its
+// preflight reset and the occasional utility.
 const config: Config = {
-  darkMode: ["class", '[data-theme="dark"]'],
   content: [
     "./src/pages/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/components/**/*.{js,ts,jsx,tsx,mdx}",
@@ -11,15 +12,15 @@ const config: Config = {
     extend: {
       colors: {
         bg: "var(--bg)",
-        "bg-elevated": "var(--bg-elevated)",
+        panel: "var(--panel)",
+        ink: "var(--ink)",
+        muted: "var(--muted)",
         accent: "var(--accent)",
-        "text-primary": "var(--text-primary)",
-        "text-secondary": "var(--text-secondary)",
-        border: "var(--border)",
+        line: "var(--line)",
       },
       fontFamily: {
-        sans: ["var(--font-inter)"],
-        serif: ["var(--font-newsreader)"],
+        sans: ["var(--font-sans)"],
+        mono: ["var(--font-mono)"],
       },
     },
   },

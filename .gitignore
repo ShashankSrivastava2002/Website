@@ -1,8 +1,6 @@
 # dependencies
 /node_modules
 node_modules
-\node_modules
-./node_modules
 /.pnp
 .pnp.js
 
@@ -20,6 +18,14 @@ node_modules
 .DS_Store
 *.pem
 
+# reference media — large, and mirrored outside the repo
+*.mov
+*.mp4
+*.pptx
+
+# debug render captures
+/.snaps/
+
 # debug
 npm-debug.log*
 yarn-debug.log*
@@ -34,4 +40,7 @@ yarn-error.log*
 
 # typescript
 *.tsbuildinfo
-next-env.d.ts
+next-env.d.
+
+.context
+ref_images

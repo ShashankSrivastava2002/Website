@@ -14,6 +14,16 @@
 
 export type Pose = "boot" | "walk" | "idle" | "wave" | "think" | "work" | "bow";
 
+/**
+ * How long the About identity swap takes, in seconds, in either direction.
+ *
+ * Lives here rather than in the 3D bundle because the DOM side needs it too:
+ * the stat scramble and the 3D dissolve both derive their timing from this
+ * one number, so they cannot drift apart. This module is plain data with no
+ * three.js import, so reading it from a DOM component costs nothing.
+ */
+export const MORPH_DURATION = 1.15;
+
 export type Joint = {
   x?: number;
   y?: number;

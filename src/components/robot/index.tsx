@@ -9,8 +9,9 @@ import * as THREE from "three";
 
 import RobotModel from "./model";
 import HumanModel from "./human";
-import { HOME_CYCLE, type Pose } from "./poses";
+import { HOME_CYCLE, MORPH_DURATION, type Pose } from "./poses";
 import { applyDissolve, makeDissolveUniforms } from "./dissolve";
+import { Spring } from "./spring";
 
 export type { Pose } from "./poses";
 
@@ -52,6 +53,35 @@ const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 const smooth = (v: number) => v * v * (3 - 2 * v);
 
 /**
+ * Fits the human rig onto the robot's.
+ *
+ * The two figures were modelled independently and do not match. Unfitted, the
+ * human's soles sat 0.095 above the robot's and its head anchor 0.25 below —
+ * so the swap put a shorter figure at a different height, which is why it read
+ * as two objects trading places rather than one figure changing.
+ *
+ * Scaling by the ratio of the sole→head-anchor spans and then dropping the
+ * result lands BOTH anchors at once: sole on sole, head on head. No amount of
+ * dissolve sells the transformation without this.
+ *
+ * The soles are MEASURED, not read off the source — the human's shoes hang off
+ * a leg group that is itself offset, which is easy to miss by eye. To re-measure
+ * after changing either rig, neutralise the morph's tumble and compare world
+ * bounds:
+ *
+ *   const rig = <the group with scale 0.72>;
+ *   rig.children[0].rotation.set(0,0,0); rig.children[0].position.set(0,0,0);
+ *   // ...same for children[1], then compare min world Y of each subtree.
+ */
+const HUMAN_FIT = (() => {
+  const ROBOT_SOLE = -1.4533;
+  const HUMAN_SOLE = -1.3585;
+  const HEAD_ANCHOR = 0.92; // identical in both rigs, by construction
+  const scale = (HEAD_ANCHOR - ROBOT_SOLE) / (HEAD_ANCHOR - HUMAN_SOLE);
+  return { scale, y: ROBOT_SOLE - HUMAN_SOLE * scale };
+})();
+
+/**
  * The identity swap.
  *
  * Frame-by-frame the reference does three things in sequence, not a crossfade:
@@ -78,7 +108,19 @@ function Morph({
 
   useFrame((state, dt) => {
     const d = Math.min(dt, 0.05);
-    v.current = THREE.MathUtils.damp(v.current, target, 3.2, d);
+
+    /* One progress value drives the somersault, both dissolve windows and the
+       landing, so nothing can drift out of sync.
+
+       It advances at a fixed rate rather than damping toward the target: an
+       exponential approach slows as it nears 1, which stretched the tail of the
+       dissolve out to nothing and made a re-trigger mid-flight crawl. The
+       easing lives in the sub-windows below, which are already shaped. */
+    if (v.current !== target) {
+      const dir = target > v.current ? 1 : -1;
+      v.current = clamp01(v.current + (dir * d) / MORPH_DURATION);
+      v.current = dir > 0 ? Math.min(v.current, target) : Math.max(v.current, target);
+    }
     const m = v.current;
 
     // Patch every material in both rigs once they exist.
@@ -100,8 +142,8 @@ function Morph({
 
     // The two windows OVERLAP: the robot is still coming apart while the human
     // is already reassembling, so there is never an empty frame between them.
-    const robotProg = smooth(clamp01(m / 0.62));
-    const humanProg = 1 - smooth(clamp01((m - 0.38) / 0.62));
+    const robotProg = smooth(clamp01(m / 0.7));
+    const humanProg = 1 - smooth(clamp01((m - 0.3) / 0.7));
     uRobot.current.uProgress.value = robotProg;
     uHuman.current.uProgress.value = humanProg;
 
@@ -190,6 +232,18 @@ function Scene({
   const robotRef = useRef<THREE.Group>(null);
   const humanRef = useRef<THREE.Group>(null);
 
+  /* The About page moves the figure into the left column. Applying `offsetX`
+     to the group directly teleported the whole rig 2.15 units in a single
+     frame on every section change — a hard cut in the middle of an otherwise
+     animated page. It walks there instead. */
+  const rigRef = useRef<THREE.Group>(null);
+  const slide = useRef(new Spring(offsetX, 22, 0.72));
+  useFrame((_, dt) => {
+    if (rigRef.current) {
+      rigRef.current.position.x = slide.current.step(offsetX, Math.min(dt, 0.05));
+    }
+  });
+
   return (
     <>
       <ambientLight intensity={0.55} />
@@ -202,12 +256,15 @@ function Scene({
 
       <Environment files={suspend(studio) as string} />
 
-      <group scale={0.72} position={[offsetX, -0.62, 0]}>
+      <group ref={rigRef} scale={0.72} position={[offsetX, -0.62, 0]}>
         <group ref={robotRef}>
           <RobotModel pose={pose} paused={paused} homeX={0} startX={startX} />
         </group>
+        {/* Fitted onto the robot's sole and head anchor — see HUMAN_FIT. */}
         <group ref={humanRef} visible={false}>
-          <HumanModel paused={paused} />
+          <group scale={HUMAN_FIT.scale} position={[0, HUMAN_FIT.y, 0]}>
+            <HumanModel paused={paused} />
+          </group>
         </group>
 
         <Morph target={morph} robot={robotRef} human={humanRef} />

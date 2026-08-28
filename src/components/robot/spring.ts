@@ -46,3 +46,27 @@ export class Spring {
 export function springs(n: number, stiffness: number, zeta: number) {
   return Array.from({ length: n }, () => new Spring(0, stiffness, zeta));
 }
+
+/**
+ * Three springs sharing a feel — one euler axis each.
+ *
+ * Used for POSE targets, which need a completely different response to the
+ * cursor offsets: a pose change is a deliberate ~0.5s movement that should
+ * accelerate, arrive and settle past the mark, whereas an offset arrives
+ * already smoothed and only needs passing through. Driving their sum with one
+ * filter forces one of the two to be wrong. See `driveJoint` in model.tsx.
+ *
+ * Profiled at 60fps: k=26 ζ=0.62 → t90 0.47s, 7.9% overshoot.
+ *                    k=34 ζ=0.66 → t90 0.43s, 5.8% overshoot.
+ */
+export class JointSpring {
+  readonly x: Spring;
+  readonly y: Spring;
+  readonly z: Spring;
+
+  constructor(stiffness: number, zeta: number) {
+    this.x = new Spring(0, stiffness, zeta);
+    this.y = new Spring(0, stiffness, zeta);
+    this.z = new Spring(0, stiffness, zeta);
+  }
+}

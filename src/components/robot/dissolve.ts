@@ -62,12 +62,29 @@ const FRAG_HEAD = /* glsl */ `
 const FRAG_BODY = /* glsl */ `
   float local = clamp((uProgress * 1.6) - vNoise * 0.6, 0.0, 1.0);
 
-  // Prismatic tint — the reference's blocks are rainbow, not monochrome. It
+  // Prismatic tint: the reference's blocks are rainbow, not monochrome. It
   // rides as a BAND at the dissolve front: flooding the whole surface loses
   // the material underneath and just reads as noise.
+  //
+  // The band has to be narrow RELATIVE TO THE NOISE SPREAD, which is the part
+  // that is easy to get wrong: local varies by 0.6 across the mesh (the vNoise
+  // term), so a band 0.3 wide catches half the blocks at once and the whole
+  // robot goes rainbow -- which is exactly what it was doing. Keeping the band
+  // well under that spread is what leaves the plating visible underneath.
   vec3 tint = 0.5 + 0.5 * cos(6.2831 * (vNoise + vec3(0.0, 0.33, 0.67)));
-  float edge = smoothstep(0.0, 0.18, local) * (1.0 - smoothstep(0.3, 0.72, local));
-  gl_FragColor.rgb = mix(gl_FragColor.rgb, tint, edge * 0.8);
+  float edge = smoothstep(0.0, 0.07, local) * (1.0 - smoothstep(0.10, 0.30, local));
+
+  // ...and the band needs a global window on top of the per-block one. As
+  // uProgress falls toward 0 the spread of local collapses, so nearly every
+  // block ends up inside the band at the same moment and the whole figure
+  // flashes rainbow just as it finishes resolving. Ramping the tint in with
+  // the dissolve is what keeps it an effect at the front rather than a coat
+  // of paint over a mesh that is already solid.
+  // ("active" is a reserved word in GLSL ES -- it compiles fine as JS and
+  //  fails only at shader link time, where the mesh silently stops drawing
+  //  while still casting a shadow.)
+  float runIn = smoothstep(0.06, 0.34, uProgress);
+  gl_FragColor.rgb = mix(gl_FragColor.rgb, tint, edge * 0.85 * runIn);
 
   // blocks fade out once they've travelled
   gl_FragColor.a *= 1.0 - smoothstep(0.55, 1.0, local);

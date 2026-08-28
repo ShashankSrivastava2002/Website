@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { about, persona } from "@/lib/content";
 import { SectionIntro } from "./work-section";
 import Scramble from "@/components/scramble";
+import { MORPH_DURATION } from "@/components/robot/poses";
 
 /** Corrupted characters used while the headline swaps identity. */
 const NOISE = "▚▞█▓▒░/\\<>_|#%&@";
@@ -121,7 +122,13 @@ export default function AboutSection({
               <div className="stat" key={s.label}>
                 <span className="stat-value">
                   {/* keying on `gen` restarts the scramble on every morph */}
-                  <Scramble key={gen} value={s.value} duration={700 + i * 120} />
+                  {/* Timed off the 3D swap's own duration so the figures land
+                      as the figure resolves, rather than on their own clock. */}
+                  <Scramble
+                    key={gen}
+                    value={s.value}
+                    duration={MORPH_DURATION * 1000 * (0.72 + i * 0.09)}
+                  />
                 </span>
                 <span className="stat-label">{s.label}</span>
               </div>

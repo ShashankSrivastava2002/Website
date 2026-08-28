@@ -6,30 +6,47 @@ import { RoundedBox } from "@react-three/drei";
 import * as THREE from "three";
 import { POSES, type Pose, type Joint } from "./poses";
 import { usePointer, easePointer } from "./use-pointer";
-import { Spring } from "./spring";
+import { Spring, JointSpring } from "./spring";
 import * as M from "./materials";
 
 /* ------------------------------------------------------------------ */
 /* helpers                                                             */
 /* ------------------------------------------------------------------ */
 
-const damp = THREE.MathUtils.damp;
-
-/** Eases a group's euler rotation toward a pose's target for that joint. */
+/**
+ * Springs a joint toward its pose target, then adds the live offset on top.
+ *
+ * The pose and the offset need opposite response times. A pose change is a
+ * deliberate half-second movement; an offset (cursor tracking, walk swing, the
+ * wave) is already smooth and only needs passing straight through. This used to
+ * damp their SUM with a single lambda, so whichever job won, the other broke —
+ * the head and torso ran at lambda 30+ for the offset's sake, which collapsed
+ * every pose change into 83ms. At 12fps that is one frame: the "pop".
+ *
+ * Keeping them separate also means an offset can no longer be attenuated by the
+ * pose filter (the walk swing was losing 15% of its amplitude that way).
+ */
 function driveJoint(
   obj: THREE.Object3D | null,
   target: Joint | undefined,
-  lambda: number,
+  pose: JointSpring,
   dt: number,
   extra?: { x?: number; y?: number; z?: number }
 ) {
   if (!obj || !target) return;
-  const ex = extra?.x ?? 0;
-  const ey = extra?.y ?? 0;
-  const ez = extra?.z ?? 0;
-  obj.rotation.x = damp(obj.rotation.x, (target.x ?? 0) + ex, lambda, dt);
-  obj.rotation.y = damp(obj.rotation.y, (target.y ?? 0) + ey, lambda, dt);
-  obj.rotation.z = damp(obj.rotation.z, (target.z ?? 0) + ez, lambda, dt);
+  obj.rotation.x = pose.x.step(target.x ?? 0, dt) + (extra?.x ?? 0);
+  obj.rotation.y = pose.y.step(target.y ?? 0, dt) + (extra?.y ?? 0);
+  obj.rotation.z = pose.z.step(target.z ?? 0, dt) + (extra?.z ?? 0);
+}
+
+/**
+ * Rectifier with a rounded corner. `Math.max(0, v)` has a velocity
+ * discontinuity at zero, which the old pose filter used to hide; passed
+ * straight through it shows up as a hitch in the knee at each stride.
+ */
+function softRect(v: number) {
+  const k = 0.18;
+  return 0.5 * (v + Math.sqrt(v * v + k * k)) - k / 2;
 }
 
 /* ------------------------------------------------------------------ */
@@ -378,6 +395,30 @@ export default function RobotModel({
     legRZ: new Spring(0, 80, 0.8),
   });
 
+  /**
+   * Pose springs — one per joint, deliberately an order of magnitude softer
+   * than the cursor springs above. A pose change is a movement the visitor is
+   * meant to watch happen: it accelerates out of the old pose, arrives, and
+   * settles just past the mark. Limbs travel furthest so they get the longest
+   * arc; the head and chest lead slightly, which is what reads as the rest of
+   * the body following them.
+   */
+  const ps = useRef({
+    torso: new JointSpring(34, 0.66),
+    head: new JointSpring(34, 0.66),
+    shoulderL: new JointSpring(26, 0.62),
+    shoulderR: new JointSpring(26, 0.62),
+    elbowL: new JointSpring(30, 0.65),
+    elbowR: new JointSpring(30, 0.65),
+    hipL: new JointSpring(30, 0.65),
+    hipR: new JointSpring(30, 0.65),
+    kneeL: new JointSpring(30, 0.65),
+    kneeR: new JointSpring(30, 0.65),
+  });
+  /** `lift` and `bob` are pose values too, so they ease like one. */
+  const liftS = useRef(new Spring(0, 30, 0.68));
+  const bobS = useRef(new Spring(1, 18, 0.9));
+
   const root = useRef<THREE.Group>(null);
   const body = useRef<THREE.Group>(null);
   const torso = useRef<THREE.Group>(null);
@@ -430,7 +471,7 @@ export default function RobotModel({
     const tX = sp.current.torsoX.step(-py0 * 0.18, d);
     const tZ = sp.current.torsoZ.step(px0 * -0.12, d);
 
-    driveJoint(torso.current, p.torso, 30, d, {
+    driveJoint(torso.current, p.torso, ps.current.torso, d, {
       y: swing * 0.07 * wk + tY,
       x: tX,
       z: tZ,
@@ -440,9 +481,14 @@ export default function RobotModel({
        A real turn runs head -> chest -> pelvis -> feet, each rotating less
        than the one above it. The differential between chest and pelvis IS
        the twist; the feet then pivot and take a small step to carry it.   */
+    // A standing body shifts its weight from hip to hip. The chest sway alone
+    // reads as a metronome; moving the pelvis on its own long period is what
+    // makes a stationary figure look like it is standing rather than parked.
+    const weightShift = still * Math.sin(t * 0.74 + 0.9) * 0.022 * (1 - wk);
+
     if (hips.current) {
       hips.current.rotation.y = sp.current.hipsY.step(px0 * 0.07, d);
-      hips.current.rotation.z = sp.current.hipsZ.step(-px0 * 0.05, d);
+      hips.current.rotation.z = sp.current.hipsZ.step(-px0 * 0.05 + weightShift, d);
     }
 
     // A quick cursor move gives the trailing foot a little lift, so the
@@ -464,17 +510,18 @@ export default function RobotModel({
       legR.current.position.z = sp.current.legRZ.step(px0 * 0.2, d);
       legR.current.position.y = -0.46 + (px0 > 0 ? stepLift.current : 0);
     }
-    driveJoint(shoulderL.current, p.shoulderL, 8, d, { x: -swing * 0.26 * wk });
-    driveJoint(shoulderR.current, p.shoulderR, 8, d, {
+    const S = ps.current;
+    driveJoint(shoulderL.current, p.shoulderL, S.shoulderL, d, { x: -swing * 0.26 * wk });
+    driveJoint(shoulderR.current, p.shoulderR, S.shoulderR, d, {
       z: waveSwing,
       x: swing * 0.26 * wk,
     });
-    driveJoint(elbowL.current, p.elbowL, 8, d);
-    driveJoint(elbowR.current, p.elbowR, 8, d, { x: waveSwing * 0.4 });
-    driveJoint(hipL.current, p.hipL, 7, d, { x: swing * 0.4 * wk });
-    driveJoint(hipR.current, p.hipR, 7, d, { x: -swing * 0.4 * wk });
-    driveJoint(kneeL.current, p.kneeL, 7, d, { x: Math.max(0, -swing) * 0.34 * wk });
-    driveJoint(kneeR.current, p.kneeR, 7, d, { x: Math.max(0, swing) * 0.34 * wk });
+    driveJoint(elbowL.current, p.elbowL, S.elbowL, d);
+    driveJoint(elbowR.current, p.elbowR, S.elbowR, d, { x: waveSwing * 0.4 });
+    driveJoint(hipL.current, p.hipL, S.hipL, d, { x: swing * 0.4 * wk });
+    driveJoint(hipR.current, p.hipR, S.hipR, d, { x: -swing * 0.4 * wk });
+    driveJoint(kneeL.current, p.kneeL, S.kneeL, d, { x: softRect(-swing) * 0.34 * wk });
+    driveJoint(kneeR.current, p.kneeR, S.kneeR, d, { x: softRect(swing) * 0.34 * wk });
 
     // Head follows the pose, plus a cursor-tracking offset on top. `pointer`
     // comes from a window listener — see use-pointer.ts for why the canvas's
@@ -491,19 +538,19 @@ export default function RobotModel({
     const hY = sp.current.headY.step(px * 0.5 * still + idleYaw, d);
     const hX = sp.current.headX.step(-py * 0.4 * still + idlePitch, d);
     const hZ = sp.current.headZ.step(px * 0.16 * still, d);
-    driveJoint(head.current, p.head, 34, d, { x: hX, y: hY, z: hZ });
+    driveJoint(head.current, p.head, ps.current.head, d, { x: hX, y: hY, z: hZ });
 
     // Breathing bob, plus the double-bounce that comes with the walk cycle.
+    // `lift` and `bob` are pose values so they ease; the oscillators ride on
+    // top at full amplitude rather than being filtered along with them.
     if (body.current) {
-      const breathe = Math.sin(t * 1.5) * 0.022 * p.bob * still;
+      const bob = bobS.current.step(p.bob, d);
+      const breathe = Math.sin(t * 1.5) * 0.022 * bob * still;
       const stride = Math.sin(t * 2.2) * 0.07 * wk;
-      body.current.position.y = damp(body.current.position.y, p.lift + breathe + stride, 6, d);
-      body.current.rotation.z = damp(
-        body.current.rotation.z,
-        Math.sin(t * 0.9) * 0.012 * p.bob * still,
-        3,
-        d
-      );
+      body.current.position.y = liftS.current.step(p.lift, d) + breathe + stride;
+      // Weight shift, on a much longer period than the breath and deliberately
+      // incommensurate with it, so the idle never settles into a visible loop.
+      body.current.rotation.z = Math.sin(t * 0.58) * 0.016 * bob * still;
     }
 
     // Whole model turns toward the cursor, leans into it, and walks to its mark.

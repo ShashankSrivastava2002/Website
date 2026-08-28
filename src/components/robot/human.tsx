@@ -14,8 +14,11 @@ import { usePointer, easePointer } from "./use-pointer";
 
 function useHumanMaterials() {
   return useMemo(() => {
+    // Opaque by default. `setDissolveActive` turns transparency on for the
+    // ~1.2s a morph runs and off again after; leaving it on permanently put
+    // the whole figure in the sorted transparent pass for no reason.
     const mk = (o: THREE.MeshStandardMaterialParameters) =>
-      new THREE.MeshStandardMaterial({ transparent: true, ...o });
+      new THREE.MeshStandardMaterial(o);
     return {
       skin: mk({ color: "#d9a882", roughness: 0.72, metalness: 0 }),
       hair: mk({ color: "#241d1a", roughness: 0.62, metalness: 0.05 }),

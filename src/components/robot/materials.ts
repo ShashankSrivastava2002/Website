@@ -7,12 +7,16 @@ import * as THREE from "three";
 
 /** Glossy black plating — the main shell. Clearcoat gives the wet-looking gloss. */
 export const plating = new THREE.MeshPhysicalMaterial({
-  color: "#0c0e12",
-  metalness: 0.62,
-  roughness: 0.16,
+  color: "#0a0c10",
+  // Lower roughness and a harder clearcoat: the reference plating throws long,
+  // thin, bright specular streaks, which is most of what reads as "expensive
+  // black". A broader, softer highlight makes the same geometry look like
+  // matte plastic.
+  metalness: 0.66,
+  roughness: 0.1,
   clearcoat: 1,
-  clearcoatRoughness: 0.06,
-  envMapIntensity: 1.5,
+  clearcoatRoughness: 0.03,
+  envMapIntensity: 1.85,
 });
 
 /** Slightly lighter plating for panels that should read as separate parts. */

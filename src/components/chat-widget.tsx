@@ -3,7 +3,14 @@
 import { useEffect, useRef, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ArrowRight } from "lucide-react";
-import { persona, replies, fallbackReply, suggestions, type Mood } from "@/lib/content";
+import {
+  persona,
+  replies,
+  fallbackReply,
+  suggestions,
+  sectionSuggestions,
+  type Mood,
+} from "@/lib/content";
 
 type Msg = { from: "bot" | "you"; text: string };
 
@@ -43,11 +50,16 @@ function useTypewriter(text: string, speed = 18) {
 export default function ChatWidget({
   onMood,
   returning = false,
+  section = "home",
 }: {
   onMood: (m: Mood) => void;
   returning?: boolean;
+  /** which page the visitor is on — the prompts follow it */
+  section?: string;
 }) {
-  const SUGGESTIONS = returning ? suggestions.returning : suggestions.first;
+  const SUGGESTIONS =
+    sectionSuggestions[section] ??
+    (returning ? suggestions.returning : suggestions.first);
   const opener = returning ? persona.greetingReturning : persona.greeting;
   const [log, setLog] = useState<Msg[]>([]);
   const [draft, setDraft] = useState("");

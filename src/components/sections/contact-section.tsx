@@ -1,11 +1,11 @@
 "use client";
 
+import Link from "next/link";
+import ContactChat from "@/components/contact-chat";
+
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import {
-  Mail, Github, Linkedin, FileText, Briefcase, Sparkles,
-  MessageSquare, ArrowUpRight, ArrowRight,
-} from "lucide-react";
+import { Mail, Github, Linkedin, FileText, MessageSquare, ArrowUpRight } from "lucide-react";
 import { contact, persona, type Mood } from "@/lib/content";
 import { SectionIntro } from "./work-section";
 
@@ -14,9 +14,6 @@ const ICONS = {
   github: Github,
   linkedin: Linkedin,
   file: FileText,
-  briefcase: Briefcase,
-  sparkles: Sparkles,
-  message: MessageSquare,
 } as const;
 
 /** Live clock in the owner's timezone. */
@@ -114,6 +111,9 @@ export default function ContactSection({ onMood }: { onMood: (m: Mood) => void }
           </motion.div>
         </div>
 
+        {/* The figure stands here — see .contact-grid. */}
+        <div className="contact-gutter" aria-hidden />
+
         {/* --------------------------- right -------------------------- */}
         <motion.div
           className="panel panel--raised"
@@ -129,33 +129,24 @@ export default function ContactSection({ onMood }: { onMood: (m: Mood) => void }
             </div>
           </div>
 
-          <p className="msg-bubble">
-            Back from the work — I saw you looking. What brings you here?
-          </p>
+          <ContactChat onMood={onMood} />
 
-          <ul className="prompts">
-            {contact.prompts.map((p) => {
-              const Icon = ICONS[p.icon as keyof typeof ICONS];
-              return (
-                <li key={p.title}>
-                  <a
-                    href={`mailto:srivastavashashank46@gmail.com?subject=${encodeURIComponent(p.title)}`}
-                    onMouseEnter={() => onMood("happy")}
-                    onMouseLeave={() => onMood("idle")}
-                  >
-                    <span className="prompt-icon"><Icon size={16} /></span>
-                    <span className="prompt-text">
-                      <b>{p.title}</b>
-                      <em>{p.sub}</em>
-                    </span>
-                    <ArrowRight size={15} className="prompt-go" />
-                  </a>
-                </li>
-              );
-            })}
-          </ul>
         </motion.div>
       </div>
+
+      {/* Contact is the last stop in the section order, so this is where the
+          site's footer belongs. Kept to one line: the checklist's four-column
+          link farm would swamp a page that only has five destinations. */}
+      <footer className="site-foot">
+        <span>© {new Date().getFullYear()} Shashank Srivastava</span>
+        <nav aria-label="Site information">
+          <a href="/shashank-resume.pdf" target="_blank" rel="noreferrer">
+            CV
+          </a>
+          <Link href="/colophon">Colophon</Link>
+          <Link href="/privacy">Privacy</Link>
+        </nav>
+      </footer>
     </div>
   );
 }

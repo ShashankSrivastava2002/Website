@@ -16,7 +16,19 @@ export const suggestions = {
   returning: ["who is shashank?", "is he open to work?", "what's he shipping now?"],
 };
 
-export const sections = ["home", "work", "idea52", "about", "contact"] as const;
+/**
+ * The chat follows you across the site, so its prompts follow the page you are
+ * actually looking at. Standing on Work and being offered "who is shashank?"
+ * is the tell that a persistent widget is really just a home-page widget that
+ * forgot to leave.
+ */
+export const sectionSuggestions: Record<string, string[]> = {
+  work: ["what has he built?", "tell me about the agent framework", "his biggest impact?"],
+  about: ["who is he, really?", "where has he worked?", "what's he like to work with?"],
+  contact: ["is he open to work?", "how fast does he reply?", "what should I send him?"],
+};
+
+export const sections = ["home", "work", "about", "contact"] as const;
 export type Section = (typeof sections)[number];
 
 export const bootLines = [
@@ -34,19 +46,6 @@ export const nowPlaying = {
   href: "https://music.apple.com/",
 };
 
-export const idea52 = {
-  tagline: "AN IDEA FOR EVERY WEEK IN 2026",
-  latest: "WK27 — PAPERTRAIL",
-  subtitle: "AN IDEA FOR EVERY WEEK OF 2026",
-  body: "fifty-two ai ideas — one for every week of the year — scattered across this world as beacons. shashank's running challenge, made walkable.",
-  controls: [
-    { key: "WASD / ↑↓←→", text: "move" },
-    { key: "SHIFT", text: "run — or just keep going" },
-    { key: "DRAG", text: "look around" },
-    { key: "MAP", text: "fast-travel to any week" },
-  ],
-  goal: "walk up to a beacon to unlock that week's idea. find all fifty-two — or just roam. it's a world, not a test.",
-};
 
 export const work = {
   intro:
@@ -211,11 +210,36 @@ export const contact = {
     { key: "ML", text: "Document intelligence, RAG, and retrieval systems" },
     { key: "CV", text: "Detection, segmentation, and vision pipelines" },
   ],
-  prompts: [
-    { title: "Hire me", sub: "Full-time or contract role", icon: "briefcase" },
-    { title: "A project", sub: "Something to build or rescue", icon: "sparkles" },
-    { title: "Just say hi", sub: "Anything else on your mind", icon: "message" },
+};
+
+/**
+ * The Contact conversation.
+ *
+ * A scripted multi-turn flow rather than a form: it asks what you want, then
+ * your name and email, and ends by handing you a pre-filled mail draft. There
+ * is no server here, so the last step has to be a `mailto:` — which means the
+ * message is composed in your own client and nothing is submitted anywhere.
+ */
+export const contactFlow = {
+  opener: "hey — i'm shash, shashank's assistant. what brings you here?",
+  intents: [
+    { id: "hire", label: "Hire me", sub: "Full-time or contract" },
+    { id: "project", label: "A project", sub: "Something to build or rescue" },
+    { id: "hi", label: "Just say hi", sub: "Anything else on your mind" },
   ],
+  ack: {
+    hire: "good — he's open to that. who am i speaking to?",
+    project: "he likes those. who am i speaking to?",
+    hi: "always welcome. who am i speaking to?",
+  } as Record<string, string>,
+  askEmail: (name: string) => `nice to meet you, ${name}. what's the best email to reach you on?`,
+  askDetail: "and roughly what's on your mind? a line or two is plenty.",
+  done: "got it. i've put that into a draft for you — hit send and it lands in his inbox.",
+  subjects: {
+    hire: "Role opportunity",
+    project: "Project enquiry",
+    hi: "Hello",
+  } as Record<string, string>,
 };
 
 /**

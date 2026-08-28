@@ -56,8 +56,10 @@ export type PoseSpec = {
 const REST: PoseSpec = {
   torso: { x: 0, y: 0, z: 0 },
   head: { x: 0, y: 0, z: 0 },
-  shoulderL: { x: 0.04, y: 0, z: -0.52 },
-  shoulderR: { x: 0.04, y: 0, z: 0.52 },
+  // Arms hang close to the body. The blade masses are large now, so the old
+  // 30-degree swing threw them out sideways and read as wings.
+  shoulderL: { x: 0.04, y: 0, z: -0.3 },
+  shoulderR: { x: 0.04, y: 0, z: 0.3 },
   elbowL: { x: 0.3 },
   elbowR: { x: 0.3 },
   hipL: { x: 0, z: -0.14 },

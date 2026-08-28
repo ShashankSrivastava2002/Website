@@ -119,6 +119,29 @@ export function applyDissolve(mat: THREE.Material, u: DissolveUniforms) {
       );
   };
 
-  m.transparent = true;
+  // NOT `transparent = true` here. Patching set it permanently on every
+  // material, so all 90 meshes rendered in the sorted transparent pass for the
+  // whole session even though the dissolve is idle almost all of the time —
+  // no early-z, and depth ordering left to chance. The shader discards fully
+  // faded fragments on its own, so opaque is correct while uProgress is 0;
+  // `setDissolveActive` flips it only for the ~1.2s a morph is actually running.
   m.needsUpdate = true;
+}
+
+/**
+ * Toggle transparency for a whole rig. Call with `true` when a dissolve starts
+ * and `false` once it has settled at either end.
+ */
+export function setDissolveActive(root: THREE.Object3D, active: boolean) {
+  root.traverse((o) => {
+    const mesh = o as THREE.Mesh;
+    if (!mesh.isMesh || !mesh.material) return;
+    const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
+    for (const mat of mats) {
+      if (mat.transparent !== active) {
+        mat.transparent = active;
+        mat.needsUpdate = true;
+      }
+    }
+  });
 }

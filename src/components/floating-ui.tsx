@@ -1,14 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Heart, Volume2, VolumeX, Pause, Play, MessageSquareOff, Grid2x2, MoreHorizontal } from "lucide-react";
-import { nowPlaying, idea52 } from "@/lib/content";
+import { nowPlaying } from "@/lib/content";
 
 /* ------------------------------------------------------------------ */
 /* like counter — ticks up slowly, like a live visitor count           */
 /* ------------------------------------------------------------------ */
 
-export function LikeCounter() {
+export function LikeCounter({ onLike }: { onLike?: () => void }) {
   const [n, setN] = useState(11174);
   const [pop, setPop] = useState(false);
 
@@ -24,11 +24,13 @@ export function LikeCounter() {
     return () => clearInterval(id);
   }, []);
 
-  const like = () => {
+  const like = useCallback(() => {
     setN((v) => v + 1);
     setPop(true);
     setTimeout(() => setPop(false), 260);
-  };
+
+    onLike?.();
+  }, [onLike]);
 
   // The L key also likes, matching the "press L to like" affordance.
   useEffect(() => {
@@ -39,12 +41,19 @@ export function LikeCounter() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [like]);
 
   return (
     <button className="likes" onClick={like} aria-label="Like — or press the L key">
       <Heart size={13} className="likes-heart" data-pop={pop} />
       <span>{n.toLocaleString("en-US").replace(/,/g, "")}</span>
+      {/* The L key already worked but nothing said so. The reference spells the
+          shortcut out next to the counter, which is the only way anyone finds
+          a keyboard affordance that has no other visible cue. */}
+      <em className="likes-hint">
+        PRESS <b>L</b> TO LIKE
+      </em>
+
     </button>
   );
 }
@@ -116,20 +125,3 @@ export function UtilityCluster({
 /* featured idea strip                                                 */
 /* ------------------------------------------------------------------ */
 
-export function FeaturedIdea({ onOpen }: { onOpen: () => void }) {
-  return (
-    <div className="featured">
-      <div className="featured-row">
-        <button className="featured-pill" onClick={onOpen}>
-          IDEA52 <span>↗</span>
-        </button>
-        <span className="featured-sub">{idea52.tagline}</span>
-      </div>
-      <div className="featured-row">
-        <span className="featured-latest">LATEST</span>
-        <b>{idea52.latest}</b>
-        <span className="featured-arrow">→</span>
-      </div>
-    </div>
-  );
-}

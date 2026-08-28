@@ -1,22 +1,19 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { motion, AnimatePresence } from "framer-motion";
 import { MessageCircle, FileText } from "lucide-react";
 
 import BootPreloader from "@/components/boot-preloader";
+import BottomTicker from "@/components/bottom-ticker";
+import ChatWidget from "@/components/chat-widget";
+import HeartBurst from "@/components/heart-burst";
 import HomeSection from "@/components/sections/home-section";
 import WorkSection from "@/components/sections/work-section";
-import Idea52Section from "@/components/sections/idea52-section";
 import AboutSection from "@/components/sections/about-section";
 import ContactSection from "@/components/sections/contact-section";
-import {
-  LikeCounter,
-  NowPlaying,
-  UtilityCluster,
-  FeaturedIdea,
-} from "@/components/floating-ui";
+import { LikeCounter, NowPlaying, UtilityCluster } from "@/components/floating-ui";
 import { persona, sections, type Section, type Mood } from "@/lib/content";
 import type { Pose } from "@/components/robot/poses";
 
@@ -34,7 +31,6 @@ const fade = {
 const SECTION_POSE: Record<Section, Pose> = {
   home: "idle",
   work: "work",
-  idea52: "idle",
   about: "idle",
   contact: "bow",
 };
@@ -81,6 +77,33 @@ export default function Page() {
 
   const handleMood = useCallback((m: Mood) => setMood(m), []);
 
+  /* Every section change launches one tumble. Counting changes rather than
+     watching `section` means re-selecting the current tab does nothing, which
+     is what you want — the figure should not hop when nothing moved. */
+  const [tumbleGen, setTumbleGen] = useState(0);
+
+  /* Every like bumps this; the robot walks down its move list, so rapid likes
+     escalate from a kick to the full dive. See robot/dance.ts. */
+  const [danceGen, setDanceGen] = useState(0);
+  const onLike = useCallback(() => setDanceGen((g) => g + 1), []);
+  const firstSection = useRef(true);
+  useEffect(() => {
+    if (firstSection.current) {
+      firstSection.current = false;
+      return;
+    }
+    setTumbleGen((g) => g + 1);
+  }, [section]);
+
+  /** Topbar chat icon: go home, then put the caret in the ask box. */
+  const jumpToChat = useCallback(() => {
+    setSection("home");
+    // one tick so the home section has mounted before we reach for its input
+    setTimeout(() => {
+      document.querySelector<HTMLInputElement>(".chat-input input")?.focus();
+    }, 60);
+  }, []);
+
   // The About page flips between the robot and the human figure. The state
   // lives here because both the 3D stage and the copy need to stay in sync.
   const [human, setHuman] = useState(false);
@@ -106,9 +129,6 @@ export default function Page() {
     setMorphGen((g) => g + 1);
   }, []);
 
-  // The robot hides behind the Idea52 starfield, which is its own dark world.
-  const showRobot = section !== "idea52";
-
   return (
     <div data-section={section}>
       {booting && (
@@ -120,7 +140,6 @@ export default function Page() {
       {/* -------------------- the robot, behind everything -------------------- */}
       <div
         className="robot-layer"
-        data-hidden={!showRobot}
         data-boot={booting}
         data-front={section === "about"}
         aria-hidden
@@ -131,6 +150,8 @@ export default function Page() {
           paused={paused}
           morph={section === "about" && human ? 1 : 0}
           offsetX={section === "about" ? -2.15 : 0}
+          tumbleGen={tumbleGen}
+          danceGen={danceGen}
           walkIn
         />
       </div>
@@ -142,15 +163,30 @@ export default function Page() {
           <p>{persona.role}</p>
         </div>
 
-        <LikeCounter />
+        <LikeCounter onLike={onLike} />
 
         <nav className="nav" aria-label="Sections">
-          <span className="nav-icon" aria-hidden>
+          {/* These two were <span aria-hidden> styled to look exactly like
+              buttons — a chat bubble and a document icon that did nothing when
+              clicked. They now do the obvious thing each one promises. */}
+          <button
+            className="nav-icon"
+            onClick={jumpToChat}
+            aria-label="Ask the assistant a question"
+            title="Ask a question"
+          >
             <MessageCircle size={15} />
-          </span>
-          <span className="nav-icon nav-icon--plain" aria-hidden>
+          </button>
+          <a
+            className="nav-icon nav-icon--plain"
+            href="/shashank-resume.pdf"
+            target="_blank"
+            rel="noreferrer"
+            aria-label="Open CV as a PDF in a new tab"
+            title="CV (PDF)"
+          >
             <FileText size={14} />
-          </span>
+          </a>
           {sections.map((s) => (
             <button
               key={s}
@@ -172,17 +208,14 @@ export default function Page() {
       </header>
 
       {/* ------------------------------ pages ------------------------------ */}
-      <main className="stage">
+      <main className="stage" id="main">
         {/* Overlapping crossfade: the outgoing and incoming sections share a
             grid cell. `mode="wait"` would stall forever in a hidden tab, since
             the exit animation never gets a frame. */}
         <AnimatePresence>
           <motion.div key={section} {...fade} className="stage-inner">
-            {section === "home" && (
-              <HomeSection onMood={handleMood} returning={returning} />
-            )}
+            {section === "home" && <HomeSection />}
             {section === "work" && <WorkSection />}
-            {section === "idea52" && <Idea52Section />}
             {section === "about" && (
               <AboutSection human={human} gen={morphGen} onFlip={flip} />
             )}
@@ -192,8 +225,21 @@ export default function Page() {
       </main>
 
       {/* --------------------------- floating UI --------------------------- */}
-      {section === "home" && <FeaturedIdea onOpen={() => setSection("idea52")} />}
+      {/* Love shots leave the FIGURE in a V, not the counter — see heart-burst.
+          On About the robot is offset into the left column, so the emitter
+          follows it. */}
+      <HeartBurst gen={danceGen} offset={section === "about" ? -330 : 0} />
+
+      {/* The chat follows the visitor instead of living only on Home — it is
+          the persona, and having it disappear the moment you click Work made
+          the rest of the site feel like a different product. Its prompts
+          change per section (see sectionSuggestions). */}
+      <aside className="chat-dock" data-section={section}>
+        <ChatWidget onMood={handleMood} returning={returning} section={section} />
+      </aside>
+
       <NowPlaying />
+      <BottomTicker />
       <UtilityCluster
         paused={paused}
         setPaused={setPaused}

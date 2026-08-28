@@ -7,6 +7,7 @@ import * as THREE from "three";
 import { POSES, type Pose, type Joint } from "./poses";
 import { usePointer, easePointer } from "./use-pointer";
 import { Spring, JointSpring } from "./spring";
+import { MOVES, DANCE_RESET, sampleMove, type DanceSample } from "./dance";
 import * as M from "./materials";
 
 /* ------------------------------------------------------------------ */
@@ -31,12 +32,26 @@ function driveJoint(
   target: Joint | undefined,
   pose: JointSpring,
   dt: number,
-  extra?: { x?: number; y?: number; z?: number }
+  extra?: { x?: number; y?: number; z?: number },
+  /**
+   * Dance override. The timeline is authored at specific times — a kick that
+   * launches in 120ms — so it is written STRAIGHT to the rotation rather than
+   * through the pose spring, which has a t90 of ~0.45s and would flatten every
+   * accent into mush. `w` crossfades between the two so entering and leaving a
+   * move is still smooth. The springs keep running underneath the whole time,
+   * so whatever pose was active is already settled when the dance hands back.
+   */
+  dance?: { j: { x: number; y: number; z: number }; w: number }
 ) {
   if (!obj || !target) return;
-  obj.rotation.x = pose.x.step(target.x ?? 0, dt) + (extra?.x ?? 0);
-  obj.rotation.y = pose.y.step(target.y ?? 0, dt) + (extra?.y ?? 0);
-  obj.rotation.z = pose.z.step(target.z ?? 0, dt) + (extra?.z ?? 0);
+  const px = pose.x.step(target.x ?? 0, dt);
+  const py = pose.y.step(target.y ?? 0, dt);
+  const pz = pose.z.step(target.z ?? 0, dt);
+  const w = dance?.w ?? 0;
+  const k = 1 - w;
+  obj.rotation.x = px * k + (dance ? dance.j.x * w : 0) + (extra?.x ?? 0) * k;
+  obj.rotation.y = py * k + (dance ? dance.j.y * w : 0) + (extra?.y ?? 0) * k;
+  obj.rotation.z = pz * k + (dance ? dance.j.z * w : 0) + (extra?.z ?? 0) * k;
 }
 
 /**
@@ -76,71 +91,70 @@ function Arm({
   elbowRef: React.RefObject<THREE.Group>;
 }) {
   return (
-    <group position={[side * 0.38, 0.28, 0]}>
+    <group position={[side * 0.315, 0.3, 0]}>
       {/* shoulder ball, and the pivot everything below hangs from */}
       <Ball r={0.105} />
       <group ref={shoulderRef}>
-        {/* upper arm — angular shell tapering down */}
-        <RoundedBox
-          args={[0.24, 0.5, 0.24]}
-          radius={0.1}
-          smoothness={5}
-          material={M.plating}
-          position={[side * 0.045, -0.29, 0]}
-          castShadow
-        />
-        {/* soft shoulder pauldron over the top */}
-        <mesh material={M.platingSoft} position={[side * 0.05, -0.05, 0]} castShadow>
-          <sphereGeometry args={[0.165, 22, 18]} />
+        {/* Upper arm is a LEAF, not a box. In the reference both arm segments
+            are big rounded blades with a thin chrome joint between them — the
+            mass is the point, and a uniform-width box throws it away. */}
+        <group position={[side * 0.035, -0.25, 0]} rotation={[0, 0, side * 0.05]}>
+          <mesh material={M.plating} scale={[0.58, 1.2, 0.46]} castShadow>
+            <sphereGeometry args={[0.24, 28, 22]} />
+          </mesh>
+        </group>
+        {/* shoulder cap over the top of it */}
+        <mesh material={M.platingSoft} position={[side * 0.05, -0.06, 0]} scale={[1, 0.86, 1]} castShadow>
+          <sphereGeometry args={[0.16, 22, 18]} />
         </mesh>
 
-        {/* elbow */}
-        <group position={[side * 0.045, -0.57, 0]}>
-          <Ball r={0.085} />
+        {/* Elbow: visible chrome mechanism, which is what sells the two blades
+            as separate articulated parts rather than one lumpy arm. */}
+        <group position={[side * 0.05, -0.48, 0]}>
+          <Ball r={0.088} />
+          <mesh material={M.chromeDark} rotation={[0, 0, Math.PI / 2]}>
+            <torusGeometry args={[0.084, 0.026, 12, 24]} />
+          </mesh>
           <group ref={elbowRef}>
-            {/* forearm */}
-            <group position={[side * 0.07, -0.26, 0]} rotation={[0, 0, side * -0.12]}>
-              <mesh material={M.plating} scale={[0.62, 1.5, 0.4]} castShadow>
-                <sphereGeometry args={[0.29, 28, 22]} />
+            {/* forearm blade — the dominant mass of the arm */}
+            <group position={[side * 0.075, -0.28, 0]} rotation={[0, 0, side * -0.14]}>
+              <mesh material={M.plating} scale={[0.74, 1.6, 0.44]} castShadow>
+                <sphereGeometry args={[0.3, 30, 24]} />
               </mesh>
               {/* taper to the wrist */}
               <mesh
                 material={M.plating}
-                position={[0, -0.36, 0]}
+                position={[0, -0.4, 0]}
                 rotation={[Math.PI, 0, 0]}
-                scale={[1, 1, 0.55]}
+                scale={[1, 1, 0.5]}
                 castShadow
               >
-                <coneGeometry args={[0.175, 0.3, 20]} />
+                <coneGeometry args={[0.19, 0.32, 22]} />
               </mesh>
             </group>
-            {/* amber accent stripe on the outer forearm */}
-            <mesh
-              material={M.amber}
-              position={[side * 0.088, -0.2, 0.0]}
-              rotation={[0, 0, 0]}
-            >
-              <boxGeometry args={[0.006, 0.11, 0.035]} />
+            {/* amber accent stripe on the outer blade */}
+            <mesh material={M.amber} position={[side * 0.16, -0.24, 0.02]} rotation={[0, 0, side * -0.14]}>
+              <boxGeometry args={[0.008, 0.13, 0.04]} />
             </mesh>
 
             {/* wrist cuff */}
-            <mesh material={M.chromeDark} position={[side * 0.05, -0.52, 0]}>
-              <cylinderGeometry args={[0.075, 0.085, 0.06, 16]} />
+            <mesh material={M.chromeDark} position={[side * 0.055, -0.58, 0]}>
+              <cylinderGeometry args={[0.062, 0.072, 0.055, 16]} />
             </mesh>
 
             {/* Hand: a small chrome knuckle with three thin curved talons. */}
-            <mesh material={M.chromeDark} position={[side * 0.09, -0.66, 0.01]} castShadow>
-              <sphereGeometry args={[0.062, 16, 14]} />
+            <mesh material={M.chromeDark} position={[side * 0.085, -0.7, 0.01]} castShadow>
+              <sphereGeometry args={[0.068, 16, 14]} />
             </mesh>
             {[-1, 0, 1].map((f) => (
               <mesh
                 key={f}
                 material={M.chrome}
-                position={[side * 0.09 + f * 0.042, -0.75, 0.012 + Math.abs(f) * -0.01]}
-                rotation={[Math.PI - 0.16, 0, f * 0.26]}
+                position={[side * 0.085 + f * 0.04, -0.795, 0.014 + Math.abs(f) * -0.012]}
+                rotation={[Math.PI - 0.2, 0, f * 0.3]}
                 castShadow
               >
-                <coneGeometry args={[0.019, 0.17, 8]} />
+                <coneGeometry args={[0.023, 0.2, 9]} />
               </mesh>
             ))}
           </group>
@@ -150,7 +164,15 @@ function Arm({
   );
 }
 
-/** One leg — short and stubby, with a big rounded boot. */
+/**
+ * One leg.
+ *
+ * The reference shin is a single long WEDGE — wide at the knee, narrowing all
+ * the way to the ankle — over a sculpted boot with a pointed toe. Ours used to
+ * be a stack of equal-width rounded boxes, which is the classic segmented-tube
+ * look and the last big "toy" cue left after the head. A tapered cylinder,
+ * squashed front-to-back, gives the wedge in one smooth piece.
+ */
 function Leg({
   side,
   hipRef,
@@ -165,57 +187,69 @@ function Leg({
 }) {
   return (
     <group ref={legRef} position={[side * 0.18, -0.46, 0]}>
-      <Ball r={0.1} />
+      <Ball r={0.105} />
       <group ref={hipRef}>
-        {/* Thigh is exposed chrome hardware rather than plating — it's what
-            makes the legs read as an articulated figure. */}
-        <mesh material={M.chrome} position={[0, -0.14, 0]} castShadow>
-          <cylinderGeometry args={[0.105, 0.115, 0.22, 20]} />
+        {/* Thigh is thin exposed chrome hardware. Keeping it slim is what makes
+            the shin below it read as a heavy mass rather than more of the same. */}
+        <mesh material={M.chrome} position={[0, -0.115, 0]} castShadow>
+          <cylinderGeometry args={[0.084, 0.076, 0.19, 20]} />
         </mesh>
-        <Ball r={0.082} position={[0, -0.26, 0]} />
-        <RoundedBox
-          args={[0.25, 0.22, 0.26]}
-          radius={0.1}
-          smoothness={5}
-          material={M.plating}
-          position={[0, -0.31, 0]}
-          castShadow
-        />
+        <mesh material={M.chromeDark} position={[0, -0.06, 0]}>
+          <torusGeometry args={[0.088, 0.017, 10, 20]} />
+        </mesh>
 
         {/* knee */}
-        <group position={[0, -0.38, 0]}>
-          <Ball r={0.095} />
+        <group position={[0, -0.235, 0]}>
+          <Ball r={0.1} />
           <group ref={kneeRef}>
-            {/* shin, tapering forward into the boot */}
-            <RoundedBox
-              args={[0.26, 0.38, 0.27]}
-              radius={0.11}
-              smoothness={5}
-              material={M.plating}
-              position={[0, -0.21, 0.005]}
-              castShadow
-            />
+            {/* The wedge. Wide at the knee and heavy — in the reference this
+                single mass is most of the leg, so making it broad matters more
+                than making it long. */}
+            <group scale={[1, 1, 0.88]}>
+              <mesh material={M.plating} position={[0, -0.29, 0.01]} castShadow>
+                <cylinderGeometry args={[0.205, 0.115, 0.52, 30]} />
+              </mesh>
+            </group>
+            {/* shallow panel seam down the outer face */}
+            <mesh
+              material={M.platingSoft}
+              position={[side * 0.155, -0.26, 0.03]}
+              rotation={[0, 0, side * 0.05]}
+            >
+              <boxGeometry args={[0.012, 0.28, 0.11]} />
+            </mesh>
 
-            {/* Oversized boot — heel block plus a longer toe box. */}
+            {/* Boot: the wedge flares back out into the foot rather than
+                sitting on it as a separate block. */}
             <RoundedBox
-              args={[0.34, 0.3, 0.38]}
-              radius={0.13}
+              args={[0.27, 0.22, 0.3]}
+              radius={0.09}
               smoothness={5}
               material={M.plating}
-              position={[0, -0.42, 0.02]}
+              position={[0, -0.6, 0.0]}
               castShadow
             />
             <RoundedBox
-              args={[0.31, 0.22, 0.32]}
-              radius={0.1}
+              args={[0.235, 0.16, 0.28]}
+              radius={0.07}
               smoothness={5}
               material={M.plating}
-              position={[0, -0.47, 0.18]}
+              position={[0, -0.645, 0.16]}
               castShadow
             />
-            {/* sole highlight */}
-            <mesh material={M.chromeDark} position={[0, -0.545, 0.09]}>
-              <boxGeometry args={[0.21, 0.03, 0.38]} />
+            {/* the toe point */}
+            <mesh
+              material={M.plating}
+              position={[0, -0.655, 0.29]}
+              rotation={[Math.PI / 2, 0, 0]}
+              scale={[1, 1, 0.55]}
+              castShadow
+            >
+              <coneGeometry args={[0.112, 0.16, 18]} />
+            </mesh>
+            {/* pale sole */}
+            <mesh material={M.chromeDark} position={[0, -0.707, 0.085]}>
+              <boxGeometry args={[0.215, 0.03, 0.45]} />
             </mesh>
           </group>
         </group>
@@ -234,87 +268,100 @@ function Leg({
  * the top-rear. A lathed profile gives that in one smooth surface; the whole
  * group is then tilted back so the point leans behind the face.
  */
+/**
+ * The head silhouette, as a lathe profile from chin to crown.
+ *
+ * The reference head is a SHIELD, not a teardrop: broad and round across the
+ * crown, tapering down to a rounded point at the chin. We had it upside down —
+ * widest at the jaw and pointed at the top-rear — which is most of why ours
+ * read as a toy while theirs reads as a helmet. Radius peaks just above centre
+ * and falls away in both directions, faster downward than up.
+ */
 const HEAD_PROFILE = (() => {
-  const pts: THREE.Vector2[] = [];
   const prof: [number, number][] = [
-    [0.0, -0.36], [0.15, -0.352], [0.26, -0.315], [0.335, -0.245],
-    [0.375, -0.15], [0.388, -0.04], [0.375, 0.07], [0.335, 0.18],
-    [0.268, 0.29], [0.17, 0.385], [0.07, 0.45], [0.0, 0.475],
+    [0.0, -0.46], [0.105, -0.432], [0.192, -0.375], [0.262, -0.30],
+    [0.322, -0.205], [0.365, -0.095], [0.392, 0.02], [0.404, 0.13],
+    [0.398, 0.235], [0.372, 0.325], [0.322, 0.40], [0.242, 0.455],
+    [0.135, 0.492], [0.0, 0.508],
   ];
-  for (const [x, y] of prof) pts.push(new THREE.Vector2(x, y));
-  return pts;
+  return prof.map(([x, y]) => new THREE.Vector2(x, y));
 })();
 
 function Head() {
+  // The face is asymmetric: a big lens on one side, the chevron on the other.
+  // That asymmetry is a large part of why the reference face reads as designed
+  // rather than as a symmetric mask.
+  const LENS = -1;
+  const MARK = 1;
+
   return (
-    // tilted so the crest sweeps backward rather than straight up
-    <group rotation={[-0.2, 0, 0]}>
-      <mesh material={M.plating} castShadow>
-        <latheGeometry args={[HEAD_PROFILE, 48]} />
-      </mesh>
-
-      {/* Face panel: a flat angled plate set into the front of the teardrop.
-          It must break the lathe surface (~0.375 at this height) to be seen. */}
-      <group rotation={[0.2, 0, 0]} position={[0, -0.05, 0.0]}>
-        <RoundedBox
-          args={[0.44, 0.34, 0.1]}
-          radius={0.045}
-          smoothness={5}
-          material={M.faceGlass}
-          position={[0, 0, 0.335]}
-          rotation={[0.12, 0, 0]}
-        />
-
-        {/* cyan visor along the top of the panel, with a hooked outer end */}
-        <mesh material={M.visor} position={[0, 0.075, 0.392]} rotation={[0.12, 0, 0]}>
-          <boxGeometry args={[0.3, 0.032, 0.02]} />
+    // tilted back a little so the crown leads and the chin tucks in
+    <group rotation={[-0.12, 0, 0]}>
+      {/* Wider than it is tall and flattened front-to-back. The lathe profile
+          alone came out egg-shaped; the reference head is a broad shield. */}
+      <group scale={[1.16, 0.94, 0.87]}>
+        <mesh material={M.plating} castShadow>
+          <latheGeometry args={[HEAD_PROFILE, 56]} />
         </mesh>
-        {[-1, 1].map((sd) => (
-          <mesh
-            key={`vh${sd}`}
-            material={M.visor}
-            position={[sd * 0.163, 0.045, 0.388]}
-            rotation={[0.12, 0, sd * 1.15]}
-          >
-            <boxGeometry args={[0.075, 0.03, 0.02]} />
-          </mesh>
-        ))}
-
-        {/* amber brackets down the outer edges of the panel */}
-        {[-1, 1].map((sd) => (
-          <group key={`am${sd}`}>
-            <mesh
-              material={M.amber}
-              position={[sd * 0.175, -0.035, 0.386]}
-              rotation={[0.12, 0, sd * 0.1]}
-            >
-              <boxGeometry args={[0.032, 0.15, 0.02]} />
-            </mesh>
-            <mesh
-              material={M.amber}
-              position={[sd * 0.128, -0.115, 0.378]}
-              rotation={[0.12, 0, sd * 1.25]}
-            >
-              <boxGeometry args={[0.03, 0.11, 0.02]} />
-            </mesh>
-          </group>
-        ))}
       </group>
 
-      {/* Large concentric side discs — a strong silhouette cue in the ref. */}
+      {/* The lens. In the reference this sits on the FACE, not on the side of
+          the skull — a large ringed disc with a bright dome standing proud of
+          it. Putting it out on the ear line buried it inside the shell. */}
+      <group position={[LENS * 0.17, 0.075, 0.3]} rotation={[0.04, LENS * 0.3, 0]}>
+        <group rotation={[Math.PI / 2, 0, 0]}>
+          <mesh material={M.platingSoft} castShadow>
+            <cylinderGeometry args={[0.185, 0.192, 0.05, 40]} />
+          </mesh>
+          <mesh material={M.chromeDark} position={[0, 0.028, 0]}>
+            <torusGeometry args={[0.15, 0.011, 10, 40]} />
+          </mesh>
+          <mesh material={M.chromeDark} position={[0, 0.03, 0]}>
+            <cylinderGeometry args={[0.112, 0.115, 0.032, 32]} />
+          </mesh>
+          <mesh material={M.chrome} position={[0, 0.055, 0]} castShadow>
+            <sphereGeometry args={[0.075, 24, 20]} />
+          </mesh>
+        </group>
+      </group>
+
+      {/* Angular chevron on the opposite cheek. */}
+      <group position={[MARK * 0.215, 0.02, 0.315]} rotation={[0.04, MARK * 0.44, MARK * 0.1]}>
+        <RoundedBox
+          args={[0.17, 0.235, 0.05]}
+          radius={0.02}
+          smoothness={5}
+          material={M.faceGlass}
+        />
+        <mesh material={M.visor} position={[-0.02, 0.062, 0.032]}>
+          <boxGeometry args={[0.1, 0.026, 0.016]} />
+        </mesh>
+        <mesh material={M.visor} position={[-0.062, -0.008, 0.032]} rotation={[0, 0, 1.32]}>
+          <boxGeometry args={[0.12, 0.024, 0.016]} />
+        </mesh>
+        <mesh material={M.amber} position={[0.012, 0.0, 0.03]}>
+          <boxGeometry args={[0.082, 0.022, 0.014]} />
+        </mesh>
+        <mesh material={M.amber} position={[-0.028, -0.066, 0.03]} rotation={[0, 0, 1.32]}>
+          <boxGeometry args={[0.098, 0.02, 0.014]} />
+        </mesh>
+      </group>
+
+      {/* Small side plates, kept flush so they read as hardware not ears. */}
       {[-1, 1].map((sd) => (
-        <group key={`ear${sd}`} position={[sd * 0.36, -0.05, 0.02]} rotation={[0, 0, Math.PI / 2]}>
-          <mesh material={M.plating}>
-            <cylinderGeometry args={[0.135, 0.135, 0.06, 32]} />
-          </mesh>
-          <mesh material={M.chromeDark} position={[sd * 0.02, 0, 0]}>
-            <cylinderGeometry args={[0.095, 0.095, 0.05, 28]} />
-          </mesh>
-          <mesh material={M.chrome} position={[sd * 0.035, 0, 0]}>
-            <cylinderGeometry args={[0.042, 0.042, 0.04, 20]} />
+        <group key={`sp${sd}`} position={[sd * 0.44, 0.05, -0.02]} rotation={[0, 0, Math.PI / 2]}>
+          <mesh material={M.chromeDark}>
+            <cylinderGeometry args={[0.062, 0.068, 0.05, 20]} />
           </mesh>
         </group>
       ))}
+
+      {/* Thin rod off one side. */}
+      <group position={[MARK * 0.47, 0.06, -0.02]} rotation={[0, 0, MARK * -1.3]}>
+        <mesh material={M.chromeDark}>
+          <cylinderGeometry args={[0.01, 0.01, 0.18, 10]} />
+        </mesh>
+      </group>
     </group>
   );
 }
@@ -363,13 +410,20 @@ export default function RobotModel({
   homeX = 0,
   /** where it starts — the walk-in begins off-screen at a negative x */
   startX = 0,
+  /** bump on every like — each bump fires the next move in the sequence */
+  danceGen = 0,
 }: {
   pose?: Pose;
   paused?: boolean;
   homeX?: number;
   startX?: number;
+  danceGen?: number;
 }) {
   const pointer = usePointer();
+
+  /* Like-reaction state. `idx` walks down MOVES so repeated likes escalate;
+     it resets to the top once the visitor has left it alone for a beat. */
+  const dance = useRef({ active: false, t: 0, idx: 0, since: 99, gen: danceGen });
 
   /**
    * One spring per tracked axis. Stiffness is staggered so the chain reads as
@@ -444,6 +498,40 @@ export default function RobotModel({
     const p = POSES[pose];
     const still = paused ? 0 : 1;
 
+    /* ---- like reaction ------------------------------------------------- */
+    const D = dance.current;
+    D.since += d;
+    if (danceGen !== D.gen) {
+      D.gen = danceGen;
+      // Any like inside the reset window advances to the next move; one after
+      // a pause starts again from the kick. Gating this on `D.active` was
+      // wrong — moves are shorter than the window, so once one finished the
+      // counter stalled and every further like replayed the kick.
+      D.idx = D.since > DANCE_RESET ? 0 : Math.min(D.idx + 1, MOVES.length - 1);
+      D.active = true;
+      D.t = 0;
+      D.since = 0;
+    }
+
+    let dw = 0;
+    let ds: DanceSample | null = null;
+    if (D.active && !paused) {
+      const move = MOVES[D.idx];
+      D.t += d;
+      if (D.t >= move.dur) {
+        D.active = false;
+      } else {
+        ds = sampleMove(move, D.t);
+        // Fade in and out at the ends so the hand-off to the idle pose has no
+        // step in it. 90ms is short enough to keep the kick's attack.
+        const IN = 0.09;
+        const OUT = 0.16;
+        dw = Math.min(1, D.t / IN, Math.max(0, move.dur - D.t) / OUT);
+      }
+    }
+    const dj = (k: keyof DanceSample["joints"]) =>
+      ds ? { j: ds.joints[k], w: dw } : undefined;
+
     // one clock: smooth the cursor here rather than in a separate rAF
     easePointer(pointer.current, d, 26);
 
@@ -475,7 +563,7 @@ export default function RobotModel({
       y: swing * 0.07 * wk + tY,
       x: tX,
       z: tZ,
-    });
+    }, dj("torso"));
 
     /* --- the spiral -------------------------------------------------
        A real turn runs head -> chest -> pelvis -> feet, each rotating less
@@ -511,17 +599,17 @@ export default function RobotModel({
       legR.current.position.y = -0.46 + (px0 > 0 ? stepLift.current : 0);
     }
     const S = ps.current;
-    driveJoint(shoulderL.current, p.shoulderL, S.shoulderL, d, { x: -swing * 0.26 * wk });
+    driveJoint(shoulderL.current, p.shoulderL, S.shoulderL, d, { x: -swing * 0.26 * wk }, dj("shoulderL"));
     driveJoint(shoulderR.current, p.shoulderR, S.shoulderR, d, {
       z: waveSwing,
       x: swing * 0.26 * wk,
-    });
-    driveJoint(elbowL.current, p.elbowL, S.elbowL, d);
-    driveJoint(elbowR.current, p.elbowR, S.elbowR, d, { x: waveSwing * 0.4 });
-    driveJoint(hipL.current, p.hipL, S.hipL, d, { x: swing * 0.4 * wk });
-    driveJoint(hipR.current, p.hipR, S.hipR, d, { x: -swing * 0.4 * wk });
-    driveJoint(kneeL.current, p.kneeL, S.kneeL, d, { x: softRect(-swing) * 0.34 * wk });
-    driveJoint(kneeR.current, p.kneeR, S.kneeR, d, { x: softRect(swing) * 0.34 * wk });
+    }, dj("shoulderR"));
+    driveJoint(elbowL.current, p.elbowL, S.elbowL, d, undefined, dj("elbowL"));
+    driveJoint(elbowR.current, p.elbowR, S.elbowR, d, { x: waveSwing * 0.4 }, dj("elbowR"));
+    driveJoint(hipL.current, p.hipL, S.hipL, d, { x: swing * 0.4 * wk }, dj("hipL"));
+    driveJoint(hipR.current, p.hipR, S.hipR, d, { x: -swing * 0.4 * wk }, dj("hipR"));
+    driveJoint(kneeL.current, p.kneeL, S.kneeL, d, { x: softRect(-swing) * 0.34 * wk }, dj("kneeL"));
+    driveJoint(kneeR.current, p.kneeR, S.kneeR, d, { x: softRect(swing) * 0.34 * wk }, dj("kneeR"));
 
     // Head follows the pose, plus a cursor-tracking offset on top. `pointer`
     // comes from a window listener — see use-pointer.ts for why the canvas's
@@ -538,7 +626,7 @@ export default function RobotModel({
     const hY = sp.current.headY.step(px * 0.5 * still + idleYaw, d);
     const hX = sp.current.headX.step(-py * 0.4 * still + idlePitch, d);
     const hZ = sp.current.headZ.step(px * 0.16 * still, d);
-    driveJoint(head.current, p.head, ps.current.head, d, { x: hX, y: hY, z: hZ });
+    driveJoint(head.current, p.head, ps.current.head, d, { x: hX, y: hY, z: hZ }, dj("head"));
 
     // Breathing bob, plus the double-bounce that comes with the walk cycle.
     // `lift` and `bob` are pose values so they ease; the oscillators ride on
@@ -547,10 +635,19 @@ export default function RobotModel({
       const bob = bobS.current.step(p.bob, d);
       const breathe = Math.sin(t * 1.5) * 0.022 * bob * still;
       const stride = Math.sin(t * 2.2) * 0.07 * wk;
-      body.current.position.y = liftS.current.step(p.lift, d) + breathe + stride;
+      const baseLift = liftS.current.step(p.lift, d) + breathe + stride;
+      const k = 1 - dw;
+      body.current.position.y = ds ? baseLift * k + ds.lift * dw : baseLift;
+
+      // Whole-body pitch is what lets the dive fold FLAT. Bending only at the
+      // waist tops out well short of horizontal — the reference clearly rotates
+      // the entire figure over its feet, so this rides on the body group.
+      body.current.rotation.x = ds ? ds.bodyPitch * dw : 0;
+      body.current.rotation.y = ds ? ds.bodyYaw * dw : 0;
       // Weight shift, on a much longer period than the breath and deliberately
       // incommensurate with it, so the idle never settles into a visible loop.
-      body.current.rotation.z = Math.sin(t * 0.58) * 0.016 * bob * still;
+      const sway = Math.sin(t * 0.58) * 0.016 * bob * still;
+      body.current.rotation.z = ds ? sway * k + ds.bodyRoll * dw : sway;
     }
 
     // Whole model turns toward the cursor, leans into it, and walks to its mark.
@@ -577,33 +674,37 @@ export default function RobotModel({
         </group>
 
         <group ref={torso}>
-          {/* ---- chest ---- */}
-          <RoundedBox
-            args={[0.6, 0.46, 0.4]}
-            radius={0.12}
-            smoothness={6}
-            material={M.plating}
-            position={[0, 0.18, 0]}
+          {/* ---- chest ----
+              The reference torso is a WEDGE: broad across the shoulders and
+              tapering to a narrow waist, so the small body throws the head and
+              the limb masses into relief. A rounded box of even width reads as
+              a fridge by comparison. A squashed, tapered cylinder gives the
+              wedge with a soft enough shoulder line to match the plating. */}
+          <group scale={[1, 1, 0.72]}>
+            <mesh material={M.plating} position={[0, 0.2, 0]} castShadow>
+              <cylinderGeometry args={[0.33, 0.185, 0.52, 30]} />
+            </mesh>
+          </group>
+          {/* shoulder yoke across the top */}
+          <mesh
+            material={M.platingSoft}
+            position={[0, 0.42, 0]}
+            scale={[1, 0.44, 0.72]}
             castShadow
-          />
-          {/* chest bevels so it isn't a plain box */}
-          <mesh material={M.platingSoft} position={[0, 0.38, 0.02]} scale={[0.92, 0.5, 0.95]} castShadow>
-            <sphereGeometry args={[0.34, 28, 20]} />
+          >
+            <sphereGeometry args={[0.34, 30, 22]} />
           </mesh>
-          {/* teal hex chest light */}
-          <mesh material={M.visor} position={[0, 0.2, 0.228]} rotation={[0, 0, Math.PI / 6]}>
-            <torusGeometry args={[0.1, 0.016, 3, 6]} />
+          {/* teal hex chest sigil */}
+          <mesh material={M.visor} position={[0, 0.21, 0.208]} rotation={[0, 0, Math.PI / 6]}>
+            <torusGeometry args={[0.088, 0.015, 3, 6]} />
           </mesh>
 
-          {/* abdomen tapering to the waist */}
-          <RoundedBox
-            args={[0.4, 0.3, 0.32]}
-            radius={0.11}
-            smoothness={5}
-            material={M.plating}
-            position={[0, -0.16, 0]}
-            castShadow
-          />
+          {/* waist: narrow, so the pelvis ball below reads as a joint */}
+          <group scale={[1, 1, 0.78]}>
+            <mesh material={M.plating} position={[0, -0.13, 0]} castShadow>
+              <cylinderGeometry args={[0.175, 0.15, 0.3, 24]} />
+            </mesh>
+          </group>
 
 
           {/* ---- neck + head ---- */}

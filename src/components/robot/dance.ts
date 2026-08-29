@@ -343,7 +343,59 @@ export type DanceSample = {
   bodyYaw: number;
 };
 
-const ease = (v: number) => v * v * (3 - 2 * v);
+/**
+ * Cubic interpolation across the whole key list, ported from three.js's
+ * `CubicInterpolant` (src/math/interpolants/CubicInterpolant.js) — the
+ * interpolant an `AnimationMixer` uses for `InterpolateSmooth` tracks.
+ *
+ * This replaces a per-segment smoothstep. Smoothstep has zero derivative at
+ * BOTH ends of every segment, so the dance came to a complete stop at every
+ * single keyframe and re-accelerated from rest — five moves' worth of traced
+ * timing, delivered as a series of twitches. A Hermite spline whose tangent at
+ * each key is the slope between its neighbours flows through the interior keys
+ * at speed and only stops where the motion actually stops.
+ *
+ * `ZeroSlopeEnding` at both ends, because a move genuinely does start and end
+ * at rest — that is the one place the old behaviour was right, and it is kept.
+ */
+function cubicWeights(keys: DanceKey[], i1: number, t: number) {
+  const t0 = keys[i1 - 1].t;
+  const t1 = keys[i1].t;
+
+  let iPrev = i1 - 2;
+  let iNext = i1 + 1;
+  let tPrev = keys[iPrev]?.t;
+  let tNext = keys[iNext]?.t;
+
+  // Mirror the segment past each end so the first and last keys have zero
+  // slope. Note the index is the segment's OTHER key, not a clamp — that is
+  // what makes the derivative vanish rather than merely flatten.
+  if (tPrev === undefined) {
+    iPrev = i1;
+    tPrev = 2 * t0 - t1;
+  }
+  if (tNext === undefined) {
+    iNext = i1 - 1;
+    tNext = 2 * t1 - t0;
+  }
+
+  const halfDt = (t1 - t0) * 0.5;
+  const wP = halfDt / (t0 - tPrev);
+  const wN = halfDt / (tNext - t1);
+
+  const p = (t - t0) / (t1 - t0);
+  const pp = p * p;
+  const ppp = pp * p;
+
+  return {
+    iPrev,
+    iNext,
+    sP: -wP * ppp + 2 * wP * pp - wP * p,
+    s0: (1 + wP) * ppp + (-1.5 - 2 * wP) * pp + (-0.5 + wP) * p + 1,
+    s1: (-1 - wN) * ppp + (1.5 + wN) * pp + 0.5 * p,
+    sN: wN * ppp - wN * pp,
+  };
+}
 
 function blank(): DanceSample {
   const joints = {} as DanceSample["joints"];
@@ -361,28 +413,43 @@ function blank(): DanceSample {
  */
 export function sampleMove(move: Move, t: number): DanceSample {
   const keys = move.keys;
-  let i = 0;
-  while (i < keys.length - 1 && keys[i + 1].t <= t) i++;
-  const a = keys[i];
-  const b = keys[Math.min(i + 1, keys.length - 1)];
-  const span = Math.max(1e-4, b.t - a.t);
-  const u = b === a ? 1 : ease(Math.min(1, Math.max(0, (t - a.t) / span)));
-
   const out = blank();
-  const lerp = (p: number, q: number) => p + (q - p) * u;
+  if (keys.length === 0) return out;
+  if (keys.length === 1) {
+    for (const j of JOINTS) {
+      const k = (keys[0][j] ?? {}) as Joint;
+      out.joints[j] = { x: k.x ?? 0, y: k.y ?? 0, z: k.z ?? 0 };
+    }
+    out.lift = keys[0].lift ?? 0;
+    out.bodyPitch = keys[0].bodyPitch ?? 0;
+    out.bodyRoll = keys[0].bodyRoll ?? 0;
+    out.bodyYaw = keys[0].bodyYaw ?? 0;
+    return out;
+  }
+
+  const tc = Math.min(Math.max(t, keys[0].t), keys[keys.length - 1].t);
+  let i1 = 1;
+  while (i1 < keys.length - 1 && keys[i1].t <= tc) i1++;
+
+  const { iPrev, iNext, sP, s0, s1, sN } = cubicWeights(keys, i1, tc);
+
+  /** One scalar channel, blended across the four samples the spline touches. */
+  const chan = (pick: (k: DanceKey) => number) =>
+    sP * pick(keys[iPrev]) +
+    s0 * pick(keys[i1 - 1]) +
+    s1 * pick(keys[i1]) +
+    sN * pick(keys[iNext]);
 
   for (const j of JOINTS) {
-    const ja = (a[j] ?? {}) as Joint;
-    const jb = (b[j] ?? {}) as Joint;
     out.joints[j] = {
-      x: lerp(ja.x ?? 0, jb.x ?? 0),
-      y: lerp(ja.y ?? 0, jb.y ?? 0),
-      z: lerp(ja.z ?? 0, jb.z ?? 0),
+      x: chan((k) => ((k[j] ?? {}) as Joint).x ?? 0),
+      y: chan((k) => ((k[j] ?? {}) as Joint).y ?? 0),
+      z: chan((k) => ((k[j] ?? {}) as Joint).z ?? 0),
     };
   }
-  out.lift = lerp(a.lift ?? 0, b.lift ?? 0);
-  out.bodyPitch = lerp(a.bodyPitch ?? 0, b.bodyPitch ?? 0);
-  out.bodyRoll = lerp(a.bodyRoll ?? 0, b.bodyRoll ?? 0);
-  out.bodyYaw = lerp(a.bodyYaw ?? 0, b.bodyYaw ?? 0);
+  out.lift = chan((k) => k.lift ?? 0);
+  out.bodyPitch = chan((k) => k.bodyPitch ?? 0);
+  out.bodyRoll = chan((k) => k.bodyRoll ?? 0);
+  out.bodyYaw = chan((k) => k.bodyYaw ?? 0);
   return out;
 }

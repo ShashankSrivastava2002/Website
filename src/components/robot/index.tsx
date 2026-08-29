@@ -74,9 +74,38 @@ const smooth = (v: number) => v * v * (3 - 2 * v);
  *   // ...same for children[1], then compare min world Y of each subtree.
  */
 const HUMAN_FIT = (() => {
-  const ROBOT_SOLE = -1.4549;
-  const HUMAN_SOLE = -1.3585;
+  /*
+   * MEASURED, at true neutral. Getting to "true neutral" is the whole
+   * difficulty, and it is where both previous attempts went wrong: the rigs
+   * are three nested groups deep and EVERY level carries an animated y.
+   *
+   *   humanRef / robotRef  the morph's own park transform (the human sits
+   *                        tilted back 0.6 rad and raised 0.5 at morph 0)
+   *   <group ref={root}>   the cursor-driven vertical lift
+   *   <group ref={body}>   pose lift + the breathing bob
+   *
+   * Zero the first two and miss the third and the robot reads 12.8mm high;
+   * that is exactly the error that produced the previous ROBOT_SOLE of
+   * -1.4549 and the claim that the robot's head anchor was 0.90721 rather
+   * than 0.92. The head anchor really is identical in both rigs — that part
+   * of the original note was right, and the measurement contradicting it was
+   * the thing at fault.
+   *
+   * What was genuinely wrong is the SPAN. The old pair of soles gave a scale
+   * of 1.042313 against a true 1.021838, a 2% error, so the human's feet and
+   * head both missed — 47mm at the sole, about 2% of body height.
+   *
+   * To re-measure: set humanRef/robotRef rotation and position.y to their
+   * settled values, zero position.y on BOTH the root and the body group of
+   * each rig, zero every group rotation, then compare min world Y and the
+   * head group origin. The check that it worked is that the sole gap and the
+   * head gap come out EQUAL — that means the span is right and only the
+   * offset can still be wrong. They currently agree to 4 micrometres.
+   */
+  const ROBOT_SOLE = -1.420006;
+  const HUMAN_SOLE = -1.37;
   const HEAD_ANCHOR = 0.92; // identical in both rigs, by construction
+  // Match the sole-to-head span, then drop the human so the soles coincide.
   const scale = (HEAD_ANCHOR - ROBOT_SOLE) / (HEAD_ANCHOR - HUMAN_SOLE);
   return { scale, y: ROBOT_SOLE - HUMAN_SOLE * scale };
 })();
@@ -298,7 +327,10 @@ function Scene({
           {/* Fitted onto the robot's sole and head anchor — see HUMAN_FIT. */}
           <group ref={humanRef} visible={false}>
             <group scale={HUMAN_FIT.scale} position={[0, HUMAN_FIT.y, 0]}>
-              <HumanModel paused={paused} />
+              {/* Same pose as the robot. Without this the morph swapped a
+                  posed figure for one standing to attention, so the identity
+                  swap carried a pose change along with it. */}
+              <HumanModel paused={paused} pose={pose} />
             </group>
           </group>
         </group>

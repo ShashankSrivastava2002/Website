@@ -7,62 +7,19 @@ import * as THREE from "three";
 import { POSES, type Pose, type Joint } from "./poses";
 import { usePointer, easePointer } from "./use-pointer";
 import { Spring, JointSpring } from "./spring";
+import { driveJoint, softRect } from "./rig";
 import { MOVES, DANCE_RESET, sampleMove, type DanceSample } from "./dance";
+import {
+  Gait,
+  makeGait,
+  REF_STEP_OVER_LEG,
+  BOB_OVER_LEG,
+} from "./locomotion";
 import * as M from "./materials";
 
 /* ------------------------------------------------------------------ */
 /* helpers                                                             */
 /* ------------------------------------------------------------------ */
-
-/**
- * Springs a joint toward its pose target, then adds the live offset on top.
- *
- * The pose and the offset need opposite response times. A pose change is a
- * deliberate half-second movement; an offset (cursor tracking, walk swing, the
- * wave) is already smooth and only needs passing straight through. This used to
- * damp their SUM with a single lambda, so whichever job won, the other broke —
- * the head and torso ran at lambda 30+ for the offset's sake, which collapsed
- * every pose change into 83ms. At 12fps that is one frame: the "pop".
- *
- * Keeping them separate also means an offset can no longer be attenuated by the
- * pose filter (the walk swing was losing 15% of its amplitude that way).
- */
-function driveJoint(
-  obj: THREE.Object3D | null,
-  target: Joint | undefined,
-  pose: JointSpring,
-  dt: number,
-  extra?: { x?: number; y?: number; z?: number },
-  /**
-   * Dance override. The timeline is authored at specific times — a kick that
-   * launches in 120ms — so it is written STRAIGHT to the rotation rather than
-   * through the pose spring, which has a t90 of ~0.45s and would flatten every
-   * accent into mush. `w` crossfades between the two so entering and leaving a
-   * move is still smooth. The springs keep running underneath the whole time,
-   * so whatever pose was active is already settled when the dance hands back.
-   */
-  dance?: { j: { x: number; y: number; z: number }; w: number }
-) {
-  if (!obj || !target) return;
-  const px = pose.x.step(target.x ?? 0, dt);
-  const py = pose.y.step(target.y ?? 0, dt);
-  const pz = pose.z.step(target.z ?? 0, dt);
-  const w = dance?.w ?? 0;
-  const k = 1 - w;
-  obj.rotation.x = px * k + (dance ? dance.j.x * w : 0) + (extra?.x ?? 0) * k;
-  obj.rotation.y = py * k + (dance ? dance.j.y * w : 0) + (extra?.y ?? 0) * k;
-  obj.rotation.z = pz * k + (dance ? dance.j.z * w : 0) + (extra?.z ?? 0) * k;
-}
-
-/**
- * Rectifier with a rounded corner. `Math.max(0, v)` has a velocity
- * discontinuity at zero, which the old pose filter used to hide; passed
- * straight through it shows up as a hitch in the knee at each stride.
- */
-function softRect(v: number) {
-  const k = 0.18;
-  return 0.5 * (v + Math.sqrt(v * v + k * k)) - k / 2;
-}
 
 /* ------------------------------------------------------------------ */
 /* limb sub-assemblies                                                 */
@@ -177,11 +134,14 @@ function Leg({
   side,
   hipRef,
   kneeRef,
+  ankleRef,
   legRef,
 }: {
   side: -1 | 1;
   hipRef: React.RefObject<THREE.Group>;
   kneeRef: React.RefObject<THREE.Group>;
+  /** the foot's own pivot — see the note on the group below */
+  ankleRef: React.RefObject<THREE.Group>;
   /** whole-limb pivot: lets the foot turn and step under a body twist */
   legRef: React.RefObject<THREE.Group>;
 }) {
@@ -219,38 +179,52 @@ function Leg({
               <boxGeometry args={[0.012, 0.28, 0.11]} />
             </mesh>
 
-            {/* Boot: the wedge flares back out into the foot rather than
-                sitting on it as a separate block. */}
-            <RoundedBox
-              args={[0.27, 0.22, 0.3]}
-              radius={0.09}
-              smoothness={5}
-              material={M.plating}
-              position={[0, -0.6, 0.0]}
-              castShadow
-            />
-            <RoundedBox
-              args={[0.235, 0.16, 0.28]}
-              radius={0.07}
-              smoothness={5}
-              material={M.plating}
-              position={[0, -0.645, 0.16]}
-              castShadow
-            />
-            {/* the toe point */}
-            <mesh
-              material={M.plating}
-              position={[0, -0.655, 0.29]}
-              rotation={[Math.PI / 2, 0, 0]}
-              scale={[1, 1, 0.55]}
-              castShadow
-            >
-              <coneGeometry args={[0.112, 0.16, 18]} />
-            </mesh>
-            {/* pale sole */}
-            <mesh material={M.chromeDark} position={[0, -0.707, 0.085]}>
-              <boxGeometry args={[0.215, 0.03, 0.45]} />
-            </mesh>
+            {/* The ankle.
+                There was no joint here at all, so the boot was welded to the
+                shin: every degree the knee bent, the sole tipped with it and
+                the toe carved through the floor. A foot needs its own pivot
+                for the same reason the pelvis needs to be a sibling of the
+                chest — without it the motion is not merely wrong, it is not
+                expressible.
+
+                Sitting at the shin/boot junction. Child offsets are the old
+                ones plus 0.52, so the rest pose is unchanged to the last
+                decimal and the measured ROBOT_SOLE (and with it HUMAN_FIT)
+                still holds. */}
+            <group ref={ankleRef} position={[0, -0.52, 0]}>
+              {/* Boot: the wedge flares back out into the foot rather than
+                  sitting on it as a separate block. */}
+              <RoundedBox
+                args={[0.27, 0.22, 0.3]}
+                radius={0.09}
+                smoothness={5}
+                material={M.plating}
+                position={[0, -0.08, 0.0]}
+                castShadow
+              />
+              <RoundedBox
+                args={[0.235, 0.16, 0.28]}
+                radius={0.07}
+                smoothness={5}
+                material={M.plating}
+                position={[0, -0.125, 0.16]}
+                castShadow
+              />
+              {/* the toe point */}
+              <mesh
+                material={M.plating}
+                position={[0, -0.135, 0.29]}
+                rotation={[Math.PI / 2, 0, 0]}
+                scale={[1, 1, 0.55]}
+                castShadow
+              >
+                <coneGeometry args={[0.112, 0.16, 18]} />
+              </mesh>
+              {/* pale sole */}
+              <mesh material={M.chromeDark} position={[0, -0.187, 0.085]}>
+                <boxGeometry args={[0.215, 0.03, 0.45]} />
+              </mesh>
+            </group>
           </group>
         </group>
       </group>
@@ -447,6 +421,18 @@ export default function RobotModel({
     legRY: new Spring(0, 90, 0.75),
     legLZ: new Spring(0, 80, 0.8),
     legRZ: new Spring(0, 80, 0.8),
+    /**
+     * The shoulders trail the chest — one more level of the same stagger.
+     *
+     * A softer copy of the torso yaw; the shoulders are driven by the
+     * DIFFERENCE between the two, so they arrive after it and settle after it.
+     * This was a known gap: every level from head to pelvis had its own
+     * stiffness, but the arms were welded to the ribcage, so the upper body
+     * turned as a single plate. It is the same idea as an additive clip in
+     * `webgl_animation_skinning_additive_blending` — a delta riding on the
+     * base, at its own weight — which is why it goes in the additive slot.
+     */
+    armLag: new Spring(0, 42, 0.78),
   });
 
   /**
@@ -473,6 +459,33 @@ export default function RobotModel({
   const liftS = useRef(new Spring(0, 30, 0.68));
   const bobS = useRef(new Spring(1, 18, 0.9));
 
+  /**
+   * The walk, fitted to this rig's actual bones.
+   *
+   *   thigh = hip pivot (leg group, y -0.46) to knee pivot   -> 0.235
+   *   shin  = knee pivot to ANKLE pivot (y -0.52)            -> 0.520
+   *
+   * It is the ankle, not the sole, because the ankle keeps the foot level:
+   * everything below it stays vertical and so contributes no horizontal
+   * travel. Measuring to the sole instead overstates the pendulum by 39% and
+   * puts the skate straight back in.
+   */
+  // Measured off the rig: hip pivot to knee pivot, knee pivot to sole. The
+  // stride is then the reference's own ratio of step to leg length rather than
+  // a chosen number — 0.45 was a guess, and at 0.60 leg-lengths it was a
+  // shuffle next to the capture's 1.10.
+  const THIGH = 0.235;
+  const SHIN = 0.52;
+  const LEG = THIGH + SHIN;
+  const gait = useRef(new Gait(makeGait(THIGH, SHIN, LEG * REF_STEP_OVER_LEG)));
+  // Head yaw over pelvis yaw, measured on the capture: the head's own local
+  // yaw range is 0.109 rad against a 0.254 rad pelvis. Replaces a 1.15 that
+  // swung the head nearly three times as far as the reference does.
+  const HEAD_OVER_PELVIS = 0.43;
+
+  /** Walk-in translation. `x` is an offset from homeX; `v` is its speed. */
+  const travel = useRef({ x: startX, v: 0 });
+
   const root = useRef<THREE.Group>(null);
   const body = useRef<THREE.Group>(null);
   const torso = useRef<THREE.Group>(null);
@@ -485,6 +498,8 @@ export default function RobotModel({
   const hipR = useRef<THREE.Group>(null);
   const kneeL = useRef<THREE.Group>(null);
   const kneeR = useRef<THREE.Group>(null);
+  const ankleL = useRef<THREE.Group>(null);
+  const ankleR = useRef<THREE.Group>(null);
   const hips = useRef<THREE.Group>(null);
   const legL = useRef<THREE.Group>(null);
   const legR = useRef<THREE.Group>(null);
@@ -532,6 +547,19 @@ export default function RobotModel({
     const dj = (k: keyof DanceSample["joints"]) =>
       ds ? { j: ds.joints[k], w: dw } : undefined;
 
+    /**
+     * Weight of the additive layer (cursor tracking, idle micro-motion).
+     *
+     * `webgl_animation_skinning_additive_blending` keeps its additive clips
+     * playing at their own weight regardless of which base action is running —
+     * that is the whole point of the technique. Ours were multiplied by
+     * `1 - danceWeight`, so a like froze the head mid-track and the figure
+     * stopped looking at you. It stays alive here, just quieter: 0.45 at full
+     * dance weight, because something mid-kick genuinely is not tracking you
+     * precisely.
+     */
+    const addGain = 1 - dw * 0.55;
+
     // one clock: smooth the cursor here rather than in a separate rAF
     easePointer(pointer.current, d, 26);
 
@@ -539,14 +567,68 @@ export default function RobotModel({
     // so the arm swings while still easing into position.
     const waveSwing = p.waving && !paused ? -Math.sin(t * 7) * 0.34 : 0;
 
-    /* --- walk cycle -------------------------------------------------
-       Legs swing in antiphase, arms counter-swing against them, and each
-       knee only bends on the back half of its stride — without that the
-       legs read as a marionette rather than a walk. */
-    // The reference doesn't march — it floats forward with the legs swinging
-    // loosely underneath. Slower phase, shallower hips, far less knee bend.
-    const wk = p.walking && !paused ? 1 : 0;
-    const swing = Math.sin(t * 4.4);
+    /* --- walk cycle ---------------------------------------------------
+       See locomotion.ts. Three things replaced here:
+
+         `Math.sin(t * 4.4)` -> a phase this rig owns, advanced by DISTANCE
+         travelled, so the feet cannot slide over the ground;
+
+         `p.walking ? 1 : 0`  -> a weight that ramps in over 0.4s and out over
+         0.7s, and defers the ramp-out until the next foot plant, which is what
+         `synchronizeCrossFade` does in the reference example;
+
+         a symmetric sine     -> curves measured off the Xbot walk capture,
+         with an ankle, so the sole stays flat on the floor and the knee never
+         locks the way a hand-written one does.                              */
+    const wantWalk = !!p.walking && !paused;
+
+    // Walk-in translation. This used to be set once as the group's initial
+    // position and then overwritten by the frame loop on the very first frame,
+    // so the robot teleported to its mark and marched on the spot for 2.6s.
+    const W = travel.current;
+    if (wantWalk) {
+      const remain = -W.x;
+      // Cruise, easing down over the last stretch so it arrives rather than
+      // stopping dead. The gait reads this speed, so slowing down shortens
+      // the stride by itself.
+      // Cruise speed is the reference's own, made dimensionless so it means
+      // the same thing on a different-sized figure: the capture covers 2.27 leg
+      // lengths a second, and this rig's leg is LEG, so CRUISE = 2.27 * LEG.
+      // Cadence then falls out at the reference's 2.07 steps/sec instead of
+      // being tuned to hit a stopwatch — 1.25 was set when the stride was 0.45,
+      // and against the measured stride it would have strolled in at 1.5
+      // steps/sec, well under the capture the curves come from.
+      const CRUISE = 2.27 * LEG;
+      const sp = Math.min(CRUISE, Math.max(0.25, Math.abs(remain) * 2.8));
+      const move = Math.sign(remain) * sp * d;
+      W.x = Math.abs(move) >= Math.abs(remain) ? 0 : W.x + move;
+      W.v = Math.abs(remain) < 1e-4 ? 0 : sp;
+    } else {
+      W.x = THREE.MathUtils.damp(W.x, 0, 3, d);
+      W.v = 0;
+    }
+
+    const G = gait.current;
+    G.request(wantWalk);
+    const wk = G.update(d, W.v);
+    const gl = G.legs();
+    const gs = G.secondary();
+    const ga = G.arms();
+    const gt = G.torso();
+
+    // Contralateral swing: the RIGHT arm goes forward with the LEFT leg. The
+    // arms were being driven off the same sine as the legs with only a sign
+    // flip, which is the same thing by accident and breaks the moment the leg
+    // curve stops being a sine.
+    // Pelvis and chest counter-rotate around the spine. This was missing
+    // entirely — the hips only ever yawed toward the cursor — and it is the
+    // difference between a walk and a pair of legs moving.
+    //
+    // Straight off the capture, 0.2539 rad range. The 0.17-of-the-hip-difference
+    // this replaces was a guess that over-rotated the pelvis by 60%, and being a
+    // multiple of the hip it would have scaled with the robot's leg proportions
+    // rather than staying the reference's own angle.
+    const pelvisYaw = gt.pelvisYaw * wk;
 
     // The reference turns its whole chassis toward the cursor. The rotation is
     // split across three joints so it reads as a body turn with follow-through
@@ -559,11 +641,18 @@ export default function RobotModel({
     const tX = sp.current.torsoX.step(-py0 * 0.18, d);
     const tZ = sp.current.torsoZ.step(px0 * -0.12, d);
 
-    driveJoint(torso.current, p.torso, ps.current.torso, d, {
-      y: swing * 0.07 * wk + tY,
-      x: tX,
-      z: tZ,
-    }, dj("torso"));
+    // The chest counter-rotates against the pelvis, a little more than the
+    // pelvis turns, so the spine is visibly wound. Cursor tracking sits in the
+    // ADDITIVE slot: the figure keeps facing you through a dance.
+    driveJoint(
+      torso.current,
+      p.torso,
+      ps.current.torso,
+      d,
+      { y: gt.chestYaw * wk },
+      dj("torso"),
+      { x: tX * addGain, y: tY * addGain, z: tZ * addGain }
+    );
 
     /* --- the spiral -------------------------------------------------
        A real turn runs head -> chest -> pelvis -> feet, each rotating less
@@ -575,8 +664,18 @@ export default function RobotModel({
     const weightShift = still * Math.sin(t * 0.74 + 0.9) * 0.022 * (1 - wk);
 
     if (hips.current) {
-      hips.current.rotation.y = sp.current.hipsY.step(px0 * 0.07, d);
-      hips.current.rotation.z = sp.current.hipsZ.step(-px0 * 0.05 + weightShift, d);
+      hips.current.rotation.y = sp.current.hipsY.step(px0 * 0.07, d) + pelvisYaw;
+      // Pelvic drop: the swinging side falls a little, the stance side holds.
+      // Real walking has this and it is most of why a walk looks weighted.
+      // Amplitude is the capture's measured pelvic list, 0.2018 rad range.
+      // The SHAPE stays a sine and the SIGN stays as reviewed: the capture's
+      // roll is anti-correlated with this sine (-0.80), but that is the
+      // capture's own left/right frame, not evidence this rig lists the wrong
+      // way. Only the magnitude was measurable without re-deriving the frame,
+      // so only the magnitude changed — it was half the real value.
+      const drop = Math.sin(2 * Math.PI * G.phase) * 0.1009 * wk;
+      hips.current.rotation.z =
+        sp.current.hipsZ.step(-px0 * 0.05 + weightShift, d) + drop;
     }
 
     // A quick cursor move gives the trailing foot a little lift, so the
@@ -599,17 +698,42 @@ export default function RobotModel({
       legR.current.position.y = -0.46 + (px0 > 0 ? stepLift.current : 0);
     }
     const S = ps.current;
-    driveJoint(shoulderL.current, p.shoulderL, S.shoulderL, d, { x: -swing * 0.26 * wk }, dj("shoulderL"));
+    // What the chest has already done, minus what the shoulders have caught up
+    // with. A lag, not a scaled copy: a scaled copy arrives at the same moment.
+    const armLag = (tY - sp.current.armLag.step(tY, d)) * addGain;
+    // Right arm forward with the left leg, and vice versa.
+    // Absolute swing angles from the capture (0.726 rad range), NOT a multiple
+    // of this rig's hip. The robot's thigh is short, so it needs a 1.28 rad hip
+    // swing to cover the same ground the reference covers in 0.89 — scaling the
+    // arms off the hip would have swung them 44% wider than the reference for
+    // no reason other than the leg's proportions. An angle is an angle.
+    driveJoint(shoulderL.current, p.shoulderL, S.shoulderL, d,
+      { x: ga.left.shoulder * wk }, dj("shoulderL"), { x: armLag * 0.55 });
     driveJoint(shoulderR.current, p.shoulderR, S.shoulderR, d, {
       z: waveSwing,
-      x: swing * 0.26 * wk,
-    }, dj("shoulderR"));
-    driveJoint(elbowL.current, p.elbowL, S.elbowL, d, undefined, dj("elbowL"));
-    driveJoint(elbowR.current, p.elbowR, S.elbowR, d, { x: waveSwing * 0.4 }, dj("elbowR"));
-    driveJoint(hipL.current, p.hipL, S.hipL, d, { x: swing * 0.4 * wk }, dj("hipL"));
-    driveJoint(hipR.current, p.hipR, S.hipR, d, { x: -swing * 0.4 * wk }, dj("hipR"));
-    driveJoint(kneeL.current, p.kneeL, S.kneeL, d, { x: softRect(-swing) * 0.34 * wk }, dj("kneeL"));
-    driveJoint(kneeR.current, p.kneeR, S.kneeR, d, { x: softRect(swing) * 0.34 * wk }, dj("kneeR"));
+      x: ga.right.shoulder * wk,
+    }, dj("shoulderR"), { x: -armLag * 0.55 });
+    // The elbow closes a little on the forward swing and opens behind, which
+    // is what stops the arms reading as two hanging planks.
+    // The `walk` pose holds the elbows at 0.46 rad, near the capture's own
+    // 0.626 hold, so only the modulation is added here. The old drive was
+    // `max(0, -hip) * 0.9`: rectified, so it sat at exactly zero for half of
+    // every cycle and then opened 0.9 rad in the other half. The capture
+    // modulates 0.40 rad and never rests.
+    driveJoint(elbowL.current, p.elbowL, S.elbowL, d,
+      { x: ga.left.elbow * wk }, dj("elbowL"));
+    driveJoint(elbowR.current, p.elbowR, S.elbowR, d, {
+      x: waveSwing * 0.4 + ga.right.elbow * wk,
+    }, dj("elbowR"));
+
+    driveJoint(hipL.current, p.hipL, S.hipL, d, { x: gl.left.hip * wk }, dj("hipL"));
+    driveJoint(hipR.current, p.hipR, S.hipR, d, { x: gl.right.hip * wk }, dj("hipR"));
+    driveJoint(kneeL.current, p.kneeL, S.kneeL, d, { x: gl.left.knee * wk }, dj("kneeL"));
+    driveJoint(kneeR.current, p.kneeR, S.kneeR, d, { x: gl.right.knee * wk }, dj("kneeR"));
+    // The ankles have no pose channel — they exist only to keep the sole flat,
+    // so they are driven directly and eased back to neutral as the walk fades.
+    if (ankleL.current) ankleL.current.rotation.x = gl.left.ankle * wk;
+    if (ankleR.current) ankleR.current.rotation.x = gl.right.ankle * wk;
 
     // Head follows the pose, plus a cursor-tracking offset on top. `pointer`
     // comes from a window listener — see use-pointer.ts for why the canvas's
@@ -626,7 +750,25 @@ export default function RobotModel({
     const hY = sp.current.headY.step(px * 0.5 * still + idleYaw, d);
     const hX = sp.current.headX.step(-py * 0.4 * still + idlePitch, d);
     const hZ = sp.current.headZ.step(px * 0.16 * still, d);
-    driveJoint(head.current, p.head, ps.current.head, d, { x: hX, y: hY, z: hZ }, dj("head"));
+    // Additive, not base: the head keeps tracking you mid-dance, at a reduced
+    // weight because a figure throwing itself around is not looking at you
+    // very precisely.
+    //
+    // The base channel counter-rotates against the chest. The head is a CHILD
+    // of the torso, so its absolute yaw is the sum: the chest is at -1.25
+    // pelvisYaw, and +1.15 here leaves the head at -0.10, i.e. very nearly
+    // pointing straight ahead while the shoulders swing underneath it. That is
+    // what a walking person does, and it is the top of the same head -> chest
+    // -> pelvis chain the cursor tracking already uses.
+    driveJoint(
+      head.current,
+      p.head,
+      ps.current.head,
+      d,
+      { y: pelvisYaw * HEAD_OVER_PELVIS },
+      dj("head"),
+      { x: hX * addGain, y: hY * addGain, z: hZ * addGain }
+    );
 
     // Breathing bob, plus the double-bounce that comes with the walk cycle.
     // `lift` and `bob` are pose values so they ease; the oscillators ride on
@@ -634,7 +776,13 @@ export default function RobotModel({
     if (body.current) {
       const bob = bobS.current.step(p.bob, d);
       const breathe = Math.sin(t * 1.5) * 0.022 * bob * still;
-      const stride = Math.sin(t * 2.2) * 0.07 * wk;
+      // Two rises per stride, highest as the legs pass. Was a bare sine on the
+      // global clock, so it had no fixed relationship to where the feet were.
+      // 4.87% of leg length, from the capture, against the 9.9% this used to
+      // apply. The measured curve agrees with the old analytic one on frequency
+      // and phase (correlation +0.92) and disagreed only on size, which is why
+      // the walk read as a bounce.
+      const stride = gs.bob * LEG * BOB_OVER_LEG * wk;
       const baseLift = liftS.current.step(p.lift, d) + breathe + stride;
       const k = 1 - dw;
       body.current.position.y = ds ? baseLift * k + ds.lift * dw : baseLift;
@@ -653,13 +801,18 @@ export default function RobotModel({
     // Whole model turns toward the cursor, leans into it, and walks to its mark.
     if (root.current) {
       root.current.rotation.y = sp.current.rootY.step(px * 0.3 * still, d);
-      root.current.position.x = homeX + sp.current.rootX.step(px * 0.22 * still, d);
+      root.current.position.x =
+        homeX + W.x + sp.current.rootX.step(px * 0.22 * still, d);
       root.current.position.y = sp.current.rootPY.step(py * 0.08 * still, d);
     }
   });
 
   return (
-    <group ref={root} position={[startX, 0, 0]}>
+    /* No initial x here. It used to be `position={[startX, 0, 0]}`, which the
+       frame loop overwrote on the very first frame — the walk-in was a
+       one-frame teleport followed by 2.6s of marching on the spot. `startX`
+       now seeds `travel.current.x` and is walked off properly. */
+    <group ref={root}>
       <group ref={body}>
         {/*
           Pelvis and legs are a SIBLING of the chest, not a child of it. That
@@ -669,8 +822,8 @@ export default function RobotModel({
         */}
         <group ref={hips}>
           <Ball r={0.13} position={[0, -0.36, 0]} />
-          <Leg side={-1} hipRef={hipL} kneeRef={kneeL} legRef={legL} />
-          <Leg side={1} hipRef={hipR} kneeRef={kneeR} legRef={legR} />
+          <Leg side={-1} hipRef={hipL} kneeRef={kneeL} ankleRef={ankleL} legRef={legL} />
+          <Leg side={1} hipRef={hipR} kneeRef={kneeR} ankleRef={ankleR} legRef={legR} />
         </group>
 
         <group ref={torso}>

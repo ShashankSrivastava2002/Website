@@ -44,3 +44,9 @@ next-env.d.
 
 .context
 ref_images
+
+# three.js reference checkout — vendored only for reading the examples and the
+# Mixamo captures in examples/models/gltf. The curves derived from them are
+# committed as src/components/robot/walkdata.ts; the 951MB source is not.
+/three.js/
+/sample_snippets/

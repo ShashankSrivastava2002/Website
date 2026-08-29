@@ -164,29 +164,6 @@ export default function Figure({
     const walkClip = character.clips.walk;
     const speed = walkClip ? clipGroundSpeed(character.scene, character.skin, walkClip) : 0;
 
-    // TEMP PROBE
-    {
-      const w = window as any;
-      w.__P = w.__P || {};
-      const mats: string[] = [];
-      character.scene.traverse((o: any) => {
-        if (o.isMesh)
-          mats.push(
-            `${o.name} vis=${o.visible} skinned=${!!o.isSkinnedMesh} cull=${o.frustumCulled} ` +
-            `mat=${o.material?.type} op=${o.material?.opacity} tr=${o.material?.transparent} ` +
-            `vis2=${o.material?.visible} depth=${o.material?.depthWrite}`
-          );
-      });
-      const box = new THREE.Box3().setFromObject(character.scene);
-      w.__P[character.stance.height < 1.6 ? "michelle" : "soldier"] = {
-        stance: character.stance,
-        clips: Object.keys(character.clips),
-        walkSpeed: speed,
-        box: [box.min.toArray().map((v: number) => +v.toFixed(3)), box.max.toArray().map((v: number) => +v.toFixed(3))],
-        mats,
-      };
-    }
-
     return { mixer, actions, walkSpeed: speed };
   }, [character]);
 

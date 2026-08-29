@@ -7,8 +7,8 @@ import { EffectComposer, Bloom } from "@react-three/postprocessing";
 import { suspend } from "suspend-react";
 import * as THREE from "three";
 
-import RobotModel from "./model";
-import HumanModel from "./human";
+import Figure from "./figure";
+import { useCharacters } from "./characters";
 import { HOME_CYCLE, MORPH_DURATION, type Pose } from "./poses";
 import { applyDissolve, makeDissolveUniforms, setDissolveActive } from "./dissolve";
 import { Spring } from "./spring";
@@ -53,62 +53,25 @@ const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
 const smooth = (v: number) => v * v * (3 - 2 * v);
 
 /**
- * Fits the human rig onto the robot's.
+ * How big the figures are, and where the floor is.
  *
- * The two figures were modelled independently and do not match. Unfitted, the
- * human's soles sat 0.095 above the robot's and its head anchor 0.25 below —
- * so the swap put a shorter figure at a different height, which is why it read
- * as two objects trading places rather than one figure changing.
+ * One height for both. Soldier stands 1.81 units in his own file and Michelle
+ * 1.65 — a 10% difference that, left alone, would make the About morph read as
+ * the figure shrinking rather than changing. `Figure` scales each by its own
+ * measured bind-pose bounding box, so both arrive at exactly FIGURE_HEIGHT with
+ * their soles on FLOOR_Y and the morph becomes an identity swap and nothing
+ * else.
  *
- * Scaling by the ratio of the sole→head-anchor spans and then dropping the
- * result lands BOTH anchors at once: sole on sole, head on head. No amount of
- * dissolve sells the transformation without this.
+ * This replaces HUMAN_FIT, which existed because the two procedural rigs were
+ * modelled independently and had to be reconciled after the fact with a scale
+ * and an offset measured off their soles and head anchors. Deriving both
+ * numbers from each model's own extents removes the reconciliation instead of
+ * doing it more carefully — there is nothing left to get 2% wrong.
  *
- * The soles are MEASURED, not read off the source — the human's shoes hang off
- * a leg group that is itself offset, which is easy to miss by eye. To re-measure
- * after changing either rig, neutralise the morph's tumble and compare world
- * bounds:
- *
- *   const rig = <the group with scale 0.72>;
- *   rig.children[0].rotation.set(0,0,0); rig.children[0].position.set(0,0,0);
- *   // ...same for children[1], then compare min world Y of each subtree.
+ * FLOOR_Y sits just above the ContactShadows plane at -1.46.
  */
-const HUMAN_FIT = (() => {
-  /*
-   * MEASURED, at true neutral. Getting to "true neutral" is the whole
-   * difficulty, and it is where both previous attempts went wrong: the rigs
-   * are three nested groups deep and EVERY level carries an animated y.
-   *
-   *   humanRef / robotRef  the morph's own park transform (the human sits
-   *                        tilted back 0.6 rad and raised 0.5 at morph 0)
-   *   <group ref={root}>   the cursor-driven vertical lift
-   *   <group ref={body}>   pose lift + the breathing bob
-   *
-   * Zero the first two and miss the third and the robot reads 12.8mm high;
-   * that is exactly the error that produced the previous ROBOT_SOLE of
-   * -1.4549 and the claim that the robot's head anchor was 0.90721 rather
-   * than 0.92. The head anchor really is identical in both rigs — that part
-   * of the original note was right, and the measurement contradicting it was
-   * the thing at fault.
-   *
-   * What was genuinely wrong is the SPAN. The old pair of soles gave a scale
-   * of 1.042313 against a true 1.021838, a 2% error, so the human's feet and
-   * head both missed — 47mm at the sole, about 2% of body height.
-   *
-   * To re-measure: set humanRef/robotRef rotation and position.y to their
-   * settled values, zero position.y on BOTH the root and the body group of
-   * each rig, zero every group rotation, then compare min world Y and the
-   * head group origin. The check that it worked is that the sole gap and the
-   * head gap come out EQUAL — that means the span is right and only the
-   * offset can still be wrong. They currently agree to 4 micrometres.
-   */
-  const ROBOT_SOLE = -1.420006;
-  const HUMAN_SOLE = -1.37;
-  const HEAD_ANCHOR = 0.92; // identical in both rigs, by construction
-  // Match the sole-to-head span, then drop the human so the soles coincide.
-  const scale = (HEAD_ANCHOR - ROBOT_SOLE) / (HEAD_ANCHOR - HUMAN_SOLE);
-  return { scale, y: ROBOT_SOLE - HUMAN_SOLE * scale };
-})();
+const FIGURE_HEIGHT = 2.5;
+const FLOOR_Y = -1.42;
 
 /**
  * The identity swap.
@@ -280,6 +243,7 @@ function Scene({
   tumbleGen: number;
   danceGen: number;
 }) {
+  const chars = useCharacters();
   const robotRef = useRef<THREE.Group>(null);
   const humanRef = useRef<THREE.Group>(null);
   /* Its own group: Morph already owns robotRef's rotation and position for the
@@ -322,16 +286,29 @@ function Scene({
       <group ref={rigRef} scale={0.72} position={[offsetX, -0.5, 0]}>
         <group ref={tumbleRef}>
           <group ref={robotRef}>
-            <RobotModel pose={pose} paused={paused} homeX={0} startX={startX} danceGen={danceGen} />
+            <Figure
+              character={chars.soldier}
+              pose={pose}
+              paused={paused}
+              startX={startX}
+              danceGen={danceGen}
+              height={FIGURE_HEIGHT}
+              floorY={FLOOR_Y}
+            />
           </group>
-          {/* Fitted onto the robot's sole and head anchor — see HUMAN_FIT. */}
+          {/* No fit constants any more: both figures are scaled by their own
+              measured bind-pose extents to the SAME height with their soles on
+              the SAME floor, so the two land on each other by construction.
+              HUMAN_FIT existed because the old pair were modelled independently
+              and had to be reconciled after the fact. */}
           <group ref={humanRef} visible={false}>
-            <group scale={HUMAN_FIT.scale} position={[0, HUMAN_FIT.y, 0]}>
-              {/* Same pose as the robot. Without this the morph swapped a
-                  posed figure for one standing to attention, so the identity
-                  swap carried a pose change along with it. */}
-              <HumanModel paused={paused} pose={pose} />
-            </group>
+            <Figure
+              character={chars.michelle}
+              pose={pose}
+              paused={paused}
+              height={FIGURE_HEIGHT}
+              floorY={FLOOR_Y}
+            />
           </group>
         </group>
 

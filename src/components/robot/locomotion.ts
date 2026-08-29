@@ -192,7 +192,11 @@ export function makeGait(thigh: number, shin: number, stepLength: number) {
    *
    * 256 entries, not 64: at 64 the linear interpolation between samples left
    * 5.6% of per-frame positional jitter in the planted foot (the steady drift
-   * was already 0.01%). Costs ~10k iterations once, at module load.
+   * was already 0.01%). Costs ~10k iterations per call — so call it ONCE, at
+   * module scope. `useRef(new Gait(makeGait(...)))` does not: `useRef`
+   * evaluates its argument on every render and discards all but the first, so
+   * an inline profile pays the bisection on every render. Both rigs build
+   * `GAIT_PROFILE` at module scope for exactly this reason.
    */
   const STEPS = 256;
   const stanceHip = new Float32Array(STEPS + 1);

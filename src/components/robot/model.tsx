@@ -377,6 +377,24 @@ function ScanRings({ active }: { active: boolean }) {
 /* the assembled robot                                                 */
 /* ------------------------------------------------------------------ */
 
+/**
+ * Measured off the rig: hip pivot to knee pivot, knee pivot to sole. The stride
+ * is the reference's own ratio of step to leg length rather than a chosen
+ * number — 0.45 was a guess, and at 0.60 leg-lengths it was a shuffle next to
+ * the capture's 1.10.
+ *
+ * Module scope, NOT inside the component. `useRef(expr)` evaluates `expr` on
+ * every render and throws the result away after the first, so building the
+ * profile inline ran `makeGait`'s 256-step bisection — about 10k iterations —
+ * on every single render of this component. The comment in locomotion.ts
+ * claiming it cost that "once, at module load" was only true of where the code
+ * deserved to live, not where it was.
+ */
+const THIGH = 0.235;
+const SHIN = 0.52;
+const LEG = THIGH + SHIN;
+const GAIT_PROFILE = makeGait(THIGH, SHIN, LEG * REF_STEP_OVER_LEG);
+
 export default function RobotModel({
   pose = "idle",
   paused = false,
@@ -470,14 +488,7 @@ export default function RobotModel({
    * travel. Measuring to the sole instead overstates the pendulum by 39% and
    * puts the skate straight back in.
    */
-  // Measured off the rig: hip pivot to knee pivot, knee pivot to sole. The
-  // stride is then the reference's own ratio of step to leg length rather than
-  // a chosen number — 0.45 was a guess, and at 0.60 leg-lengths it was a
-  // shuffle next to the capture's 1.10.
-  const THIGH = 0.235;
-  const SHIN = 0.52;
-  const LEG = THIGH + SHIN;
-  const gait = useRef(new Gait(makeGait(THIGH, SHIN, LEG * REF_STEP_OVER_LEG)));
+  const gait = useRef(new Gait(GAIT_PROFILE));
   // Head yaw over pelvis yaw, measured on the capture: the head's own local
   // yaw range is 0.109 rad against a 0.254 rad pelvis. Replaces a 1.15 that
   // swung the head nearly three times as far as the reference does.

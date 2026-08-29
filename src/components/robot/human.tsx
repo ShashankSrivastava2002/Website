@@ -72,6 +72,26 @@ function useHumanMaterials() {
 const ARM_SPREAD = 0.55;
 const LEG_SPREAD = 0.7;
 
+/**
+ * Thigh and shin, measured off the rest offsets below.
+ *
+ * These were 0.59 and 0.46 — a thigh 28% longer than the shin. Michelle,
+ * Xbot and Soldier all put the two within 2% of equal (ratios 0.78, 1.00 and
+ * 0.98; Michelle's foot bone sits low, which is what pulls hers down), so an
+ * even split is the reference proportion and the old one was simply wrong.
+ * The knee moved down by 0.065 and the ankle up by the same amount, which
+ * leaves the sole exactly where it was — so `HUMAN_FIT` in index.tsx, which
+ * is measured against that sole, is unaffected.
+ *
+ * At module scope for the same reason as model.tsx: `useRef(expr)` re-evaluates
+ * `expr` every render, so an inline `makeGait` here paid for a 256-step
+ * bisection on each one.
+ */
+const THIGH = 0.525;
+const SHIN = 0.525;
+const LEG = THIGH + SHIN;
+const GAIT_PROFILE = makeGait(THIGH, SHIN, LEG * REF_STEP_OVER_LEG);
+
 export default function HumanModel({
   paused = false,
   pose = "idle",
@@ -134,21 +154,7 @@ export default function HumanModel({
   const liftS = useRef(new Spring(0, 30, 0.68));
   const bobS = useRef(new Spring(1, 18, 0.9));
 
-  /**
-   * Thigh and shin, measured off the rest offsets below.
-   *
-   * These were 0.59 and 0.46 — a thigh 28% longer than the shin. Michelle,
-   * Xbot and Soldier all put the two within 2% of equal (ratios 0.78, 1.00 and
-   * 0.98; Michelle's foot bone sits low, which is what pulls hers down), so an
-   * even split is the reference proportion and the old one was simply wrong.
-   * The knee moved down by 0.065 and the ankle up by the same amount, which
-   * leaves the sole exactly where it was — so `HUMAN_FIT` in index.tsx, which
-   * is measured against that sole, is unaffected.
-   */
-  const THIGH = 0.525;
-  const SHIN = 0.525;
-  const LEG = THIGH + SHIN;
-  const gait = useRef(new Gait(makeGait(THIGH, SHIN, LEG * REF_STEP_OVER_LEG)));
+  const gait = useRef(new Gait(GAIT_PROFILE));
   /** See model.tsx: measured head local yaw over measured pelvis yaw. */
   const HEAD_OVER_PELVIS = 0.43;
 

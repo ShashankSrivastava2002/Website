@@ -137,6 +137,33 @@ function stance(root: THREE.Object3D, clip: THREE.AnimationClip) {
   const crown = bone(root, "HeadTop_End");
   const v = new THREE.Vector3();
 
+  /* Snapshot every bone's LOCAL transform so the measurement can be undone
+     exactly. The obvious way to undo it -- `skeleton.pose()` -- is wrong here,
+     and wrong in a way that is invisible on one model and fatal on another.
+
+     `Skeleton.pose()` rebuilds each bone's local matrix from its bind matrix,
+     but it only divides out the parent when the parent is ITSELF a bone. A root
+     bone whose parent is a plain node therefore has its bind WORLD matrix
+     written into its LOCAL slot, and every non-bone ancestor transform gets
+     applied a second time on the next update.
+
+     Michelle's `mixamorigHips` hangs directly off `Character`, which carries the
+     0.01 metres/centimetres conversion, so `pose()` rewrote her hip as
+     position (0, 1.026, -0.005) with scale 0.01 -- a 602x collapse of the whole
+     skeleton into a 0.003-unit ball. Nothing put it back: her clips are
+     retargeted and retargeting emits no scale tracks, so the 0.01 stuck for the
+     life of the page and she rendered as a speck. The Soldier survived the same
+     call only because his conversion happens to decompose to scale 1, and his
+     native clips carry 52 scale tracks that would have overwritten it anyway.
+
+     Saving and restoring the three local vectors is exact for any rig and
+     depends on no assumption about the hierarchy above the root bone. */
+  const rest = bones.map((b) => ({
+    position: b.position.clone(),
+    quaternion: b.quaternion.clone(),
+    scale: b.scale.clone(),
+  }));
+
   const mixer = new THREE.AnimationMixer(skin);
   const action = mixer.clipAction(clip);
   action.play();
@@ -153,7 +180,12 @@ function stance(root: THREE.Object3D, clip: THREE.AnimationClip) {
 
   action.stop();
   mixer.uncacheClip(clip);
-  skin.skeleton.pose();
+
+  bones.forEach((b, i) => {
+    b.position.copy(rest[i].position);
+    b.quaternion.copy(rest[i].quaternion);
+    b.scale.copy(rest[i].scale);
+  });
   root.updateMatrixWorld(true);
 
   return { lo, hi, height: hi - lo };

@@ -7,6 +7,16 @@ import * as THREE from "three";
 import { bone, type Character, type ClipName } from "./characters";
 import type { Pose } from "./poses";
 import { easePointer, usePointer } from "./use-pointer";
+import {
+  applyLookChain,
+  releaseLookChain,
+  resolveAnchor,
+  resolveArms,
+  resolveJoints,
+  cursorTarget,
+  targetAngles,
+} from "./look-chain";
+import { captureLegs, releaseLegs, resolveLegs, shiftHips, solveLegs } from "./leg-ik";
 
 /**
  * Plays a glTF character.
@@ -62,210 +72,26 @@ const DANCE_OUT = 0.45;
 
 /* ------------------------------------------------------------------ */
 
-/**
- * How a cursor turn is shared out along the spine, hips to head.
- *
- * Tracking with the neck and head alone is what made the old version read as a
- * mannequin on a swivel. A person turning to look at something moves everything
- * from the pelvis up: every joint gives a little and the head gives most. These
- * shares each sum to 1, so LOOK_YAW and LOOK_PITCH below are the TOTAL
- * deflection and the split between joints is a separate, tunable thing.
- *
- * `lag` is the other half of it. The hips and spine read a slower-eased cursor
- * than the neck and head do (see `easePointer`), so the head arrives first and
- * the body settles in behind it. Without that offset six joints rotating in
- * lockstep just look like one rigid rotation with extra steps.
- */
-const LOOK_CHAIN = [
-  { name: "Spine", yaw: 0.12, pitch: 0.06, lag: true, upright: 0.5, square: 0.4 },
-  { name: "Spine1", yaw: 0.16, pitch: 0.1, lag: true, upright: 0.5, square: 0.4 },
-  { name: "Spine2", yaw: 0.2, pitch: 0.14, lag: true, upright: 0.5, square: 0.4 },
-  { name: "Neck", yaw: 0.2, pitch: 0.24, lag: false, upright: 0, square: 0 },
-  { name: "Head", yaw: 0.32, pitch: 0.46, lag: false, upright: 1, square: 1 },
-] as const;
-
-/**
- * The chain starts at `Spine`, NOT at `Hips`, and the rig itself does not move.
- *
- * Both of those were tried, and both look wrong for the same reason: the feet
- * are planted. `Hips` is the parent of the legs, so any yaw on it swings the
- * boots; a yaw on the figure's own group swings them too, and a sideways shift
- * slides them. On screen that does not read as a character looking at the
- * cursor, it reads as the whole model being dragged across its own shadow —
- * the stance skews, the soles turn, and the contact shadow stops matching what
- * is standing on it. A person tracking something across a room turns from the
- * waist up and leaves their feet where they are, which is what this now does.
- */
-
-/**
- * Total deflection at full cursor throw, in radians, summed over the chain.
- *
- * The yaw was 0.52 (30 degrees), which against the reference recording is about
- * half of what it should be: at 2.0s in `ref_images/cursor_detail.jpg` the head
- * is close to profile while the chest has swung visibly with it. 0.9 rad puts
- * the head at 52 degrees and the chest, which takes 0.48 of the total, at 25 —
- * a turn rather than a glance. Pitch stays small on purpose; the reference
- * barely tips its head, and every degree of pitch spent on the spine is a
- * degree of lean fighting the upright correction below.
- */
-const LOOK_YAW = 0.9;
-const LOOK_PITCH = 0.3;
-/** How much of it survives while the dance owns the body. */
+/** How much of the cursor look survives while the dance owns the body. */
 const LOOK_DANCE_GAIN = 0.35;
 
-const AXIS_Y = new THREE.Vector3(0, 1, 0);
-const AXIS_X = new THREE.Vector3(1, 0, 0);
-/* Frame-local scratch. Both figures run inside one synchronous frame callback,
-   so sharing these is safe and saves six allocations per joint per frame. */
-const qFrame = new THREE.Quaternion();
-const qDelta = new THREE.Quaternion();
-const qYaw = new THREE.Quaternion();
-const qPitch = new THREE.Quaternion();
-const qInv = new THREE.Quaternion();
+/* The aim range now lives in look-chain.ts (AIM_SPREAD_*), because it is a
+   property of the figure rather than of the camera. */
 
 /**
- * Orientation of `node` relative to `stop`, built from local quaternions only.
- *
- * Deliberately not `getWorldQuaternion`, and deliberately not bone-local Euler
- * angles either. Both alternatives are wrong here, for different reasons.
- *
- * The look has to be applied about the FIGURE'S axes rather than each bone's
- * own, because the two rigs disagree about what a bone's own axes are. Measured
- * on the bind pose, applying `rotation.y += 0.3` to all six joints and reading
- * the world yaw that actually results at each one:
- *
- *   Michelle   +0.3  +0.6  +0.9  +1.2  +1.5  +1.8
- *   Soldier    -0.3   0.0  +0.3  +0.6  +0.9  +1.2
- *
- * The Soldier's `Hips` turns the WRONG WAY — his pelvis carries the pi that
- * `characters.ts` records in its header — and his `Spine` then spends its whole
- * contribution cancelling it. The head still ends up pointing roughly the right
- * way, which is exactly why this hid: the old code only drove the neck and head,
- * so it never touched the two joints that disagree. Converting one rotation into
- * each bone's parent frame is indifferent to how either rig was bound.
- *
- * The frame is taken relative to the figure's own group rather than the scene
- * because the ancestors above it are the About somersault and the section
- * tumble. Against true world axes the look would fight a rig that is upside
- * down mid-flip; against the figure's own root it rides along with it.
+ * How far the pelvis slides toward the cursor, in world units, and the aim
+ * angle that counts as "all the way". 0.075 on a figure 2.5 units tall is about
+ * 3% of its height — small in isolation, but with the feet pinned it is enough
+ * to visibly straighten one leg and bend the other.
  */
-/**
- * Stand the figure up.
- *
- * The reference robot is VERTICAL in every frame — the neck column is straight
- * up whether it is facing you or turned to profile, and the visor never rolls.
- * The Soldier's native idle is not: it is a hunched combat stance that leans
- * 3.9 degrees on average and rolls its head 4.1, drifting between 2.4 and 6.9
- * as it breathes. Measured live at the moment the cursor sits dead centre and
- * the look contributes exactly nothing, the head was rolled 8.2 degrees. That
- * is the whole of the "not standing straight" complaint: it is the clip, not
- * the cursor tracking, which is why it is visible when the mouse is not moving.
- *
- * Rather than pick a different idle — the only upright one available is Xbot's,
- * whose legs are bound a half turn the wrong way up — this corrects the pose
- * that is there. Each spine joint takes half of ITS OWN residual lean, so the
- * correction compounds down the chain (0.5, then 0.5 of what is left, and so
- * on) and lands most of the work at the base, which is where a person corrects
- * posture from. The head then takes all of its remaining residual, which levels
- * the visor.
- *
- * `setFromUnitVectors` gives the MINIMAL rotation between two directions, so it
- * removes lean and roll while leaving the facing untouched — the figure stands
- * up without turning. Applied before the cursor look, so the look's own pitch
- * survives it.
- */
-type LookChainEntry = {
-  bone: THREE.Object3D;
-  yaw: number;
-  pitch: number;
-  lag: boolean;
-  upright: number;
-  square: number;
-};
+const HIP_SHIFT = 0.075;
+const HIP_SHIFT_REF = 40 * (Math.PI / 180);
 
-const UP = new THREE.Vector3(0, 1, 0);
-const pitchAxis = new THREE.Vector3();
-const qUp = new THREE.Quaternion();
-const qFix = new THREE.Quaternion();
-const qJoint = new THREE.Quaternion();
-const vUp = new THREE.Vector3();
-const vFwd = new THREE.Vector3();
+/** Fraction of the pelvis yaw the feet are allowed to follow. */
+const FOOT_FOLLOW = 0.45;
 
-function applyUpright(chain: LookChainEntry[], root: THREE.Object3D, strength: number) {
-  if (strength <= 0.001) return;
-  relativeQuaternion(chain[0].bone.parent ?? chain[0].bone, root, qFrame);
-
-  for (const j of chain) {
-    if (j.upright > 0 || j.square > 0) {
-      qInv.copy(qFrame).invert();
-
-      /* SQUARE first, about the vertical: how far this joint's forward has
-         drifted off the rig's own +Z, undone by its share. The idle leaves the
-         chest turned 19.8 degrees and holds it there, so the figure reads as
-         permanently facing slightly away — the reference is square-on whenever
-         it is not actively tracking. Doing this before the swing below means
-         the swing sees an already-squared joint and has only the lean left to
-         take out. */
-      if (j.square > 0) {
-        qJoint.copy(qFrame).multiply(j.bone.quaternion);
-        vFwd.set(0, 0, 1).applyQuaternion(qJoint);
-        const drift = Math.atan2(vFwd.x, vFwd.z);
-        qFix.setFromAxisAngle(UP, -drift * j.square * strength);
-        j.bone.quaternion.premultiply(qFrame).premultiply(qFix).premultiply(qInv);
-      }
-
-      /* Then SWING the joint's own up-axis back to vertical. `setFromUnitVectors`
-         is the minimal rotation between two directions, so it takes out lean and
-         roll and leaves the facing — including the squaring just applied. */
-      if (j.upright > 0) {
-        qJoint.copy(qFrame).multiply(j.bone.quaternion);
-        vUp.set(0, 1, 0).applyQuaternion(qJoint);
-        qUp.setFromUnitVectors(vUp, UP);
-        qFix.identity().slerp(qUp, j.upright * strength);
-        j.bone.quaternion.premultiply(qFrame).premultiply(qFix).premultiply(qInv);
-      }
-    }
-    qFrame.multiply(j.bone.quaternion);
-  }
-}
-
-function relativeQuaternion(
-  node: THREE.Object3D,
-  stop: THREE.Object3D | null,
-  out: THREE.Quaternion
-) {
-  out.identity();
-  for (let o: THREE.Object3D | null = node; o && o !== stop; o = o.parent) {
-    out.premultiply(o.quaternion);
-  }
-  return out;
-}
-
-/**
- * Turn every joint about ONE shared axis, each by its own share of `total`.
- *
- * Carried down the chain: once a joint is turned, its new orientation is the
- * frame the joint below it is expressed in.
- */
-function pass(
-  chain: LookChainEntry[],
-  root: THREE.Object3D,
-  axis: THREE.Vector3,
-  total: number,
-  which: "yaw" | "pitch",
-  p: { x: number; y: number; bx: number; by: number }
-) {
-  relativeQuaternion(chain[0].bone.parent ?? chain[0].bone, root, qFrame);
-
-  for (const j of chain) {
-    const channel = which === "yaw" ? (j.lag ? p.bx : p.x) : j.lag ? p.by : p.y;
-    qDelta.setFromAxisAngle(axis, total * (which === "yaw" ? j.yaw : j.pitch) * channel);
-    qInv.copy(qFrame).invert();
-    // local' = frame^-1 * delta * frame * local
-    j.bone.quaternion.premultiply(qFrame).premultiply(qDelta).premultiply(qInv);
-    qFrame.multiply(j.bone.quaternion);
-  }
-}
+/** Scratch for the raw cursor handed to `screenToTarget`. */
+const aimPoint = { x: 0, y: 0 };
 
 /* ------------------------------------------------------------------ */
 
@@ -337,12 +163,13 @@ export default function Figure({
   const root = useRef<THREE.Group>(null);
   const pointer = usePointer();
 
-  /* Resolved once. `bone()` walks the scene graph to find a name, and the old
-     code paid for that twice per figure per frame to reach the same two bones. */
-  const chain = useMemo(
-    () => LOOK_CHAIN.map((j) => ({ ...j, bone: bone(character.scene, j.name) })),
-    [character]
-  );
+  /* Resolved once: `getObjectByName` walks the graph, and this needs four bones
+     every frame. Each entry also carries its own eased angle, so the chain's
+     state lives and dies with the figure it belongs to. */
+  const joints = useMemo(() => resolveJoints(character.scene), [character]);
+  const aimFrom = useMemo(() => resolveAnchor(character.scene), [character]);
+  const arms = useMemo(() => resolveArms(character.scene), [character]);
+  const legs = useMemo(() => resolveLegs(character.scene), [character]);
 
   /* --- fit: normalise both figures to one height, soles on the floor ---
      Soldier stands 1.81 units in his own file and Michelle 1.65, a 10%
@@ -392,10 +219,8 @@ export default function Figure({
   const seenDance = useRef(danceGen);
   /** Eased 1 -> LOOK_DANCE_GAIN, so the look yields to the choreography. */
   const lookGain = useRef(1);
-  /* How hard to stand the figure up. Full while it is standing, off while it is
-     dancing — the samba leans 8.5 degrees on purpose and straightening that
-     would flatten the choreography into a shuffle. */
-  const upright = useRef(1);
+  /** Eased -1..1 weight shift, slower than any joint so the body leans last. */
+  const hipShift = useRef(0);
 
   /* --- crossfade helpers, following webgl_animation_skinning_blending --- */
   const setBase = (next: ClipName, dur: number) => {
@@ -565,6 +390,11 @@ export default function Figure({
       }
     }
 
+    /* Hand the bones back to the clip before the mixer runs — see
+       `releaseLookChain`. Without it the look compounds on any frame the mixer
+       decides not to write. */
+    releaseLookChain(joints, arms);
+    releaseLegs(legs);
     rig.mixer.update(d);
 
     /* The dance is choreography for the whole body; a cursor pulling the spine
@@ -577,78 +407,44 @@ export default function Figure({
       d
     );
     lookGain.current = gain;
-    upright.current = THREE.MathUtils.damp(
-      upright.current,
-      danceUntil.current > 0 ? 0 : 1,
-      5,
-      d
-    );
 
-    /* Cursor tracking, applied AFTER the mixer so it layers on the clip rather
-       than being overwritten by it.
-
-       One rotation, expressed once per joint in that joint's parent frame, and
-       carried down the chain: after a joint is turned its own new orientation
-       becomes the frame for the joint below it. See `relativeQuaternion` for
-       why this cannot be done with `rotation.y +=`. */
-    const p = pointer.current;
+    /* Cursor tracking, applied AFTER the mixer so it layers on top of the clip
+       rather than being overwritten by it. See look-chain.ts. */
     if (look && root.current) {
-      applyUpright(chain, root.current, upright.current);
+      /* The RAW cursor, not the eased one. `easePointer` already smooths toward
+         the latest sample, and every joint then lerps on top of that — two
+         filters in series, which is why the figure felt like it was responding
+         to something that had happened a moment ago rather than to the cursor.
+         The chain's own per-joint speeds are the only smoothing that should be
+         here, and they are what carry the sense of weight. */
+      aimPoint.x = pointer.current.tx;
+      aimPoint.y = pointer.current.ty;
+      const point = cursorTarget(root.current, aimFrom, aimPoint);
+      const aim = targetAngles(root.current, aimFrom, point);
 
-      /* TWO passes, one axis each, and that is deliberate.
-         Composing a yaw and a pitch per joint and multiplying five of those
-         together does not give yaw-then-pitch: the cross terms accumulate into
-         a ROLL about the figure's own forward axis. It cancels only if the two
-         axes are distributed identically, and they are not — pitch is
-         concentrated in the head (0.46) where yaw is spread down the spine.
-         Splitting them means every rotation within a pass shares an axis, and
-         rotations about a common axis commute, so each pass composes to exactly
-         its total with nothing left over. Pitch first, then yaw about the rig's
-         vertical, which is what keeps a turned head level. */
-      /* Yaw first, then pitch about the axis the yaw left the body's shoulders
-         on. Pitching about a fixed world X is only right while the figure faces
-         the camera: once it has turned 85 degrees to follow the cursor, world X
-         IS the head's forward axis, so a "nod" becomes a pure roll — measured
-         at -8.6 degrees of visor tilt with the cursor in the top corner. The
-         axis has to turn with the body. */
-      pass(chain, root.current, AXIS_Y, LOOK_YAW * gain, "yaw", p);
+      /* Record the clip's foot placement BEFORE the pelvis moves — these are
+         the positions the legs get solved back onto. */
+      captureLegs(legs, root.current);
 
-      const yawTotal = chain.reduce((n, j) => n + j.yaw * (j.lag ? p.bx : p.x), 0);
-      pitchAxis.copy(AXIS_X).applyAxisAngle(AXIS_Y, LOOK_YAW * gain * yawTotal);
-      pass(chain, root.current, pitchAxis, -LOOK_PITCH * gain, "pitch", p);
+      applyLookChain(joints, aim, d, gain, arms);
+
+      /* The weight shift. With the feet pinned below, moving the pelvis
+         sideways is what forces one leg to straighten and the other to bend;
+         it is the only part of this that makes the LEGS do anything. Eased on
+         its own slow channel so the body leans over rather than snapping. */
+      hipShift.current = THREE.MathUtils.damp(
+        hipShift.current,
+        THREE.MathUtils.clamp(aim.yaw / HIP_SHIFT_REF, -1, 1) * gain,
+        2.6,
+        d
+      );
+      shiftHips(legs, root.current, hipShift.current, HIP_SHIFT);
+
+      /* Feet back onto their marks, following a fraction of the pelvis turn so
+         they pivot a few degrees at the extremes instead of staying welded. */
+      solveLegs(legs, root.current, joints[0].yaw * FOOT_FOLLOW);
     }
 
-    // __PROBE__
-    if (typeof window !== "undefined" && root.current) {
-      const w = window as unknown as Record<string, unknown>;
-      const key = character.skin.skeleton.bones.length < 60 ? "__robot" : "__human";
-      character.scene.updateMatrixWorld(true);
-      const P = (n: string) =>
-        new THREE.Vector3().setFromMatrixPosition(bone(character.scene, n).matrixWorld);
-      const deg = (r: number) => +((r * 180) / Math.PI).toFixed(1);
-      // yaw of a left->right body line, projected on the floor: what you SEE turn
-      const lineYaw = (l: string, r: string) => {
-        const v = P(r).sub(P(l));
-        return deg(Math.atan2(v.z, v.x));
-      };
-      const fwdYaw = (n: string) => {
-        const q = new THREE.Quaternion();
-        bone(character.scene, n).getWorldQuaternion(q);
-        const f = new THREE.Vector3(0, 0, 1).applyQuaternion(q);
-        return deg(Math.atan2(f.x, f.z));
-      };
-      w[key] = {
-        shoulderLine: lineYaw("LeftShoulder", "RightShoulder"),
-        hipLine: lineYaw("LeftUpLeg", "RightUpLeg"),
-        headFwd: fwdYaw("Head"),
-        chestFwd: fwdYaw("Spine2"),
-        footL: +P("LeftToeBase").z.toFixed(3),
-        footR: +P("RightToeBase").z.toFixed(3),
-        px: +pointer.current.x.toFixed(2),
-        bx: +pointer.current.bx.toFixed(2),
-      };
-    }
-    // __PROBE_END__
     if (root.current) root.current.position.x = W.x;
   });
 

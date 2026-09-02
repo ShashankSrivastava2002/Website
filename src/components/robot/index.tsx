@@ -55,7 +55,7 @@ const smooth = (v: number) => v * v * (3 - 2 * v);
 /**
  * How big the figures are, and where the floor is.
  *
- * One height for both. Soldier stands 1.81 units in his own file and Michelle
+ * One height for both. The robot and the human stand different heights in their
  * 1.65 — a 10% difference that, left alone, would make the About morph read as
  * the figure shrinking rather than changing. `Figure` scales each by its own
  * measured bind-pose bounding box, so both arrive at exactly FIGURE_HEIGHT with
@@ -287,7 +287,7 @@ function Scene({
         <group ref={tumbleRef}>
           <group ref={robotRef}>
             <Figure
-              character={chars.soldier}
+              character={chars.robot}
               pose={pose}
               paused={paused}
               startX={startX}
@@ -303,7 +303,7 @@ function Scene({
               and had to be reconciled after the fact. */}
           <group ref={humanRef} visible={false}>
             <Figure
-              character={chars.michelle}
+              character={chars.human}
               pose={pose}
               paused={paused}
               height={FIGURE_HEIGHT}

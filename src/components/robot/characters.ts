@@ -1,27 +1,24 @@
 /**
  * Loading and clip retargeting for the two glTF characters.
  *
- * The figures are `Soldier.glb` (the robot) and `Michelle.glb` (the human),
- * with `Xbot.glb` carried along purely as a source of gestures neither of the
- * other two contains. All three are Mixamo rigs, and the reason this works at
- * all is a measured fact rather than an assumption:
+ * The figures are `Xbot.glb` (the robot) and `Michelle.glb` (the human).
+ * `Soldier.glb` is no longer loaded.
  *
- *   Soldier and Michelle expose EXACTLY the same 65 bones, name for name.
- *   Xbot adds two (LeftEye, RightEye) and is otherwise a superset.
+ * The Soldier was the robot until his idle was measured against the reference
+ * recording. It is a combat stance: the hips sit 43.7 degrees off square with
+ * one foot staggered 0.68 units behind the other, and it holds that pose the
+ * whole clip. Nothing above the waist can fix that — squaring the hips means
+ * turning the legs, and the feet are planted where the clip puts them — so
+ * correcting the spine only ever squared the top half over a lower half that
+ * never moved, which is exactly why the tracking read as "only the neck moves".
  *
- * So the `names` map that `webgpu_animation_retargeting.html` spells out by
- * hand is the identity here, and `retargetClip` falls back to `bone.name` on
- * its own. What is NOT shared is the bind pose: comparing rest rotations bone
- * by bone gives a mean difference of 0.356 rad and a full pi at the hips. That
- * is why the clips cannot simply be copied across, and why every cross-figure
- * clip below goes through `retargetClip`, which resolves each bone in WORLD
- * space and is therefore indifferent to how the two rigs were bound.
+ *   Soldier / Idle    hips off-square 43.7deg   feet stagger 0.68
+ *   Xbot / idle        hips off-square  3.7deg   feet stagger 0.01
  *
- * `preserveBonePositions` (on by default) is the other half of it: only the hip
- * receives a position track, and every other bone keeps its own rest offset. So
- * a retargeted clip drives the target's rotations while the target keeps its own
- * limb lengths — Michelle does not inherit Soldier's proportions along with his
- * walk.
+ * Xbot stands square with level feet, which is the reference stance, and it
+ * carries idle, walk, run, agree and headShake natively — so the robot now
+ * plays its OWN captures with no retargeting at all. Only the dance, which
+ * only Michelle has, still crosses rigs.
  */
 
 import { useMemo } from "react";
@@ -29,12 +26,12 @@ import * as THREE from "three";
 import { AnimationUtils } from "three";
 import { useGLTF } from "@react-three/drei";
 import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
-import { retargetClip } from "three/examples/jsm/utils/SkeletonUtils.js";
 
 export const MODEL_URLS = {
-  soldier: "/models/Soldier.glb",
-  michelle: "/models/Michelle.glb",
-  xbot: "/models/Xbot.glb",
+  /* Soldier.glb stays on disk for reference but is no longer fetched — it was
+     2.16 MB of download for a stance the site cannot use. */
+  robot: "/models/Xbot.glb",
+  human: "/models/Michelle.glb",
 } as const;
 
 /** The clip vocabulary the rest of the app addresses, independent of source. */
@@ -61,11 +58,6 @@ export function bone(root: THREE.Object3D, short: string): THREE.Object3D {
     root.getObjectByName(`mixamorig${short}`) ?? root.getObjectByName(`mixamorig:${short}`);
   if (!found) throw new Error(`characters: no bone "${short}" (tried both mixamorig spellings)`);
   return found;
-}
-
-/** The hip bone's runtime name on this model, for `retargetClip`'s `hip`. */
-function hipName(root: THREE.Object3D) {
-  return bone(root, "Hips").name;
 }
 
 /**
@@ -203,24 +195,34 @@ function stance(root: THREE.Object3D, clip: THREE.AnimationClip) {
 }
 
 /**
- * Retarget `clip` from `sourceRoot`'s skeleton onto `targetRoot`'s.
+ * Retarget `clip` from `sourceRoot`'s rig onto `targetRoot`'s.
  *
- * Both roots are cloned first. `retargetClip` samples by repeatedly posing the
- * target skeleton and reading the source's world matrices, so handing it either
- * live scene would leave a displayed figure frozen in the clip's last frame.
+ * Written out rather than calling `SkeletonUtils.retargetClip`, because that
+ * function drops the one term that makes retargeting correct across rigs that
+ * were bound differently:
  *
- * `scale` corrects the one channel that is a length rather than an angle. The
- * hip position track is copied in the target's local units, so without it a
- * clip captured on a 1.03-unit hip lands unchanged on a 1.06-unit hip and the
- * figure sinks or floats by the difference.
+ *     desiredWorld(bone) = animWorld(source) * ( bindWorld(source)^-1 * bindWorld(bone) )
+ *                                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ *
+ * three copies the source bone's world orientation onto the target verbatim and
+ * omits the trailing correction, which is fine only while both rigs happen to
+ * bind their bones the same way round. These do not. Measured on the bind pose,
+ * the world direction of `LeftUpLeg`'s local +Y:
+ *
+ *     Soldier    (0.00, -1.00,  0.00)     thigh points down
+ *     Michelle   (0.07, -1.00,  0.02)     down
+ *     Xbot       (0.00,  1.00,  0.00)     UP
+ *
+ * So every clip crossing to or from Xbot arrived with its legs rotated a half
+ * turn — the samba retargeted onto Xbot put its highest foot at 1.81 against a
+ * head at 1.39, standing on its own scalp. With the bind difference restored
+ * the same clip lands feet 0.36, head 1.39, and the correction is a no-op
+ * between two rigs that already agree, so nothing else changes.
+ *
+ * Both roots are cloned first: the sampling loop poses them repeatedly, and
+ * handing it a displayed scene would leave that figure frozen on the last frame.
  */
-/** Bone names present on both skeletons, as an identity rename map. */
-function sharedBoneNames(target: THREE.Object3D, source: THREE.Object3D) {
-  const src = new Set(findSkin(source).skeleton.bones.map((b) => b.name));
-  const out: Record<string, string> = {};
-  for (const b of findSkin(target).skeleton.bones) if (src.has(b.name)) out[b.name] = b.name;
-  return out;
-}
+const SAMPLE_FPS = 30;
 
 function retargetOnto(
   targetRoot: THREE.Object3D,
@@ -233,36 +235,95 @@ function retargetOnto(
   const source = cloneSkinned(sourceRoot);
   target.updateMatrixWorld(true);
   source.updateMatrixWorld(true);
-  const hipRatio = boneHeight(target, "Hips") / boneHeight(source, "Hips");
 
-  /* The SOURCE argument is a Skeleton, not a scene.
-     `retargetClip` branches on `source.isObject3D`: a Skeleton takes the
-     `getHelperFromSkeleton` path, which wraps it in a SkeletonHelper rooted at
-     bones[0] so the bone world matrices actually update as the clip plays.
-     Handing it the scene Group instead satisfies `isObject3D` and then dies on
-     `source.skeleton.bones`, because a Group has no skeleton. The TARGET is the
-     SkinnedMesh, which does have one. */
-  const out = retargetClip(findSkin(target), findSkin(source).skeleton, clip, {
-    hip: hipName(target),
-    scale: hipRatio,
-    /* REQUIRED, and the single hardest thing to find here.
-       `retarget`'s own `getBoneName` is `options.names[bone.name]` with NO
-       fallback to the bone's own name — only `retargetClip` falls back, and
-       only for naming the output tracks. So an omitted `names` map does not
-       mean "match on name", it means NO bone matches: every bone is left at
-       whatever `skeleton.pose()` set, and the figure comes out lying flat.
-       Measured, with the map and without: torso up-vector 0.990 versus -0.130.
-       All 49 shared bones are listed rather than the reference example's 20,
-       so hands and feet retarget too. */
-    names: sharedBoneNames(target, source),
-    /* Keep the hip's vertical travel, drop its fore-aft and lateral drift. The
-       samba wanders 0.80 units over its length; on a figure standing in a fixed
-       spot on the page that reads as the character sliding off its mark. */
-    hipInfluence: new THREE.Vector3(0, 1, 0),
-    ...(trim ? { trim } : {}),
-  }) as THREE.AnimationClip;
-  out.name = name;
-  return out;
+  const targetSkin = findSkin(target);
+  const sourceSkin = findSkin(source);
+  const sourceByName = new Map(sourceSkin.skeleton.bones.map((b) => [b.name, b]));
+  // Only bones both rigs actually have. Xbot carries two eye bones the others
+  // do not; the Soldier is missing every fingertip.
+  const bones = targetSkin.skeleton.bones.filter((b) => sourceByName.has(b.name));
+  if (!bones.length) throw new Error(`characters: "${name}" shares no bones between rigs`);
+
+  /* Captured BEFORE anything is posed — this is the whole correction. */
+  const correction = new Map<string, THREE.Quaternion>();
+  const qa = new THREE.Quaternion();
+  for (const b of bones) {
+    const bindTarget = b.getWorldQuaternion(new THREE.Quaternion());
+    const bindSource = sourceByName.get(b.name)!.getWorldQuaternion(qa.clone());
+    correction.set(b.name, bindSource.clone().invert().multiply(bindTarget));
+  }
+
+  const hipRatio = boneHeight(target, "Hips") / boneHeight(source, "Hips");
+  const targetHips = bone(target, "Hips");
+
+  const mixer = new THREE.AnimationMixer(sourceSkin);
+  const action = mixer.clipAction(clip);
+  action.play();
+
+  const from = trim ? trim[0] : 0;
+  const to = trim ? trim[1] : clip.duration;
+  const frames = Math.max(2, Math.round((to - from) * SAMPLE_FPS));
+
+  const times = new Float32Array(frames);
+  const rotations = new Map(bones.map((b) => [b.name, new Float32Array(frames * 4)]));
+  const hipTrack = new Float32Array(frames * 3);
+
+  const qWorld = new THREE.Quaternion();
+  const qParent = new THREE.Quaternion();
+  const qLocal = new THREE.Quaternion();
+  const vHip = new THREE.Vector3();
+  const mInv = new THREE.Matrix4();
+  const worldOf = new Map<string, THREE.Quaternion>();
+
+  for (let f = 0; f < frames; f++) {
+    const t = (f * (to - from)) / (frames - 1);
+    mixer.setTime(from + t);
+    source.updateMatrixWorld(true);
+    times[f] = t;
+
+    /* `skeleton.bones` is stored parent-before-child, so a bone's new world
+       orientation is always known by the time its children need it. */
+    worldOf.clear();
+    for (const b of bones) {
+      sourceByName.get(b.name)!.getWorldQuaternion(qWorld);
+      qWorld.multiply(correction.get(b.name)!);
+      worldOf.set(b.name, qWorld.clone());
+
+      const parent = b.parent!;
+      const parentWorld = worldOf.get(parent.name);
+      if (parentWorld) qParent.copy(parentWorld).invert();
+      else parent.getWorldQuaternion(qParent).invert();
+
+      qLocal.copy(qParent).multiply(qWorld);
+      qLocal.toArray(rotations.get(b.name)!, f * 4);
+    }
+
+    /* Only the hip gets a position track; every other bone keeps its own rest
+       offset, so the target keeps its own limb lengths rather than inheriting
+       the source's proportions along with its motion.
+
+       Vertical travel is kept and scaled by the hip-height ratio; fore-aft and
+       lateral drift are dropped, because the samba wanders 0.8 units over its
+       length and on a figure standing on a fixed mark that reads as it sliding
+       off its own shadow. */
+    vHip.setFromMatrixPosition(bone(source, "Hips").matrixWorld);
+    targetHips.parent!.updateMatrixWorld(true);
+    vHip.applyMatrix4(mInv.copy(targetHips.parent!.matrixWorld).invert());
+    vHip.x = targetHips.position.x;
+    vHip.z = targetHips.position.z;
+    vHip.y *= hipRatio;
+    vHip.toArray(hipTrack, f * 3);
+  }
+
+  action.stop();
+  mixer.uncacheClip(clip);
+
+  const tracks: THREE.KeyframeTrack[] = bones.map(
+    (b) => new THREE.QuaternionKeyframeTrack(`.bones[${b.name}].quaternion`, times, rotations.get(b.name)!)
+  );
+  tracks.push(new THREE.VectorKeyframeTrack(`.bones[${targetHips.name}].position`, times, hipTrack));
+
+  return new THREE.AnimationClip(name, -1, tracks);
 }
 
 /**
@@ -344,12 +405,8 @@ function orient(scene: THREE.Object3D, yaw: number) {
   return g;
 }
 
-/** Yaw that turns each model to face +Z. */
-const FACING: Record<"soldier" | "michelle" | "xbot", number> = {
-  soldier: Math.PI,
-  michelle: 0,
-  xbot: 0,
-};
+/** Yaw that turns each model to face +Z. Both remaining rigs already do. */
+const FACING: Record<"robot" | "human", number> = { robot: 0, human: 0 };
 
 /** Pick a clip out of a glTF by name, case-insensitively. */
 function pick(clips: THREE.AnimationClip[], want: string) {
@@ -378,51 +435,41 @@ type Gltf = { scene: THREE.Object3D; animations: THREE.AnimationClip[] };
  * mistake as an expensive expression inside `useRef` — the result is discarded
  * but the cost is not. See lesson 11 in .context.
  */
-export function useCharacters(): { soldier: Character; michelle: Character } {
-  const soldierGltf = useGLTF(MODEL_URLS.soldier) as unknown as Gltf;
-  const michelleGltf = useGLTF(MODEL_URLS.michelle) as unknown as Gltf;
-  const xbotGltf = useGLTF(MODEL_URLS.xbot) as unknown as Gltf;
-
-  return useMemo(
-    () => build(soldierGltf, michelleGltf, xbotGltf),
-    [soldierGltf, michelleGltf, xbotGltf]
-  );
+export function useCharacters(): { robot: Character; human: Character } {
+  const robotGltf = useGLTF(MODEL_URLS.robot) as unknown as Gltf;
+  const humanGltf = useGLTF(MODEL_URLS.human) as unknown as Gltf;
+  return useMemo(() => build(robotGltf, humanGltf), [robotGltf, humanGltf]);
 }
 
-function build(
-  soldierGltf: Gltf,
-  michelleGltf: Gltf,
-  xbotGltf: Gltf
-): { soldier: Character; michelle: Character } {
+function build(robotGltf: Gltf, humanGltf: Gltf): { robot: Character; human: Character } {
   /* Oriented copies. Everything below — display, retarget source and retarget
      target alike — is built from these, so no part of the system ever sees the
-     raw, differently-facing originals. */
-  const soldierSrc = orient(cloneSkinned(soldierGltf.scene), FACING.soldier);
-  const michelleSrc = orient(cloneSkinned(michelleGltf.scene), FACING.michelle);
-  const xbotSrc = orient(cloneSkinned(xbotGltf.scene), FACING.xbot);
+     raw, differently-facing originals. Both of these rigs already face +Z, so
+     the yaw is zero for both; `orient` stays because the wrapper group is what
+     `relativeQuaternion` in figure.tsx stops at. */
+  const robotSrc = orient(cloneSkinned(robotGltf.scene), FACING.robot);
+  const humanSrc = orient(cloneSkinned(humanGltf.scene), FACING.human);
 
-  const soldierScene = prepare(orient(cloneSkinned(soldierGltf.scene), FACING.soldier));
-  const michelleScene = prepare(orient(cloneSkinned(michelleGltf.scene), FACING.michelle));
+  const robotScene = prepare(orient(cloneSkinned(robotGltf.scene), FACING.robot));
+  const humanScene = prepare(orient(cloneSkinned(humanGltf.scene), FACING.human));
 
-  // Native clips: each figure's own captures need no retargeting at all.
-  const sIdle = pick(soldierGltf.animations, "Idle");
-  const sWalk = pick(soldierGltf.animations, "Walk");
-  const sRun = pick(soldierGltf.animations, "Run");
-  const mSamba = pick(michelleGltf.animations, "SambaDance");
-
-  // Cross-figure clips. Michelle owns the dance and nothing else usable; the
-  // Soldier owns locomotion and no gestures. Each borrows from the other, and
-  // both borrow the gestures from Xbot.
-  const xAgree = pick(xbotGltf.animations, "agree");
-  const xShake = pick(xbotGltf.animations, "headShake");
+  /* The robot's whole vocabulary except the dance is its own capture, played
+     untouched. That is the point of the swap: no retarget, no bind-pose
+     mismatch, no correction — and the stance the reference has. */
+  const xIdle = pick(robotGltf.animations, "idle");
+  const xWalk = pick(robotGltf.animations, "walk");
+  const xRun = pick(robotGltf.animations, "run");
+  const xAgree = pick(robotGltf.animations, "agree");
+  const xShake = pick(robotGltf.animations, "headShake");
+  const samba = pick(humanGltf.animations, "SambaDance");
 
   /**
-   * Build one figure's library, converting the gesture clips to additive.
+   * Convert the gesture clips to additive.
    *
-   * Every gesture arrives from `retargetOnto`, which returns a fresh clip, so
-   * `makeClipAdditive` — which mutates in place — can never reach the cached
-   * glTF's own animations. The native base clips are used as-is and are the
-   * shared ones, which is exactly why nothing additive is ever done to them.
+   * A nod is something you do WHILE standing, not instead of standing. Every
+   * gesture here is a fresh clip — either a clone of the source or a retarget
+   * result — so `makeClipAdditive`, which mutates in place, can never reach the
+   * cached glTF's own animations.
    */
   const withAdditive = (clips: Partial<Record<ClipName, THREE.AnimationClip>>) => {
     for (const name of ADDITIVE) {
@@ -432,43 +479,45 @@ function build(
     return clips;
   };
 
-  const soldier: Character = {
-    scene: soldierScene,
-    skin: findSkin(soldierScene),
+  const robot: Character = {
+    scene: robotScene,
+    skin: findSkin(robotScene),
     stance: { lo: 0, hi: 0, height: 1 },
     clips: withAdditive({
-      idle: sIdle,
-      walk: sWalk,
-      run: sRun,
-      dance: retargetOnto(soldierSrc, michelleSrc, mSamba, "dance", SAMBA_TRIM),
-      agree: retargetOnto(soldierSrc, xbotSrc, xAgree, "agree"),
-      headShake: retargetOnto(soldierSrc, xbotSrc, xShake, "headShake"),
+      idle: xIdle,
+      walk: xWalk,
+      run: xRun,
+      agree: xAgree.clone(),
+      headShake: xShake.clone(),
+      dance: retargetOnto(robotSrc, humanSrc, samba, "dance", SAMBA_TRIM),
     }),
   };
 
-  const michelle: Character = {
-    scene: michelleScene,
-    skin: findSkin(michelleScene),
+  /* The human borrows her locomotion from the robot now rather than from the
+     Soldier. Same reason the robot changed: the Soldier's idle would have put
+     her in his 43-degree combat stance too. */
+  const human: Character = {
+    scene: humanScene,
+    skin: findSkin(humanScene),
     stance: { lo: 0, hi: 0, height: 1 },
     clips: withAdditive({
-      // Retargeted onto herself: it costs one bake and buys the same XZ-drift
-      // removal the Soldier copy gets, so she dances on the spot too.
-      dance: retargetOnto(michelleSrc, michelleSrc, mSamba, "dance", SAMBA_TRIM),
-      idle: retargetOnto(michelleSrc, soldierSrc, sIdle, "idle"),
-      walk: retargetOnto(michelleSrc, soldierSrc, sWalk, "walk"),
-      run: retargetOnto(michelleSrc, soldierSrc, sRun, "run"),
-      agree: retargetOnto(michelleSrc, xbotSrc, xAgree, "agree"),
-      headShake: retargetOnto(michelleSrc, xbotSrc, xShake, "headShake"),
+      idle: retargetOnto(humanSrc, robotSrc, xIdle, "idle"),
+      walk: retargetOnto(humanSrc, robotSrc, xWalk, "walk"),
+      run: retargetOnto(humanSrc, robotSrc, xRun, "run"),
+      agree: retargetOnto(humanSrc, robotSrc, xAgree, "agree"),
+      headShake: retargetOnto(humanSrc, robotSrc, xShake, "headShake"),
+      // Retargeted onto herself: one pass, and it buys the same XZ-drift
+      // removal the robot's copy gets, so she dances on the spot too.
+      dance: retargetOnto(humanSrc, humanSrc, samba, "dance", SAMBA_TRIM),
     }),
   };
 
   // Measured last: it needs the idle clip, which the libraries above build.
-  soldier.stance = stance(soldierScene, soldier.clips.idle!);
-  michelle.stance = stance(michelleScene, michelle.clips.idle!);
+  robot.stance = stance(robotScene, robot.clips.idle!);
+  human.stance = stance(humanScene, human.clips.idle!);
 
-  return { soldier, michelle };
+  return { robot, human };
 }
 
-useGLTF.preload(MODEL_URLS.soldier);
-useGLTF.preload(MODEL_URLS.michelle);
-useGLTF.preload(MODEL_URLS.xbot);
+useGLTF.preload(MODEL_URLS.robot);
+useGLTF.preload(MODEL_URLS.human);

@@ -1,0 +1,422 @@
+/* ------------------------------------------------------------------
+   Design system.
+
+   One ground colour, one ink, one accent, and a type scale that only has
+   three sizes. The previous stylesheet was 1,852 lines and most of it was
+   one-off overrides for components that no longer exist; this is what is
+   actually load-bearing.
+   ------------------------------------------------------------------ */
+
+:root {
+  color-scheme: light;
+
+  --ground: #e9edf4;
+  --panel: #ffffff;
+  --ink: #10161f;
+  --ink-2: #4c586a;
+  --ink-3: #8994a5;
+  --line: #d3dae5;
+  --accent: #1f6feb;
+  --accent-soft: #e3ecfd;
+
+  --mono: ui-monospace, "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+  --sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+
+  --gutter: clamp(20px, 4vw, 56px);
+  --topbar: 74px;
+  --ticker: 30px;
+
+  --ease: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--sans);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+
+body { height: 100dvh; }
+
+a { color: inherit; text-decoration: none; }
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+
+::selection { background: var(--accent); color: #fff; }
+
+.mono {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+/* --- stage ------------------------------------------------------- */
+
+/* The canvas is the page's background, and it must never eat a click:
+   everything the visitor can interact with sits above it. */
+.stage {
+  position: fixed;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+.stage-canvas { width: 100%; height: 100%; }
+
+/* --- chrome ------------------------------------------------------ */
+
+.shell {
+  position: relative;
+  z-index: 2;
+  height: 100dvh;
+  display: grid;
+  grid-template-rows: var(--topbar) 1fr var(--ticker);
+  pointer-events: none;
+}
+.shell > * { pointer-events: auto; }
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  padding: 0 var(--gutter);
+}
+
+.brand { line-height: 1.25; }
+.brand-name {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.brand-role { margin-top: 3px; }
+
+.nav {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 5px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid var(--line);
+  backdrop-filter: blur(12px);
+}
+.nav button {
+  padding: 7px 15px;
+  border-radius: 999px;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  transition: color 0.2s var(--ease), background 0.2s var(--ease);
+}
+.nav button:hover { color: var(--ink); }
+.nav button[data-on="true"] { background: var(--ink); color: #fff; }
+
+/* --- likes ------------------------------------------------------- */
+
+.likes {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--ink-2);
+}
+.likes-heart { color: #e0574f; transition: transform 0.26s var(--ease); }
+.likes-heart[data-pop="true"] { transform: scale(1.5); }
+.likes-hint {
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  color: var(--ink-3);
+  font-style: normal;
+}
+.likes-hint b {
+  display: inline-block;
+  min-width: 15px;
+  padding: 1px 4px;
+  margin: 0 3px;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  background: var(--panel);
+  text-align: center;
+}
+
+/* --- sections ---------------------------------------------------- */
+
+.view {
+  position: relative;
+  overflow: hidden;
+  padding: 0 var(--gutter);
+}
+
+.section {
+  position: absolute;
+  inset: 0;
+  padding: 0 var(--gutter);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 0.45s var(--ease), transform 0.45s var(--ease);
+  pointer-events: none;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.section[data-on="true"] { opacity: 1; transform: none; pointer-events: auto; }
+
+.wordmark {
+  font-size: clamp(64px, 15vw, 190px);
+  font-weight: 600;
+  letter-spacing: -0.045em;
+  line-height: 0.86;
+  margin: 0;
+  text-align: center;
+  color: var(--ink);
+}
+
+.eyebrow { margin-bottom: 14px; }
+
+.lede {
+  max-width: 46ch;
+  font-size: clamp(15px, 1.6vw, 19px);
+  line-height: 1.55;
+  color: var(--ink-2);
+  margin: 0 0 28px;
+}
+
+/* --- work -------------------------------------------------------- */
+
+/* The figure stands in the right third of the viewport on this section, so the
+   content is capped short of it. Without the cap the last card and the tail of
+   the education row rendered underneath the robot and were simply unreadable —
+   the canvas is `pointer-events: none`, so there was not even a hint that
+   something was on top. */
+.work-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(258px, 1fr));
+  gap: 12px;
+  max-width: min(1000px, 68vw);
+}
+.work-copy { max-width: min(1000px, 68vw); }
+
+.card {
+  position: relative;
+  padding: 18px;
+  border-radius: 14px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  transition: transform 0.3s var(--ease), border-color 0.3s var(--ease);
+}
+.card:hover { transform: translateY(-3px); border-color: var(--ink-3); }
+.card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 12px;
+}
+.card-stat {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+}
+.card h3 { margin: 0 0 7px; font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+.card p { margin: 0 0 14px; font-size: 12.5px; line-height: 1.5; color: var(--ink-2); }
+.tags { display: flex; flex-wrap: wrap; gap: 5px; }
+.tag {
+  font-family: var(--mono);
+  font-size: 8.5px;
+  letter-spacing: 0.1em;
+  padding: 3px 7px;
+  border-radius: 4px;
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.career {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 28px;
+  margin-bottom: 22px;
+  max-width: min(1000px, 68vw);
+}
+.career-row { display: flex; align-items: baseline; gap: 10px; }
+.career-row strong { font-size: 13px; font-weight: 600; }
+.career-row span { font-size: 12px; color: var(--ink-2); }
+
+/* --- about ------------------------------------------------------- */
+
+.about {
+  display: grid;
+  grid-template-columns: 1.05fr 1fr;
+  gap: clamp(24px, 5vw, 72px);
+  align-items: center;
+  max-width: 1180px;
+}
+.about-figure { min-height: 40vh; }
+.about h2 { margin: 0 0 6px; font-size: clamp(26px, 3.4vw, 42px); font-weight: 600; letter-spacing: -0.03em; }
+.about-bio { font-size: 14.5px; line-height: 1.6; color: var(--ink-2); margin: 16px 0 24px; max-width: 46ch; }
+
+.stats { display: flex; gap: 30px; margin-bottom: 24px; }
+.stat-value { font-size: 26px; font-weight: 600; letter-spacing: -0.02em; }
+
+.swap {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+  transition: border-color 0.25s var(--ease);
+}
+.swap:hover { border-color: var(--ink); }
+.swap-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); }
+
+/* --- contact ----------------------------------------------------- */
+
+.contact-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: 10px;
+  max-width: min(760px, 62vw);
+}
+.link-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  overflow: hidden;
+  transition: border-color 0.25s var(--ease), transform 0.25s var(--ease);
+}
+.link-row:hover { border-color: var(--ink); transform: translateX(3px); }
+/* Without this the icon is a flex item with a text sibling and gets crushed to
+   a sliver — the mail and GitHub glyphs were rendering about a pixel wide. */
+.link-row > svg { flex: none; }
+.link-row > span { min-width: 0; }
+.link-row-label { font-size: 13px; font-weight: 600; }
+.link-row-value {
+  display: block;
+  font-size: 11px;
+  color: var(--ink-3);
+  font-family: var(--mono);
+  /* A 46-character profile URL otherwise decides how wide the card is. */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* --- chat -------------------------------------------------------- */
+
+.chat { max-width: 560px; }
+.chat-line { font-size: clamp(15px, 1.7vw, 20px); line-height: 1.5; margin: 0 0 18px; min-height: 1.5em; }
+.caret {
+  display: inline-block;
+  width: 8px;
+  height: 1em;
+  margin-left: 2px;
+  background: var(--accent);
+  vertical-align: text-bottom;
+  animation: blink 1.1s steps(2) infinite;
+}
+@keyframes blink { 50% { opacity: 0; } }
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.chip {
+  padding: 8px 14px;
+  border-radius: 999px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  font-size: 12px;
+  color: var(--ink-2);
+  transition: border-color 0.2s var(--ease), color 0.2s var(--ease);
+}
+.chip:hover { border-color: var(--ink); color: var(--ink); }
+
+.ask {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 6px 6px 16px;
+  border-radius: 999px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  max-width: 420px;
+}
+.ask input { flex: 1; border: 0; outline: 0; background: none; font-size: 13px; color: var(--ink); }
+.ask input::placeholder { color: var(--ink-3); }
+.ask button {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--ink);
+  color: #fff;
+  flex: none;
+}
+
+/* --- ticker ------------------------------------------------------ */
+
+.ticker {
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  border-top: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.5);
+  backdrop-filter: blur(8px);
+  white-space: nowrap;
+}
+.ticker-track {
+  display: inline-flex;
+  gap: 34px;
+  padding-left: 34px;
+  animation: marquee 46s linear infinite;
+}
+.ticker span { font-family: var(--mono); font-size: 9px; letter-spacing: 0.18em; color: var(--ink-3); }
+@keyframes marquee { to { transform: translateX(-50%); } }
+
+/* --- hearts ------------------------------------------------------ */
+
+.hearts { position: fixed; inset: 0; z-index: 3; pointer-events: none; }
+.heart {
+  position: absolute;
+  color: #e0574f;
+  animation: float-up 1.5s var(--ease) forwards;
+}
+@keyframes float-up {
+  0% { opacity: 0; transform: translate(-50%, 0) scale(0.4); }
+  18% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -150px) scale(1.15); }
+}
+
+/* --- responsive -------------------------------------------------- */
+
+@media (max-width: 900px) {
+  .about { grid-template-columns: 1fr; }
+  .about-figure { display: none; }
+  .likes-hint { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

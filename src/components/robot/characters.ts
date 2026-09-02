@@ -1,8 +1,9 @@
 /**
  * Loading and clip retargeting for the two glTF characters.
  *
- * The figures are `Xbot.glb` (the robot) and `Michelle.glb` (the human).
- * `Soldier.glb` is no longer loaded.
+ * The figures are `Ybot.glb` (the robot) and `Michelle.glb` (the human), with
+ * `Xbot.glb` loaded as a clip donor that is never drawn. `Soldier.glb` is no
+ * longer loaded.
  *
  * The Soldier was the robot until his idle was measured against the reference
  * recording. It is a combat stance: the hips sit 43.7 degrees off square with
@@ -15,10 +16,25 @@
  *   Soldier / Idle    hips off-square 43.7deg   feet stagger 0.68
  *   Xbot / idle        hips off-square  3.7deg   feet stagger 0.01
  *
- * Xbot stands square with level feet, which is the reference stance, and it
- * carries idle, walk, run, agree and headShake natively — so the robot now
- * plays its OWN captures with no retargeting at all. Only the dance, which
- * only Michelle has, still crosses rigs.
+ * Xbot stands square with level feet, which is the reference stance, and it is
+ * the only one of the three carrying idle, walk, run, agree and headShake. So
+ * it stays loaded for those five clips and nothing else: Y Bot ships a single
+ * 0.03s T-pose, and Michelle only has the samba.
+ *
+ * Y Bot replaced Xbot as the robot's BODY because Xbot reads female — Mixamo's
+ * two base characters differ in exactly the way you would expect, measured on
+ * the bind pose:
+ *
+ *              shoulder width   hip width
+ *   Xbot           0.303          0.164
+ *   Y Bot          0.375          0.182
+ *
+ * Every clip therefore crosses rigs now, where before the robot played its own
+ * captures untouched. That is not free — see `retargetOnto`, and note that the
+ * two rigs are bound a half-turn apart at the hip, Xbot's thigh axis pointing
+ * up and Y Bot's down — but it is the same one hop the human's clips already
+ * took, through the same tested path. `scripts/bake-ybot.mjs` documents what
+ * had to be repaired in the Y Bot download before any of it would work.
  */
 
 import { useMemo } from "react";
@@ -30,8 +46,12 @@ import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js
 export const MODEL_URLS = {
   /* Soldier.glb stays on disk for reference but is no longer fetched — it was
      2.16 MB of download for a stance the site cannot use. */
-  robot: "/models/Xbot.glb",
+  robot: "/models/Ybot.glb",
   human: "/models/Michelle.glb",
+  /* Loaded for its ANIMATIONS ONLY — never displayed. Y Bot ships a T-pose and
+     nothing else, so the robot's mesh and the robot's motion now come from
+     different files. See `build`. */
+  motion: "/models/Xbot.glb",
 } as const;
 
 /** The clip vocabulary the rest of the app addresses, independent of source. */
@@ -395,13 +415,20 @@ function paintShell(root: THREE.Object3D) {
      figures: `prepare` runs first and hands every mesh its own material so the
      dissolve's `onBeforeCompile` patch cannot leak between figures. These are
      built inside the call for the same reason. */
+  /* Matched on the MESH name, with the material name as a fallback.
+     `Beta_Joints` and `Beta_Surface` are the two meshes every Mixamo "beta" rig
+     ships — Xbot and Ybot both — whereas the material names carry per-export
+     junk: this file's surface material is `asdf1:Beta_HighLimbsGeoSG2`, and the
+     `asdf1:` and the trailing digit are artefacts of whoever exported it, not
+     anything to rely on. Testing the mesh name first is what lets the model be
+     swapped for its male counterpart without touching this function. */
   let painted = 0;
   root.traverse((o) => {
     const m = o as THREE.Mesh;
     if (!m.isMesh || !m.material || Array.isArray(m.material)) return;
-    const name = m.material.name;
-    if (name === "asdf1:Beta_HighLimbsGeoSG2") m.material = shell;
-    else if (name === "Beta_Joints_MAT") m.material = joint;
+    const id = `${m.name} ${m.material.name}`;
+    if (/joint/i.test(id)) m.material = joint;
+    else if (/surface|limbs/i.test(id)) m.material = shell;
     else return;
     painted += 1;
   });
@@ -473,14 +500,71 @@ function orient(scene: THREE.Object3D, yaw: number) {
   return g;
 }
 
-/** Yaw that turns each model to face +Z. Both remaining rigs already do. */
-const FACING: Record<"robot" | "human", number> = { robot: 0, human: 0 };
+/** Yaw that turns each model to face +Z. Measured: all three already do. */
+const FACING: Record<"robot" | "human" | "motion", number> = {
+  robot: 0,
+  human: 0,
+  motion: 0,
+};
 
 /** Pick a clip out of a glTF by name, case-insensitively. */
 function pick(clips: THREE.AnimationClip[], want: string) {
   const found = clips.find((c) => c.name.toLowerCase() === want.toLowerCase());
   if (!found) throw new Error(`characters: no clip "${want}" (have ${clips.map((c) => c.name).join(", ")})`);
   return found;
+}
+
+/**
+ * Drop every position and scale track that never changes.
+ *
+ * Xbot's clips carry a full 201 tracks each: position, quaternion AND scale for
+ * all 67 bones. Measured across the five clips the robot actually plays, 66 of
+ * the 67 position tracks hold a single constant value that equals the bone's
+ * own bind offset to within 1e-4, and all 67 scale tracks sit at exactly 1.
+ * Only `mixamorigHips.position` genuinely animates — 0.58 units of bob in idle,
+ * 4.83 in walk, 9.42 of root travel in run.
+ *
+ * So 133 of every 201 tracks re-assert, sixty times a second, values the
+ * skeleton already holds. Removing them is a no-op by construction: a bone with
+ * no position track keeps its bind offset, which is the number the track was
+ * writing.
+ *
+ * It also makes the clips rig-independent, which is the part that matters if
+ * this model is ever swapped for another Mixamo character (Ybot, say). Those
+ * constant tracks are Xbot's PROPORTIONS baked into the animation — bone
+ * lengths, shoulder width, hip width. Played on a different body they would
+ * overwrite that body's own offsets and drag its skeleton into Xbot's shape
+ * while its mesh stayed skinned to its own bind pose. Rotation-only clips carry
+ * the performance without the performer, which is how Mixamo clips are meant to
+ * travel; `mixamorigHips.position` is then the single track that needs scaling
+ * by the hip-height ratio between the two rigs.
+ *
+ * Constant-ness is the test rather than a hardcoded bone name so this stays
+ * correct for any rig. Note it keeps the moving arm and leg position tracks in
+ * `sad_pose` and `sneak_pose` — neither is in the robot's vocabulary, but if
+ * one is ever added it would need the same proportion check.
+ */
+function slimClip(clip: THREE.AnimationClip) {
+  const EPS = 1e-4;
+  const kept = clip.tracks.filter((t) => {
+    if (!t.name.endsWith(".position") && !t.name.endsWith(".scale")) return true;
+    const v = t.values;
+    const stride = t.getValueSize();
+    for (let i = 0; i < stride; i += 1) {
+      let lo = Infinity;
+      let hi = -Infinity;
+      for (let k = i; k < v.length; k += stride) {
+        if (v[k] < lo) lo = v[k];
+        if (v[k] > hi) hi = v[k];
+      }
+      if (hi - lo > EPS) return true;
+    }
+    return false;
+  });
+  if (kept.length === clip.tracks.length) return clip;
+  const out = clip.clone();
+  out.tracks = kept;
+  return out;
 }
 
 export type Character = {
@@ -506,10 +590,18 @@ type Gltf = { scene: THREE.Object3D; animations: THREE.AnimationClip[] };
 export function useCharacters(): { robot: Character; human: Character } {
   const robotGltf = useGLTF(MODEL_URLS.robot) as unknown as Gltf;
   const humanGltf = useGLTF(MODEL_URLS.human) as unknown as Gltf;
-  return useMemo(() => build(robotGltf, humanGltf), [robotGltf, humanGltf]);
+  const motionGltf = useGLTF(MODEL_URLS.motion) as unknown as Gltf;
+  return useMemo(
+    () => build(robotGltf, humanGltf, motionGltf),
+    [robotGltf, humanGltf, motionGltf]
+  );
 }
 
-function build(robotGltf: Gltf, humanGltf: Gltf): { robot: Character; human: Character } {
+function build(
+  robotGltf: Gltf,
+  humanGltf: Gltf,
+  motionGltf: Gltf
+): { robot: Character; human: Character } {
   /* Oriented copies. Everything below — display, retarget source and retarget
      target alike — is built from these, so no part of the system ever sees the
      raw, differently-facing originals. Both of these rigs already face +Z, so
@@ -517,20 +609,20 @@ function build(robotGltf: Gltf, humanGltf: Gltf): { robot: Character; human: Cha
      `relativeQuaternion` in figure.tsx stops at. */
   const robotSrc = orient(cloneSkinned(robotGltf.scene), FACING.robot);
   const humanSrc = orient(cloneSkinned(humanGltf.scene), FACING.human);
+  const motionSrc = orient(cloneSkinned(motionGltf.scene), FACING.motion);
 
   const robotScene = paintShell(
     prepare(orient(cloneSkinned(robotGltf.scene), FACING.robot))
   );
   const humanScene = prepare(orient(cloneSkinned(humanGltf.scene), FACING.human));
 
-  /* The robot's whole vocabulary except the dance is its own capture, played
-     untouched. That is the point of the swap: no retarget, no bind-pose
-     mismatch, no correction — and the stance the reference has. */
-  const xIdle = pick(robotGltf.animations, "idle");
-  const xWalk = pick(robotGltf.animations, "walk");
-  const xRun = pick(robotGltf.animations, "run");
-  const xAgree = pick(robotGltf.animations, "agree");
-  const xShake = pick(robotGltf.animations, "headShake");
+  /* Every clip in the site except the dance comes out of Xbot, which is loaded
+     for these five and never drawn. Y Bot ships one 0.03s T-pose. */
+  const xIdle = slimClip(pick(motionGltf.animations, "idle"));
+  const xWalk = slimClip(pick(motionGltf.animations, "walk"));
+  const xRun = slimClip(pick(motionGltf.animations, "run"));
+  const xAgree = slimClip(pick(motionGltf.animations, "agree"));
+  const xShake = slimClip(pick(motionGltf.animations, "headShake"));
   const samba = pick(humanGltf.animations, "SambaDance");
 
   /**
@@ -554,28 +646,27 @@ function build(robotGltf: Gltf, humanGltf: Gltf): { robot: Character; human: Cha
     skin: findSkin(robotScene),
     stance: { lo: 0, hi: 0, height: 1 },
     clips: withAdditive({
-      idle: xIdle,
-      walk: xWalk,
-      run: xRun,
-      agree: xAgree.clone(),
-      headShake: xShake.clone(),
+      idle: retargetOnto(robotSrc, motionSrc, xIdle, "idle"),
+      walk: retargetOnto(robotSrc, motionSrc, xWalk, "walk"),
+      run: retargetOnto(robotSrc, motionSrc, xRun, "run"),
+      agree: retargetOnto(robotSrc, motionSrc, xAgree, "agree"),
+      headShake: retargetOnto(robotSrc, motionSrc, xShake, "headShake"),
       dance: retargetOnto(robotSrc, humanSrc, samba, "dance", SAMBA_TRIM),
     }),
   };
 
-  /* The human borrows her locomotion from the robot now rather than from the
-     Soldier. Same reason the robot changed: the Soldier's idle would have put
-     her in his 43-degree combat stance too. */
+  /* She takes her locomotion from the same Xbot captures the robot does, one
+     hop rather than by way of Y Bot. */
   const human: Character = {
     scene: humanScene,
     skin: findSkin(humanScene),
     stance: { lo: 0, hi: 0, height: 1 },
     clips: withAdditive({
-      idle: retargetOnto(humanSrc, robotSrc, xIdle, "idle"),
-      walk: retargetOnto(humanSrc, robotSrc, xWalk, "walk"),
-      run: retargetOnto(humanSrc, robotSrc, xRun, "run"),
-      agree: retargetOnto(humanSrc, robotSrc, xAgree, "agree"),
-      headShake: retargetOnto(humanSrc, robotSrc, xShake, "headShake"),
+      idle: retargetOnto(humanSrc, motionSrc, xIdle, "idle"),
+      walk: retargetOnto(humanSrc, motionSrc, xWalk, "walk"),
+      run: retargetOnto(humanSrc, motionSrc, xRun, "run"),
+      agree: retargetOnto(humanSrc, motionSrc, xAgree, "agree"),
+      headShake: retargetOnto(humanSrc, motionSrc, xShake, "headShake"),
       // Retargeted onto herself: one pass, and it buys the same XZ-drift
       // removal the robot's copy gets, so she dances on the spot too.
       dance: retargetOnto(humanSrc, humanSrc, samba, "dance", SAMBA_TRIM),
@@ -591,3 +682,4 @@ function build(robotGltf: Gltf, humanGltf: Gltf): { robot: Character; human: Cha
 
 useGLTF.preload(MODEL_URLS.robot);
 useGLTF.preload(MODEL_URLS.human);
+useGLTF.preload(MODEL_URLS.motion);

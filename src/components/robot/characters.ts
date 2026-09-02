@@ -344,6 +344,74 @@ function toAdditive(clip: THREE.AnimationClip) {
 }
 
 /**
+ * Repaint Xbot in the reference bot's palette.
+ *
+ * Sampled off ref_images/cursor_detail.jpg: the shell is near-black — the
+ * darkest reads come back #101010 to #161616 — and it is glossy, throwing long
+ * thin specular streaks rather than a broad soft highlight. The joints between
+ * the plates read as bright polished metal, nearly white (#676c6f in shadow up
+ * to #eff3f6 on the lit side). Those two make up the whole figure; the mint and
+ * amber (#96dfd4 and roughly #f0a24a) sit only on the visor bar and chest
+ * sigil, which are geometry this model does not have.
+ *
+ * The file splits the same way the reference does, so this is a swap rather
+ * than a re-authoring. `asdf1:Beta_HighLimbsGeoSG2` is the outer plating —
+ * 15.9k verts reaching y=1.81, so it carries the head — and `Beta_Joints_MAT`
+ * is the hardware between the plates, 12.5k verts topping out at 1.59. Both
+ * ship a flat salmon (0.837, 0.302, 0.264 and a browner 0.333, 0.125, 0.101),
+ * which is the Mixamo default rather than anyone's choice.
+ *
+ * The numbers below are lifted from materials.ts, where they were tuned
+ * against this same reference under this same light rig, and the reasoning
+ * there still applies: the plating wants low roughness under a hard clearcoat,
+ * and the joints want metalness backed off with the base colour lifted, since
+ * a true mirror only reflects the dark surroundings and reads as black against
+ * black.
+ *
+ * Matched on material name, not on mesh order — glTF makes no promise about
+ * the order primitives come back in, and getting the two the wrong way round
+ * would paint the head chrome and the joints black, which is a plausible
+ * enough robot to go unnoticed. The count check below is there for the same
+ * reason: a rename in the file would otherwise leave the figure salmon with
+ * nothing said about it.
+ */
+function paintShell(root: THREE.Object3D) {
+  const shell = new THREE.MeshPhysicalMaterial({
+    color: "#0a0c10",
+    metalness: 0.66,
+    roughness: 0.1,
+    clearcoat: 1,
+    clearcoatRoughness: 0.03,
+    envMapIntensity: 1.85,
+  });
+  const joint = new THREE.MeshStandardMaterial({
+    color: "#e8ecf3",
+    metalness: 0.82,
+    roughness: 0.24,
+    envMapIntensity: 2.4,
+  });
+
+  /* One instance of each, shared across this scene's meshes but not across
+     figures: `prepare` runs first and hands every mesh its own material so the
+     dissolve's `onBeforeCompile` patch cannot leak between figures. These are
+     built inside the call for the same reason. */
+  let painted = 0;
+  root.traverse((o) => {
+    const m = o as THREE.Mesh;
+    if (!m.isMesh || !m.material || Array.isArray(m.material)) return;
+    const name = m.material.name;
+    if (name === "asdf1:Beta_HighLimbsGeoSG2") m.material = shell;
+    else if (name === "Beta_Joints_MAT") m.material = joint;
+    else return;
+    painted += 1;
+  });
+  if (painted !== 2 && process.env.NODE_ENV !== "production") {
+    console.warn(`[robot] repaint matched ${painted} of 2 materials`);
+  }
+  return root;
+}
+
+/**
  * Prepare a cloned scene for display.
  *
  * Two things, both necessary.
@@ -450,7 +518,9 @@ function build(robotGltf: Gltf, humanGltf: Gltf): { robot: Character; human: Cha
   const robotSrc = orient(cloneSkinned(robotGltf.scene), FACING.robot);
   const humanSrc = orient(cloneSkinned(humanGltf.scene), FACING.human);
 
-  const robotScene = prepare(orient(cloneSkinned(robotGltf.scene), FACING.robot));
+  const robotScene = paintShell(
+    prepare(orient(cloneSkinned(robotGltf.scene), FACING.robot))
+  );
   const humanScene = prepare(orient(cloneSkinned(humanGltf.scene), FACING.human));
 
   /* The robot's whole vocabulary except the dance is its own capture, played

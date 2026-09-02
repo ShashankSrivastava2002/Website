@@ -72,13 +72,24 @@ function hipName(root: THREE.Object3D) {
  * The stretch of `SambaDance` used as the like reaction.
  *
  * The clip runs 18.2 seconds, which is a performance rather than a reaction.
- * These bounds are the pair of times, 3 to 5 seconds apart, whose poses are
- * closest to each other across the whole clip: comparing every frame against
- * every other, the gap here is 0.094 rad/bone against a 0.226 average, so it
- * returns 2.4x closer to where it started than an arbitrary cut would. That is
- * what lets it end without a snap back to idle.
+ *
+ * These bounds were originally chosen to minimise ONE thing: how close the
+ * window's last pose is to its first, so the cut would not snap back to idle.
+ * That criterion picked [0.45, 4.85], whose closure is genuinely the best in
+ * the clip at 0.091 rad/bone — and which is also, measured across every 4.4s
+ * window in the clip, the 26th most energetic of 28. It optimised straight into
+ * the flattest stretch of the samba, because the quietest passage is naturally
+ * the easiest one to loop. The reaction played for its full length and read as
+ * the figure shuffling.
+ *
+ * Scoring motion as well as closure — mean per-frame angular travel summed over
+ * all 65 joints, against pose distance between the two ends — gives this window
+ * instead: 26% more motion for 0.035 rad/bone of extra gap. That trade is worth
+ * taking now in a way it was not before, because the hand-back is a real 0.45s
+ * crossfade rather than a cut (see DANCE_OUT in figure.tsx), and a crossfade
+ * absorbs a small pose gap without showing it.
  */
-const SAMBA_TRIM: [number, number] = [0.45, 4.85];
+const SAMBA_TRIM: [number, number] = [13.02, 16.83];
 
 /**
  * Gestures that layer onto whatever the base is doing rather than replacing it.

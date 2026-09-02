@@ -56,6 +56,101 @@ const LOCOMOTION = new Set<ClipName>(["walk", "run"]);
 const BASE_FADE = 0.45;
 const ADD_FADE = 0.35;
 
+/** How long the dance takes to take the base layer over, and to hand it back. */
+const DANCE_IN = 0.3;
+const DANCE_OUT = 0.45;
+
+/* ------------------------------------------------------------------ */
+
+/**
+ * How a cursor turn is shared out along the spine, hips to head.
+ *
+ * Tracking with the neck and head alone is what made the old version read as a
+ * mannequin on a swivel. A person turning to look at something moves everything
+ * from the pelvis up: every joint gives a little and the head gives most. These
+ * shares each sum to 1, so LOOK_YAW and LOOK_PITCH below are the TOTAL
+ * deflection and the split between joints is a separate, tunable thing.
+ *
+ * `lag` is the other half of it. The hips and spine read a slower-eased cursor
+ * than the neck and head do (see `easePointer`), so the head arrives first and
+ * the body settles in behind it. Without that offset six joints rotating in
+ * lockstep just look like one rigid rotation with extra steps.
+ */
+const LOOK_CHAIN = [
+  { name: "Spine", yaw: 0.12, pitch: 0.06, lag: true },
+  { name: "Spine1", yaw: 0.16, pitch: 0.1, lag: true },
+  { name: "Spine2", yaw: 0.2, pitch: 0.14, lag: true },
+  { name: "Neck", yaw: 0.2, pitch: 0.24, lag: false },
+  { name: "Head", yaw: 0.32, pitch: 0.46, lag: false },
+] as const;
+
+/**
+ * The chain starts at `Spine`, NOT at `Hips`, and the rig itself does not move.
+ *
+ * Both of those were tried, and both look wrong for the same reason: the feet
+ * are planted. `Hips` is the parent of the legs, so any yaw on it swings the
+ * boots; a yaw on the figure's own group swings them too, and a sideways shift
+ * slides them. On screen that does not read as a character looking at the
+ * cursor, it reads as the whole model being dragged across its own shadow —
+ * the stance skews, the soles turn, and the contact shadow stops matching what
+ * is standing on it. A person tracking something across a room turns from the
+ * waist up and leaves their feet where they are, which is what this now does.
+ */
+
+/** Total deflection at full cursor throw, in radians, summed over the chain. */
+const LOOK_YAW = 0.52;
+const LOOK_PITCH = 0.34;
+/** How much of it survives while the dance owns the body. */
+const LOOK_DANCE_GAIN = 0.35;
+
+const AXIS_Y = new THREE.Vector3(0, 1, 0);
+const AXIS_X = new THREE.Vector3(1, 0, 0);
+/* Frame-local scratch. Both figures run inside one synchronous frame callback,
+   so sharing these is safe and saves six allocations per joint per frame. */
+const qFrame = new THREE.Quaternion();
+const qDelta = new THREE.Quaternion();
+const qYaw = new THREE.Quaternion();
+const qPitch = new THREE.Quaternion();
+const qInv = new THREE.Quaternion();
+
+/**
+ * Orientation of `node` relative to `stop`, built from local quaternions only.
+ *
+ * Deliberately not `getWorldQuaternion`, and deliberately not bone-local Euler
+ * angles either. Both alternatives are wrong here, for different reasons.
+ *
+ * The look has to be applied about the FIGURE'S axes rather than each bone's
+ * own, because the two rigs disagree about what a bone's own axes are. Measured
+ * on the bind pose, applying `rotation.y += 0.3` to all six joints and reading
+ * the world yaw that actually results at each one:
+ *
+ *   Michelle   +0.3  +0.6  +0.9  +1.2  +1.5  +1.8
+ *   Soldier    -0.3   0.0  +0.3  +0.6  +0.9  +1.2
+ *
+ * The Soldier's `Hips` turns the WRONG WAY — his pelvis carries the pi that
+ * `characters.ts` records in its header — and his `Spine` then spends its whole
+ * contribution cancelling it. The head still ends up pointing roughly the right
+ * way, which is exactly why this hid: the old code only drove the neck and head,
+ * so it never touched the two joints that disagree. Converting one rotation into
+ * each bone's parent frame is indifferent to how either rig was bound.
+ *
+ * The frame is taken relative to the figure's own group rather than the scene
+ * because the ancestors above it are the About somersault and the section
+ * tumble. Against true world axes the look would fight a rig that is upside
+ * down mid-flip; against the figure's own root it rides along with it.
+ */
+function relativeQuaternion(
+  node: THREE.Object3D,
+  stop: THREE.Object3D | null,
+  out: THREE.Quaternion
+) {
+  out.identity();
+  for (let o: THREE.Object3D | null = node; o && o !== stop; o = o.parent) {
+    out.premultiply(o.quaternion);
+  }
+  return out;
+}
+
 /* ------------------------------------------------------------------ */
 
 /**
@@ -126,6 +221,13 @@ export default function Figure({
   const root = useRef<THREE.Group>(null);
   const pointer = usePointer();
 
+  /* Resolved once. `bone()` walks the scene graph to find a name, and the old
+     code paid for that twice per figure per frame to reach the same two bones. */
+  const chain = useMemo(
+    () => LOOK_CHAIN.map((j) => ({ ...j, bone: bone(character.scene, j.name) })),
+    [character]
+  );
+
   /* --- fit: normalise both figures to one height, soles on the floor ---
      Soldier stands 1.81 units in his own file and Michelle 1.65, a 10%
      difference that would read as the figure changing size mid-morph. Scaling
@@ -172,6 +274,8 @@ export default function Figure({
   const travel = useRef({ x: startX, v: 0 });
   const danceUntil = useRef(0);
   const seenDance = useRef(danceGen);
+  /** Eased 1 -> LOOK_DANCE_GAIN, so the look yields to the choreography. */
+  const lookGain = useRef(1);
 
   /* --- crossfade helpers, following webgl_animation_skinning_blending --- */
   const setBase = (next: ClipName, dur: number) => {
@@ -191,12 +295,20 @@ export default function Figure({
        clips of different length still describe the same cycle, so matching the
        NORMALISED phase keeps the same foot forward across the swap. Starting
        at 0 instead plants whichever foot the new clip happens to open on. */
-    if (from && fromName && LOCOMOTION.has(next) && LOCOMOTION.has(fromName)) {
+    const strides = !!from && !!fromName && LOCOMOTION.has(next) && LOCOMOTION.has(fromName);
+    if (strides && from && fromName) {
       to.time = from.time * (to.getClip().duration / from.getClip().duration);
     }
 
     to.play();
-    if (from) from.crossFadeTo(to, dur, true);
+    /* Warp only between two locomotion clips. `crossFadeTo`'s third argument
+       rescales the incoming action's timeScale by the ratio of the two clip
+       lengths and decays it back to 1 over the fade. Between a walk and a run
+       that is the point — it keeps the cadence continuous while the stride
+       length changes. Anywhere else it is just a speed-up: handing the 4.38s
+       dance back to the 1.97s idle started the idle at 2.2x and let it slow
+       down, so every dance ended with the figure briefly twitching. */
+    if (from) from.crossFadeTo(to, dur, strides);
     else to.fadeIn(dur);
 
     cur.current.base = next;
@@ -214,7 +326,15 @@ export default function Figure({
         to.enabled = true;
         to.setEffectiveTimeScale(1);
         to.reset();
-        to.setEffectiveWeight(0);
+        /* 1, not 0. `fadeIn` schedules an interpolant that `_updateWeight`
+           MULTIPLIES the action's own weight by, so seeding the weight at 0
+           makes the product 0 for the whole ramp and the gesture never appears
+           at all. Measured on the live page: with `wave` selected and the
+           additive layer reporting itself as active, the agree action's
+           effective weight sat at 0.000 for as long as the pose was held, so
+           every gesture pose has been rendering as plain idle. `setBase` seeds
+           1 for exactly this reason. */
+        to.setEffectiveWeight(1);
         to.play();
         to.fadeIn(dur);
       }
@@ -222,29 +342,59 @@ export default function Figure({
     cur.current.add = next;
   };
 
-  /* --- react to pose changes --- */
+  /* --- react to pose changes ---
+     A dance in progress owns BOTH layers until it finishes. The additive one
+     used to be exempt, which meant the home cycle's next pose faded `agree` in
+     over the samba a second or two into it — two clips reaching for the same
+     arms, which is half of what "the dance doesn't finish properly" looked
+     like. Whatever the pose ends up being is re-applied on the way out. */
   useEffect(() => {
+    if (danceUntil.current > 0) return;
     const want = POSE_CLIPS[pose] ?? POSE_CLIPS.idle;
-    // A dance in progress owns the base layer until it finishes.
-    if (danceUntil.current <= 0) setBase(want.base, BASE_FADE);
+    setBase(want.base, BASE_FADE);
     setAdditive(want.add ?? null, ADD_FADE);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [pose, rig]);
 
-  /* --- react to likes --- */
+  /* --- react to likes ---
+     Starting the dance goes through the same crossfade as any other base clip,
+     and ending it does too. That symmetry is the fix: the previous version
+     cleared `cur.base` to null before handing back, so the hand-back found no
+     outgoing action and only faded the idle IN. The dance action was left at
+     full weight, frozen on its last frame by `clampWhenFinished`, and from the
+     first like onward the mixer blended that frozen samba 50/50 against every
+     clip that followed, for the life of the page. The dance was never cut short
+     — it just never let go, so the figure spent the rest of its life half in a
+     pose it had finished. */
   useEffect(() => {
     if (danceGen === seenDance.current) return;
     seenDance.current = danceGen;
+
+    /* Already dancing: swallow the like. Re-entering called
+       `dance.crossFadeTo(dance)` — `cur.base` was "dance", so the outgoing and
+       incoming action were the same object — which schedules a fade-out and a
+       fade-in on one action in one frame, on top of a `reset()` back to frame
+       zero. That is the pop when L is held down. Bumping `seenDance` above
+       first means the like is dropped, not queued. */
+    if (danceUntil.current > 0) return;
+
     const dance = rig.actions.dance;
     if (!dance) return;
+
+    const fromName = cur.current.base;
+    const from = fromName ? rig.actions[fromName] : undefined;
+
     dance.reset();
-    dance.setEffectiveWeight(1);
     dance.setLoop(THREE.LoopOnce, 1);
+    dance.setEffectiveTimeScale(1);
+    dance.setEffectiveWeight(1);
     dance.play();
-    const from = cur.current.base ? rig.actions[cur.current.base] : undefined;
-    if (from) from.crossFadeTo(dance, 0.3, false);
+    if (from && from !== dance) from.crossFadeTo(dance, DANCE_IN, false);
+    else dance.fadeIn(DANCE_IN);
+
     cur.current.base = "dance";
-    danceUntil.current = dance.getClip().duration - 0.4;
+    danceUntil.current = Math.max(0.2, dance.getClip().duration - DANCE_OUT);
+
     // The gesture layer would fight the dance for the arms.
     setAdditive(null, 0.2);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -286,33 +436,52 @@ export default function Figure({
     if (danceUntil.current > 0) {
       danceUntil.current -= d;
       if (danceUntil.current <= 0) {
-        cur.current.base = null;
-        setBase(POSE_CLIPS[pose]?.base ?? "idle", 0.5);
+        danceUntil.current = 0;
+        /* `cur.base` is left reading "dance" on purpose — `setBase` needs it to
+           find the outgoing action and actually fade the dance out. */
+        const want = POSE_CLIPS[pose] ?? POSE_CLIPS.idle;
+        setBase(want.base, DANCE_OUT);
+        setAdditive(want.add ?? null, ADD_FADE);
       }
     }
 
     rig.mixer.update(d);
 
+    /* The dance is choreography for the whole body; a cursor pulling the spine
+       around at the same time reads as the figure being distracted mid-move.
+       Eased rather than switched, so the look leaves and returns smoothly. */
+    const gain = THREE.MathUtils.damp(
+      lookGain.current,
+      danceUntil.current > 0 ? LOOK_DANCE_GAIN : 1,
+      5,
+      d
+    );
+    lookGain.current = gain;
+
     /* Cursor tracking, applied AFTER the mixer so it layers on the clip rather
-       than being overwritten by it. Split across neck and head so the figure
-       turns rather than swivelling one joint. */
-    if (look) {
-      const yaw = THREE.MathUtils.clamp(pointer.current.x * 0.5, -0.6, 0.6);
-      const pitch = THREE.MathUtils.clamp(-pointer.current.y * 0.3, -0.3, 0.3);
-      const neck = bone(character.scene, "Neck");
-      const head = bone(character.scene, "Head");
-      if (neck) {
-        neck.rotation.y += yaw * 0.35;
-        neck.rotation.x += pitch * 0.35;
-      }
-      if (head) {
-        head.rotation.y += yaw * 0.65;
-        head.rotation.x += pitch * 0.65;
+       than being overwritten by it.
+
+       One rotation, expressed once per joint in that joint's parent frame, and
+       carried down the chain: after a joint is turned its own new orientation
+       becomes the frame for the joint below it. See `relativeQuaternion` for
+       why this cannot be done with `rotation.y +=`. */
+    const p = pointer.current;
+    if (look && root.current) {
+      relativeQuaternion(chain[0].bone.parent ?? chain[0].bone, root.current, qFrame);
+      for (const j of chain) {
+        const px = j.lag ? p.bx : p.x;
+        const py = j.lag ? p.by : p.y;
+        qYaw.setFromAxisAngle(AXIS_Y, LOOK_YAW * gain * j.yaw * px);
+        qPitch.setFromAxisAngle(AXIS_X, -LOOK_PITCH * gain * j.pitch * py);
+        qDelta.copy(qYaw).multiply(qPitch);
+        qInv.copy(qFrame).invert();
+        // local' = frame^-1 * delta * frame * local
+        j.bone.quaternion.premultiply(qFrame).premultiply(qDelta).premultiply(qInv);
+        qFrame.multiply(j.bone.quaternion);
       }
     }
 
     if (root.current) root.current.position.x = W.x;
-
   });
 
   return (

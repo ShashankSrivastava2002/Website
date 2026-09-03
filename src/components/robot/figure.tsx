@@ -426,7 +426,7 @@ export default function Figure({
          the positions the legs get solved back onto. */
       captureLegs(legs, root.current);
 
-      applyLookChain(joints, aim, d, gain, arms);
+      applyLookChain(joints, aim, d, gain, arms, root.current);
 
       /* The weight shift. With the feet pinned below, moving the pelvis
          sideways is what forces one leg to straighten and the other to bend;

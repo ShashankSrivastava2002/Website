@@ -88,8 +88,12 @@ export type ResolvedJoint = LookJoint & {
   /** Current eased angles, in radians. Lives with the figure, not the module. */
   yaw: number;
   pitch: number;
-  /** Exactly what this joint added last frame, so it can be taken back out. */
+  /** The bone's own local rotation before the look touched it, so the clip's
+      pose can be put back exactly rather than reconstructed by inverting a
+      product. See `releaseLookChain`. */
   applied: THREE.Quaternion;
+  /** False until the first `applyLookChain`, so release cannot restore junk. */
+  held?: boolean;
 };
 
 /**
@@ -111,7 +115,9 @@ export type ResolvedJoint = LookJoint & {
  */
 export type ArmTrail = {
   bone: THREE.Object3D;
+  /** The bone's local rotation before the trail was applied. */
   applied: THREE.Quaternion;
+  held?: boolean;
 };
 
 const ARM_BONES = ["LeftShoulder", "RightShoulder"];
@@ -156,8 +162,6 @@ const target = new THREE.Vector3();
 const anchor = new THREE.Vector3();
 const toTarget = new THREE.Vector3();
 const rootInverse = new THREE.Matrix4();
-const qYaw = new THREE.Quaternion();
-const qPitch = new THREE.Quaternion();
 const AXIS_Y = new THREE.Vector3(0, 1, 0);
 const AXIS_X = new THREE.Vector3(1, 0, 0);
 
@@ -258,7 +262,13 @@ export function targetAngles(
 
 /* ---- 3 & 4. distribute, ease, clamp, apply ----------------------- */
 
-const qUndo = new THREE.Quaternion();
+const qDesired = new THREE.Quaternion();
+const qScratch = new THREE.Quaternion();
+const qScratch2 = new THREE.Quaternion();
+const qParent = new THREE.Quaternion();
+const qFigure = new THREE.Quaternion();
+const qFigureInverse = new THREE.Quaternion();
+const clipWorld: THREE.Quaternion[] = [];
 
 /**
  * Take last frame's look back out, restoring the bone to the clip's own pose.
@@ -286,12 +296,10 @@ export function releaseLookChain(joints: ResolvedJoint[], arms: ArmTrail[] = [])
      drift off unit length, and `decompose` divides by the scale that drift
      creates. It reaches NaN silently, tens of frames later. */
   for (const j of joints) {
-    qUndo.copy(j.applied).invert();
-    j.bone.quaternion.multiply(qUndo).normalize();
+    if (j.held) j.bone.quaternion.copy(j.applied);
   }
   for (const a of arms) {
-    qUndo.copy(a.applied).invert();
-    a.bone.quaternion.multiply(qUndo).normalize();
+    if (a.held) a.bone.quaternion.copy(a.applied);
   }
 }
 
@@ -334,8 +342,25 @@ export function applyLookChain(
   aim: LookAngles,
   dt: number,
   gain = 1,
-  arms: ArmTrail[] = []
+  arms: ArmTrail[] = [],
+  root: THREE.Object3D
 ) {
+  /* Snapshot BEFORE anything moves: each joint needs the world orientation the
+     clip gave it, and by the time the loop reaches a joint its ancestors have
+     already been rewritten. The local rotation is kept too — that is what
+     `releaseLookChain` puts back. */
+  root.getWorldQuaternion(qFigure);
+  qFigureInverse.copy(qFigure).invert();
+  for (let i = 0; i < joints.length; i++) {
+    const j = joints[i];
+    j.bone.updateWorldMatrix(true, false);
+    j.bone.getWorldQuaternion(clipWorld[i] ?? (clipWorld[i] = new THREE.Quaternion()));
+    j.applied.copy(j.bone.quaternion);
+    j.held = true;
+  }
+  let cumulativeYaw = 0;
+  let cumulativePitch = 0;
+
   /* The lower joints take their shaped shares; the head takes the remainder, so
      the chain always sums to the full target angle. */
   let usedYaw = 0;
@@ -374,10 +399,31 @@ export function applyLookChain(
        Yaw before pitch: yaw is about the vertical, which every joint below
        shares, so applying it first leaves the pitch axis where the body's
        shoulders actually are. */
-    qYaw.setFromAxisAngle(AXIS_Y, j.yaw);
-    qPitch.setFromAxisAngle(AXIS_X, j.pitch);
-    j.applied.copy(qYaw).multiply(qPitch).normalize();
-    j.bone.quaternion.multiply(j.applied).normalize();
+    cumulativeYaw += j.yaw;
+    cumulativePitch += j.pitch;
+
+    /* Build the joint's target from the CUMULATIVE angles in the figure's own
+       frame, and set the bone to it, rather than multiplying an increment onto
+       whatever the bone currently holds.
+
+       `R(up, yaw) * R(right, pitch)` has no roll term in it, so the chain
+       cannot acquire one. The previous spelling — yaw then pitch about each
+       BONE's local axes, post-multiplied — did, because a joint's local X is
+       already carried around by every yaw above it, so its pitch is partly a
+       roll in the figure's frame. Small in the middle of the screen and
+       cumulative towards the corners: measured settled, head roll reached
+       +4.50 deg at the bottom-right corner and -4.57 at the bottom-left, a
+       sideways head tilt with nothing asking for it. */
+    qDesired
+      .setFromAxisAngle(AXIS_Y, cumulativeYaw)
+      .multiply(qScratch.setFromAxisAngle(AXIS_X, cumulativePitch));
+
+    /* Into world space, applied to the pose the clip left, then back into the
+       bone's parent frame — which by now already carries every joint above. */
+    qDesired.premultiply(qFigure).multiply(qFigureInverse).multiply(clipWorld[i]);
+    j.bone.parent!.updateWorldMatrix(true, false);
+    j.bone.parent!.getWorldQuaternion(qParent);
+    j.bone.quaternion.copy(qParent.invert().multiply(qDesired)).normalize();
   }
 
   /* Arm follow-through. `chest` is what the chest joint is doing right now;
@@ -390,10 +436,17 @@ export function applyLookChain(
     chestLag.set(key, lagged);
 
     const trail = -(chest.yaw - lagged) * ARM_DRAG;
-    qYaw.setFromAxisAngle(AXIS_Y, trail);
+    qDesired.setFromAxisAngle(AXIS_Y, trail).premultiply(qFigure).multiply(qFigureInverse);
     for (const a of arms) {
-      a.applied.copy(qYaw);
-      a.bone.quaternion.multiply(a.applied).normalize();
+      a.bone.updateWorldMatrix(true, false);
+      a.bone.getWorldQuaternion(qScratch);
+      a.applied.copy(a.bone.quaternion);
+      a.held = true;
+      a.bone.parent!.updateWorldMatrix(true, false);
+      a.bone.parent!.getWorldQuaternion(qParent);
+      a.bone.quaternion
+        .copy(qParent.invert().multiply(qScratch2.copy(qDesired).multiply(qScratch)))
+        .normalize();
     }
   }
 }

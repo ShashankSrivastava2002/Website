@@ -1,9 +1,10 @@
 /**
  * Loading and clip retargeting for the two glTF characters.
  *
- * The figures are `Ybot.glb` (the robot) and `Michelle.glb` (the human), with
- * `Xbot.glb` loaded as a clip donor that is never drawn. `Soldier.glb` is no
- * longer loaded.
+ * The figures are `Ybot.glb` (the robot) and `Michael.glb` (the human). Neither
+ * carries its own motion, so `Xbot.motion.glb` and `Michelle.motion.glb` are
+ * both loaded as clip donors that are never drawn — skeleton and animation
+ * only, with the geometry stripped out. `Soldier.glb` is no longer loaded.
  *
  * The Soldier was the robot until his idle was measured against the reference
  * recording. It is a combat stance: the hips sit 43.7 degrees off square with
@@ -19,7 +20,11 @@
  * Xbot stands square with level feet, which is the reference stance, and it is
  * the only one of the three carrying idle, walk, run, agree and headShake. So
  * it stays loaded for those five clips and nothing else: Y Bot ships a single
- * 0.03s T-pose, and Michelle only has the samba.
+ * 0.03s T-pose, and Michael ships none at all.
+ *
+ * Michelle was the human until the same request that made the robot male. She
+ * stays for `SambaDance`, which is hers and which the like reaction is built
+ * from, but she is no longer drawn either.
  *
  * Y Bot replaced Xbot as the robot's BODY because Xbot reads female — Mixamo's
  * two base characters differ in exactly the way you would expect, measured on
@@ -42,16 +47,26 @@ import * as THREE from "three";
 import { AnimationUtils } from "three";
 import { useGLTF } from "@react-three/drei";
 import { clone as cloneSkinned } from "three/examples/jsm/utils/SkeletonUtils.js";
+import { addFeatures, addRobotFeatures } from "./features";
 
 export const MODEL_URLS = {
   /* Soldier.glb stays on disk for reference but is no longer fetched — it was
      2.16 MB of download for a stance the site cannot use. */
   robot: "/models/Ybot.glb",
-  human: "/models/Michelle.glb",
-  /* Loaded for its ANIMATIONS ONLY — never displayed. Y Bot ships a T-pose and
-     nothing else, so the robot's mesh and the robot's motion now come from
-     different files. See `build`. */
-  motion: "/models/Xbot.glb",
+  human: "/models/Michael.glb",
+  /* Both loaded for their ANIMATIONS ONLY — neither is ever drawn. Neither
+     displayed figure carries its own motion: Y Bot ships a T-pose and nothing
+     else, and Michael ships nothing at all. `motion` is Xbot, which has idle,
+     walk, run, agree and headShake; `dance` is Michelle, whose `SambaDance` is
+     the like reaction. See `build`.
+
+     Both are the `.motion` bakes: geometry, materials and textures stripped,
+     skeleton and clips kept, which is all `retargetOnto` reads. Between them
+     that is 5.92 MB down to 2.40 MB of never-drawn download. See
+     `scripts/bake-motion.mjs`, and `scripts/verify-motion.mjs` for the proof
+     that the bones still land in the same places. */
+  motion: "/models/Xbot.motion.glb",
+  dance: "/models/Michelle.motion.glb",
 } as const;
 
 /** The clip vocabulary the rest of the app addresses, independent of source. */
@@ -117,11 +132,29 @@ const ADDITIVE: ClipName[] = ["agree", "headShake"];
 
 /* ------------------------------------------------------------------ */
 
-/** First skinned mesh under `root`. Soldier has two sharing one skeleton. */
+/**
+ * The principal skinned mesh under `root` — the one with the most vertices.
+ *
+ * Every rig here splits its body across several meshes that share one skeleton,
+ * so any of them can drive the mixer and all of them move. Taking the FIRST in
+ * traversal order was fine while that meant Xbot's `Beta_Joints` or Michelle's
+ * single body, but Michael is a Ready Player Me avatar of ten meshes and the
+ * first is `EyeLeft`, 120 vertices of eyeball. That still animates correctly —
+ * bindings resolve by bone name through the shared skeleton — but it makes
+ * `character.skin` a booby trap for anything that reasonably expects the body,
+ * and it is free to just pick the largest.
+ */
 export function findSkin(root: THREE.Object3D): THREE.SkinnedMesh {
   let found: THREE.SkinnedMesh | null = null;
+  let best = -1;
   root.traverse((o) => {
-    if (!found && (o as THREE.SkinnedMesh).isSkinnedMesh) found = o as THREE.SkinnedMesh;
+    const m = o as THREE.SkinnedMesh;
+    if (!m.isSkinnedMesh) return;
+    const n = m.geometry.attributes.position?.count ?? 0;
+    if (n > best) {
+      best = n;
+      found = m;
+    }
   });
   if (!found) throw new Error("characters: no SkinnedMesh in model");
   return found;
@@ -501,10 +534,11 @@ function orient(scene: THREE.Object3D, yaw: number) {
 }
 
 /** Yaw that turns each model to face +Z. Measured: all three already do. */
-const FACING: Record<"robot" | "human" | "motion", number> = {
+const FACING: Record<"robot" | "human" | "motion" | "dance", number> = {
   robot: 0,
   human: 0,
   motion: 0,
+  dance: 0,
 };
 
 /** Pick a clip out of a glTF by name, case-insensitively. */
@@ -591,16 +625,18 @@ export function useCharacters(): { robot: Character; human: Character } {
   const robotGltf = useGLTF(MODEL_URLS.robot) as unknown as Gltf;
   const humanGltf = useGLTF(MODEL_URLS.human) as unknown as Gltf;
   const motionGltf = useGLTF(MODEL_URLS.motion) as unknown as Gltf;
+  const danceGltf = useGLTF(MODEL_URLS.dance) as unknown as Gltf;
   return useMemo(
-    () => build(robotGltf, humanGltf, motionGltf),
-    [robotGltf, humanGltf, motionGltf]
+    () => build(robotGltf, humanGltf, motionGltf, danceGltf),
+    [robotGltf, humanGltf, motionGltf, danceGltf]
   );
 }
 
 function build(
   robotGltf: Gltf,
   humanGltf: Gltf,
-  motionGltf: Gltf
+  motionGltf: Gltf,
+  danceGltf: Gltf
 ): { robot: Character; human: Character } {
   /* Oriented copies. Everything below — display, retarget source and retarget
      target alike — is built from these, so no part of the system ever sees the
@@ -610,11 +646,18 @@ function build(
   const robotSrc = orient(cloneSkinned(robotGltf.scene), FACING.robot);
   const humanSrc = orient(cloneSkinned(humanGltf.scene), FACING.human);
   const motionSrc = orient(cloneSkinned(motionGltf.scene), FACING.motion);
+  const danceSrc = orient(cloneSkinned(danceGltf.scene), FACING.dance);
 
-  const robotScene = paintShell(
-    prepare(orient(cloneSkinned(robotGltf.scene), FACING.robot))
+  /* Features after the repaint: the visor, ear discs, chest sigil and amber
+     marks are their own materials and must not be caught by it. */
+  const robotScene = addRobotFeatures(
+    paintShell(prepare(orient(cloneSkinned(robotGltf.scene), FACING.robot)))
   );
-  const humanScene = prepare(orient(cloneSkinned(humanGltf.scene), FACING.human));
+  /* Hair and spectacles are hung on the head bone here rather than baked into
+     the file, because both are derived from the head that is already there —
+     the hair is a shell lifted off the model's own scalp and the frames are
+     sized off the eye bones. See features.ts. */
+  const humanScene = addFeatures(prepare(orient(cloneSkinned(humanGltf.scene), FACING.human)));
 
   /* Every clip in the site except the dance comes out of Xbot, which is loaded
      for these five and never drawn. Y Bot ships one 0.03s T-pose. */
@@ -623,7 +666,7 @@ function build(
   const xRun = slimClip(pick(motionGltf.animations, "run"));
   const xAgree = slimClip(pick(motionGltf.animations, "agree"));
   const xShake = slimClip(pick(motionGltf.animations, "headShake"));
-  const samba = pick(humanGltf.animations, "SambaDance");
+  const samba = pick(danceGltf.animations, "SambaDance");
 
   /**
    * Convert the gesture clips to additive.
@@ -651,7 +694,7 @@ function build(
       run: retargetOnto(robotSrc, motionSrc, xRun, "run"),
       agree: retargetOnto(robotSrc, motionSrc, xAgree, "agree"),
       headShake: retargetOnto(robotSrc, motionSrc, xShake, "headShake"),
-      dance: retargetOnto(robotSrc, humanSrc, samba, "dance", SAMBA_TRIM),
+      dance: retargetOnto(robotSrc, danceSrc, samba, "dance", SAMBA_TRIM),
     }),
   };
 
@@ -667,9 +710,9 @@ function build(
       run: retargetOnto(humanSrc, motionSrc, xRun, "run"),
       agree: retargetOnto(humanSrc, motionSrc, xAgree, "agree"),
       headShake: retargetOnto(humanSrc, motionSrc, xShake, "headShake"),
-      // Retargeted onto herself: one pass, and it buys the same XZ-drift
-      // removal the robot's copy gets, so she dances on the spot too.
-      dance: retargetOnto(humanSrc, humanSrc, samba, "dance", SAMBA_TRIM),
+      // Same one hop the robot's copy takes, and it buys the same XZ-drift
+      // removal, so he dances on the spot too.
+      dance: retargetOnto(humanSrc, danceSrc, samba, "dance", SAMBA_TRIM),
     }),
   };
 
@@ -683,3 +726,4 @@ function build(
 useGLTF.preload(MODEL_URLS.robot);
 useGLTF.preload(MODEL_URLS.human);
 useGLTF.preload(MODEL_URLS.motion);
+useGLTF.preload(MODEL_URLS.dance);

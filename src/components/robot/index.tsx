@@ -184,19 +184,36 @@ function Morph({
  * with the cursor spring and the walk without fighting either.
  */
 function Tumble({ gen, target }: { gen: number; target: React.RefObject<THREE.Group> }) {
-  const t = useRef(1); // 1 = settled; a new gen resets it to 0
+  const t = useRef(1); // 1 = settled; a new gen starts a fresh arc at 0
   const last = useRef(gen);
+  const queued = useRef(false);
   const DURATION = 0.92;
 
   useFrame((_, dt) => {
+    /* A section change arriving MID-FLIP is queued rather than applied.
+       Restarting the arc immediately was a hard reset of `t`, and since the
+       figure is up to 0.72 above the floor at the top of the hop, that snapped
+       it straight back down: measured across a 120-frame sweep with a
+       re-trigger at frame 28, position.y jumped 0.6789 in a single frame,
+       against a worst step of 0.0409 anywhere in a clean flip. Sixteen times
+       the largest legitimate movement, which reads as the model teleporting.
+
+       Queueing keeps every section change's hop — the next one starts the frame
+       this one lands — and the handover is exactly continuous, because a
+       settled arc and a fresh one both sit at y 0, rotation 0, scale 1. */
     if (gen !== last.current) {
       last.current = gen;
-      t.current = 0;
+      if (t.current >= 1) t.current = 0;
+      else queued.current = true;
     }
     if (!target.current) return;
 
     if (t.current < 1) {
       t.current = Math.min(1, t.current + Math.min(dt, 0.05) / DURATION);
+    }
+    if (t.current >= 1 && queued.current) {
+      queued.current = false;
+      t.current = 0;
     }
     const p = t.current;
     const g = target.current;

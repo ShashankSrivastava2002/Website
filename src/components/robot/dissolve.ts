@@ -138,6 +138,11 @@ export function setDissolveActive(root: THREE.Object3D, active: boolean) {
     if (!mesh.isMesh || !mesh.material) return;
     const mats = Array.isArray(mesh.material) ? mesh.material : [mesh.material];
     for (const mat of mats) {
+      /* Some materials are transparent because that is what they ARE, not
+         because a dissolve is running — the spectacle lenses. Forcing the flag
+         on every material in the rig turned those opaque the moment a morph
+         settled, which reads as frosted glass with the eyes painted out. */
+      if (mat.userData?.alwaysTransparent) continue;
       if (mat.transparent !== active) {
         mat.transparent = active;
         mat.needsUpdate = true;

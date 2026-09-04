@@ -141,10 +141,13 @@ body::before {
   z-index: 201;
 }
 
-/* On About the figure is the subject, so it sits in FRONT of the page content
-   (still under the nav) rather than behind it. */
+/* On About the figure is the subject, so it gets lifted clear of the default
+   layer — but UNDER .stage (z 10), not over it. At z 20 it painted across the
+   badges and the TAP TO REVEAL affordance, which share the figure's column and
+   have to stay readable. Nothing else in the About grid reaches into that
+   column, so there is nothing left for it to hide behind. */
 .robot-layer[data-front="true"] {
-  z-index: 20;
+  z-index: 9;
 }
 
 .robot-canvas {
@@ -167,6 +170,30 @@ body::before {
   justify-content: space-between;
   padding: 22px 26px;
   pointer-events: none;
+}
+
+/* The nav is a glass pill and reads over anything, but the brand block is bare
+   text on nothing. Scroll Work or Contact and card copy slid straight under
+   "shashank srivastava. / BUILDER · AI DEVELOPER · DELHIVERY" — two strings of
+   text in the same pixels. This is the same trick .ticker already uses at the
+   other end: fade the background up behind the bar so whatever passes under it
+   dissolves rather than collides. */
+.topbar::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  /* Solid all the way past the brand's second line (which ends at ~62px), then
+     a soft tail so the edge never reads as a bar. */
+  height: 118px;
+  z-index: -1;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    var(--bg) 0,
+    var(--bg) 60%,
+    color-mix(in srgb, var(--bg) 62%, transparent) 80%,
+    transparent
+  );
 }
 
 .brand {
@@ -332,8 +359,12 @@ body::before {
 }
 
 /* Contact runs its own conversation in the page, so the dock would be two
-   chats side by side. */
-.chat-dock[data-section="contact"] {
+   chats side by side. About is the one page where the figure IS the content:
+   the dock sat at 28,526→458,753 and swallowed the "99% ACC" and "HBTU '24"
+   badges and the TAP TO RETURN hint, all of which live in that same column.
+   The reference drops its chat on About for the same reason. */
+.chat-dock[data-section="contact"],
+.chat-dock[data-section="about"] {
   display: none;
 }
 
@@ -506,7 +537,7 @@ body::before {
   display: flex;
   gap: 40px;
   align-items: flex-start;
-  margin-bottom: 44px;
+  margin-bottom: 28px;
 }
 
 .page-index {
@@ -520,7 +551,7 @@ body::before {
 
 .page-intro p {
   margin: 0;
-  max-width: 460px;
+  max-width: 560px;
   font-size: 17px;
   line-height: 1.55;
   color: var(--ink-2);
@@ -548,13 +579,13 @@ body::before {
   font-size: 9.5px;
   letter-spacing: 0.2em;
   color: var(--muted);
-  padding-bottom: 12px;
-  margin-bottom: 14px;
+  padding-bottom: 9px;
+  margin-bottom: 10px;
   border-bottom: 1px solid var(--line);
 }
 
 .panel-head--flush {
-  margin-top: 22px;
+  margin-top: 15px;
 }
 
 .panel-head b {
@@ -673,9 +704,9 @@ body::before {
 /* --------------------------- marquee --------------------------- */
 
 .marquee {
-  margin-top: 42px;
+  margin-top: 16px;
   border-top: 1px solid var(--line);
-  padding-top: 16px;
+  padding-top: 13px;
   overflow: hidden;
 }
 
@@ -737,18 +768,18 @@ body::before {
   background: var(--panel);
   backdrop-filter: blur(20px);
   box-shadow: 0 20px 56px -30px rgba(20, 30, 45, 0.35);
-  padding: 30px;
+  padding: 22px 26px;
 }
 
 .about-mark {
   margin: 0;
-  font-size: 42px;
+  font-size: 36px;
   font-weight: 800;
   letter-spacing: -0.045em;
 }
 
 .about-role {
-  margin: 6px 0 18px;
+  margin: 6px 0 14px;
   font-family: var(--mono);
   font-size: 9.5px;
   letter-spacing: 0.18em;
@@ -771,13 +802,13 @@ body::before {
 .stat {
   border: 1px solid var(--line);
   border-radius: 12px;
-  padding: 16px;
+  padding: 13px 14px;
   background: rgba(255, 255, 255, 0.5);
 }
 
 .stat-value {
   display: block;
-  font-size: 30px;
+  font-size: 27px;
   font-weight: 700;
   letter-spacing: -0.03em;
   line-height: 1;
@@ -785,7 +816,7 @@ body::before {
 
 .stat-label {
   display: block;
-  margin-top: 7px;
+  margin-top: 5px;
   font-family: var(--mono);
   font-size: 8.5px;
   letter-spacing: 0.16em;
@@ -793,10 +824,10 @@ body::before {
 }
 
 .manifesto {
-  margin-top: 24px;
+  margin-top: 16px;
   border: 1px solid var(--line);
   border-radius: 14px;
-  padding: 18px;
+  padding: 15px 16px;
   background: rgba(255, 255, 255, 0.45);
 }
 
@@ -820,13 +851,138 @@ body::before {
   display: flex;
   justify-content: space-between;
   gap: 16px;
-  margin-top: 24px;
-  padding-top: 14px;
+  margin-top: 15px;
+  padding-top: 11px;
   border-top: 1px solid var(--line);
   font-family: var(--mono);
   font-size: 8.5px;
   letter-spacing: 0.16em;
   color: var(--muted);
+}
+
+/* --- about layout ------------------------------------------------------
+   None of this existed. `.about-grid` fell back to `display: block`, so the
+   figure column collapsed to a 48px strip and the five badges — plain inline
+   <span>s with no rule to catch their --x/--y — ran together into one line of
+   body text reading "SHIPPED500K DOCS99% ACC3 CLOUDSHBTU '24". Same two-track
+   idea as .contact-grid: the left column is the empty gutter the 3D figure
+   stands in, the card takes the right. */
+
+.about-grid {
+  display: grid;
+  grid-template-columns: minmax(300px, 1fr) minmax(430px, 660px);
+  gap: 26px;
+  align-items: start;
+}
+
+/* The stage the badges are positioned against. It has no content of its own —
+   the figure behind it is a fixed WebGL layer — so it needs a height, or the
+   percentages have nothing to resolve into. */
+.about-figure {
+  position: relative;
+  min-height: 460px;
+}
+
+/* Bottom-LEFT, not bottom-centre: centred, the label sat under the figure's
+   feet and the robot layer (in front on About) rendered straight over it. */
+.figure-hit {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  padding: 0 0 6px;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.figure-hint {
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.2em;
+  color: var(--muted);
+  padding: 8px 15px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.62);
+  border: 1px solid rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(14px);
+  transition: color 0.25s var(--ease), transform 0.25s var(--ease);
+}
+
+.figure-hit:hover .figure-hint,
+.figure-hit:focus-visible .figure-hint {
+  color: var(--accent);
+  transform: translateY(-2px);
+}
+
+.badges {
+  position: absolute;
+  inset: 0;
+  /* decorative, and the whole column is one hit area for the flip */
+  pointer-events: none;
+}
+
+/* `translate` rather than a transform, so the centring survives the float
+   keyframes owning `transform`. */
+.badge {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  translate: -50% -50%;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  white-space: nowrap;
+  font-family: var(--mono);
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  color: var(--tint);
+  background: rgba(255, 255, 255, 0.78);
+  border: 1px solid color-mix(in srgb, var(--tint) 32%, transparent);
+  box-shadow: 0 14px 30px -18px color-mix(in srgb, var(--tint) 75%, transparent);
+  backdrop-filter: blur(14px);
+  animation: badge-float 7.5s var(--ease) infinite;
+  /* negative delay so every badge starts mid-cycle, not in lockstep */
+  animation-delay: calc(var(--i) * -1.45s);
+}
+
+.badge::before {
+  content: "";
+  flex: none;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--tint);
+}
+
+@keyframes badge-float {
+  0%,
+  100% {
+    transform: translateY(-5px) rotate(-1.5deg);
+  }
+  50% {
+    transform: translateY(5px) rotate(1.5deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .badge {
+    animation: none;
+  }
+}
+
+/* Below the split the figure moves behind the copy, so the gutter would be a
+   tall empty box pushing the card off-screen. */
+@media (max-width: 1100px) {
+  .about-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .about-figure {
+    min-height: 300px;
+  }
 }
 
 /* --------------------------- contact --------------------------- */
@@ -1102,11 +1258,14 @@ body::before {
 
 /* ---------------------- now playing ---------------------- */
 
+/* The ticker is a 33px fixed strip at z-index 41; at bottom:20px this card
+   ran to 786px and the strip painted straight over its artist line. Lifted to
+   clear the strip, and above it, the way the chat dock already sits. */
 .nowplaying {
   position: fixed;
   right: 22px;
-  bottom: 20px;
-  z-index: 30;
+  bottom: 52px;
+  z-index: 42;
   display: flex;
   align-items: center;
   gap: 11px;
@@ -1183,11 +1342,14 @@ body::before {
 
 /* ---------------------- utility cluster ---------------------- */
 
+/* Same ticker collision, but this row can't move up — bottom:52px is the chat
+   dock's input. It rides over the strip instead, which is what the strip's own
+   left mask fade is there for. */
 .utils {
   position: fixed;
   left: 22px;
   bottom: 20px;
-  z-index: 30;
+  z-index: 42;
   display: flex;
   align-items: center;
   gap: 4px;

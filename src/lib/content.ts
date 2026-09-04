@@ -164,7 +164,9 @@ export const about = {
     { label: "500K DOCS", tint: "#e0574f", x: 78, y: 30 },
     { label: "99% ACC", tint: "#e8b73a", x: 8, y: 62 },
     { label: "3 CLOUDS", tint: "#4aa585", x: 82, y: 68 },
-    { label: "HBTU '24", tint: "#7d8794", x: 46, y: 86 },
+    /* 46% put this one dead centre, where the figure stands — the robot layer
+       renders in front on About, so it swallowed the badge. */
+    { label: "HBTU '24", tint: "#7d8794", x: 86, y: 88 },
   ],
   manifesto:
     "When he isn't wiring agents together, he's pulling apart the models underneath them — reading papers, breaking benchmarks, and rebuilding the result until it runs on something smaller. I'm what that habit looks like once it learns to talk.",

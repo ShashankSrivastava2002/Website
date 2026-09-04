@@ -149,7 +149,13 @@ export default function Page() {
           cycleHome={!booting && section === "home"}
           paused={paused}
           morph={section === "about" && human ? 1 : 0}
-          offsetX={section === "about" ? -2.15 : 0}
+          /* -2.15 landed the figure at x=280px in a 1470px viewport, 112px
+             left of the About figure column's own centre (392px) — its shoe
+             sat on the TAP TO REVEAL pill and the 99% ACC badge. At 34° fov
+             and z=6.2 one world unit is 212px, so -1.62 centres it in the
+             column; it also brings the figure under the heart emitter, which
+             sits at 50% - 330px = 405px. */
+          offsetX={section === "about" ? -1.62 : 0}
           tumbleGen={tumbleGen}
           danceGen={danceGen}
           walkIn

@@ -94,7 +94,12 @@ export default function AboutSection({
           {/* The card's frame stays fixed to the stage; its contents scroll.
               Masking the card itself would fade its own border and read as a
               rendering fault rather than as "more below". */}
-          <div className="about-card-body scroll-col">
+          <div
+            className="about-card-body scroll-col"
+            tabIndex={0}
+            role="group"
+            aria-label="Profile, scrollable"
+          >
             <h2 className="about-mark" data-human={human}>
               <GlitchText text={identity.name} trigger={gen} />
             </h2>

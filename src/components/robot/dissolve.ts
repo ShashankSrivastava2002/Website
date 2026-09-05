@@ -56,7 +56,65 @@ const VERT_BODY = /* glsl */ `
 
 const FRAG_HEAD = /* glsl */ `
   uniform float uProgress;
+  uniform float uTime;
   varying float vNoise;
+`;
+
+/**
+ * Signal tearing on the diffuse texture, taken from the reference's human.
+ *
+ * The dissolve above breaks the GEOMETRY apart; this corrupts the IMAGE on
+ * what is left, which is the half we were missing. Rows of the texture shear
+ * sideways, the red and blue channels split, and the worst-torn rows flash
+ * violet — the vocabulary of a dropped video frame rather than of a fade.
+ *
+ * Strength is derived from uProgress rather than carried on its own uniform:
+ * the tearing IS the identity swap, so a hump that peaks halfway through the
+ * dissolve is exactly the right coupling and there is nothing to keep in sync
+ * from the frame loop.
+ *
+ * Replaces three's own <map_fragment>, so it has to declare
+ * sampledDiffuseColor and fold it into diffuseColor itself, exactly as the
+ * stock chunk does. The branch is on a uniform, so it is coherent across the
+ * whole draw and costs nothing while the swap is idle — which matters, because
+ * the glitch path is three texture fetches instead of one.
+ */
+const MAP_GLITCH = /* glsl */ `
+#ifdef USE_MAP
+  float gGlitch = sin(clamp(uProgress, 0.0, 1.0) * 3.14159265);
+  vec4 sampledDiffuseColor;
+
+  if (gGlitch > 0.001) {
+    vec2 guv = vMapUv;
+    float row  = floor(guv.y * 42.0);
+    float rnd  = fract(sin(row * 91.17 + floor(uTime * 28.0)) * 43758.5453);
+    float rnd2 = fract(sin(row * 37.71 + floor(uTime * 17.0)) * 24634.633);
+
+    // whole rows shear sideways; occasionally the frame jumps vertically
+    guv.x += (rnd  - 0.5) * 0.26 * gGlitch * step(0.62, rnd);
+    guv.y += (rnd2 - 0.5) * 0.04 * gGlitch * step(0.88, rnd2);
+
+    // red and blue sampled either side of green — a channel misregistration
+    float ca = (0.008 + 0.05 * rnd) * gGlitch;
+    vec4 mid = texture2D(map, guv);
+    sampledDiffuseColor = vec4(
+      texture2D(map, guv + vec2(ca, 0.0)).r,
+      mid.g,
+      texture2D(map, guv - vec2(ca, 0.0)).b,
+      mid.a
+    );
+
+    // violet ghost on the rows that tore worst
+    sampledDiffuseColor.rgb += vec3(0.5, 0.1, 0.7) * gGlitch * step(0.93, rnd);
+  } else {
+    sampledDiffuseColor = texture2D(map, vMapUv);
+  }
+
+  #ifdef DECODE_VIDEO_TEXTURE
+    sampledDiffuseColor = sRGBTransferEOTF( sampledDiffuseColor );
+  #endif
+  diffuseColor *= sampledDiffuseColor;
+#endif
 `;
 
 const FRAG_BODY = /* glsl */ `
@@ -113,6 +171,7 @@ export function applyDissolve(mat: THREE.Material, u: DissolveUniforms) {
 
     shader.fragmentShader = shader.fragmentShader
       .replace("#include <common>", `#include <common>\n${FRAG_HEAD}`)
+      .replace("#include <map_fragment>", MAP_GLITCH)
       .replace(
         "#include <dithering_fragment>",
         `#include <dithering_fragment>\n${FRAG_BODY}`

@@ -279,6 +279,9 @@ Read from `/assets/Bj_q5hpB.js` and `index-DJeABWj6.js`.
 **Homepage "orb"** — a character with moods (`idle`, `excited`, `isWaving`, plus an
 `idleVariant`), driven by `orbRef`. Visually a soft dark blob, not a figure.
 
+**About / homepage human** — `/models/fuch-human-spin.glb` (1.7 MB), rigged and textured,
+carrying a one-shot `spin` clip. Their equivalent of our robot-to-human identity swap.
+
 **Ideas52** — a whole separate 3D world, code-split into its own chunk:
 `/models/mascot-anim.glb` (Draco-compressed, **baked animation clips**) walking through a
 procedural grass field built on compute shaders (`GrassUpdate` / `GrassReset`, LOD buffers),
@@ -291,9 +294,15 @@ Character controller, for reference:
 
 The grass reads `uCharacterWorldPos` every frame, which is how it reacts to the mascot.
 
-**Their character is an asset. Ours is not** — ours is assembled in code from primitives and
-posed by a spring rig, which is a harder thing to build and the reason the colophon can claim
-it. Swapping to a GLB would be a downgrade, not a copy of something better.
+**Correction to an earlier claim in this file.** I first wrote that theirs is an asset and
+ours is procedural. That is out of date: the procedural rig (`model.tsx`, `features.ts`,
+`characters.ts`) is still in the tree, but this branch loads Mixamo GLBs —
+`Ybot.glb` (robot) and `Michael.glb` (human), with `Xbot.motion.glb` and
+`Michelle.motion.glb` supplying clips only, geometry stripped, retargeted onto both rigs.
+
+So the pipeline is the *same as theirs*: rigged GLB + `AnimationMixer` + weighted clip
+blending + procedural layers on top. Their models are bespoke; ours are stock. That is an
+art-budget difference, not a technical one.
 
 ### Their material trick
 
@@ -358,3 +367,74 @@ Generated with Kling (the filename is the export name), played as a fullscreen
 Not applied: their GLB, HDRI, award SVGs and cinematic video are their assets. The texture
 re-grade shader solves a problem we do not have. AdaptiveDpr was skipped — it is a
 performance tweak, and dynamic DPR changes show as visible resolution popping.
+
+### The human's glitch shader — applied
+
+Their human carries a signal-tearing shader patched into `<map_fragment>` via
+`onBeforeCompile`. Reconstructed from `index-DJeABWj6.js` and now in
+`src/components/robot/dissolve.ts` alongside the existing voxel dissolve:
+
+- rows of the diffuse texture shear sideways (`row = floor(v * 42.0)`, offset up to 0.26)
+- occasional vertical frame jumps
+- red and blue sampled either side of green — channel misregistration
+- violet ghost (`vec3(0.5, 0.1, 0.7)`) on the worst-torn rows
+
+Two deliberate departures from theirs. Strength is derived from `uProgress`
+(`sin(progress * PI)`) rather than carried on its own uniform — the tearing *is* the identity
+swap, so there is nothing to keep in sync from the frame loop. And the glitch path sits behind
+a uniform branch: it is three texture fetches instead of one, and the swap is idle almost all
+of the time. Theirs also forces alpha to 1.0 in the glitch path; ours keeps the sampled alpha,
+which matters because some materials in the rig are genuinely transparent.
+
+The dissolve breaks the geometry apart; this corrupts the image on what is left. Those were
+always meant to be two halves of the same effect and we only had one.
+
+---
+
+## Audit pass — defects found and fixed
+
+A recheck after the work above, not a new feature pass.
+
+**Three functional defects, all self-inflicted:**
+
+1. **Four looping animations ignored `prefers-reduced-motion`** — the stack marquee (46s), the
+   now-playing EQ bars, the chat caret and the availability dot. The reduced-motion blocks
+   named animations one at a time and drifted out of date as new ones were added. Now one
+   block listing *elements*, so the next animation added is covered by default.
+
+2. **Framer Motion ignored it entirely.** The staged section choreography — blur, desaturate,
+   stagger — has no relationship to the CSS blocks, and framer-motion does not read the media
+   query on its own. Wrapped the app in `<MotionConfig reducedMotion="user">`.
+
+3. **The three new scroll regions were unreachable by keyboard** (WCAG 2.1.1). Introducing a
+   masked inner scroller means introducing content below a fold that only a mouse can pass.
+   All three now carry `tabIndex={0}`, `role="group"` and a label, with an inset focus ring
+   (inset because an outline outside would be clipped by the parent's own overflow).
+
+   Verified as far as the harness allows: focusable, labelled, programmatically scrollable,
+   focus ring renders under real Tab navigation, and nothing calls `preventDefault` on the
+   arrow keys. Native keyboard *scrolling* could not be exercised — a bare control `<div
+   tabindex=0 style="overflow:auto">` with 900px of content also refuses to scroll under the
+   automation's synthetic key events, so that is a harness limit, not a site bug.
+
+**Dead code:** `.msg-bubble` removed outright; `.prompt-icon`, `.prompt-go`, `.prompt-text`,
+`.prompt-text b`, `.prompt-text em` and `.project-meta` removed as the dead halves of grouped
+selectors whose other half is live.
+
+**The declared-but-unused tokens — the exact fault this document flags in their z-index
+scale, committed here.** Six `--text-*`, three `--track-*` and two `--radius-*` tokens were
+declared and never referenced. Fixed by making them real rather than by deleting them:
+
+| | before | after |
+|---|---|---|
+| distinct raw font sizes | 21 | **5** (12, 16, 19, 27, 36) |
+| tokenised declarations | 0 | **101** |
+| unused tokens | 11 | **0** |
+
+93 declarations were exact-value substitutions (no visual change at all). The remaining 23
+were the half-pixel values — 7.5, 8.5, 9.5, 10.5, 12.5, 13.5, 14.5 — which is precisely the
+"nudged by hand until something fit" habit called out at the top of this file. Every one sat
+exactly 0.5px below a clean step, so they were snapped up uniformly. `--text-nano: 8px` and
+`--text-md: 14px` were added because a 90px medallion label and 14px body copy are real steps
+in this design, not roundings. `--space-1` was deleted — nothing used it and inventing a use
+would have been the same fault again.

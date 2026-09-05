@@ -46,7 +46,16 @@ export default function WorkSection() {
 
           {/* The head above stays put; the cards scroll under it rather than
               pushing the page taller than the viewport. */}
-          <div className="project-list scroll-col">
+          {/* tabIndex on a scroll region is not decoration: the container
+              scrolls, so a keyboard user has to be able to focus it to reach
+              the cards below the fold (WCAG 2.1.1). Same on the other two
+              scroll-cols. */}
+          <div
+            className="project-list scroll-col"
+            tabIndex={0}
+            role="group"
+            aria-label="Selected work, scrollable"
+          >
             {work.projects.map((p, i) => (
               <motion.article
                 key={p.index}

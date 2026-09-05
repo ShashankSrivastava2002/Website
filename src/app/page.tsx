@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion, AnimatePresence, MotionConfig } from "framer-motion";
 import { MessageCircle, FileText } from "lucide-react";
 
 import BootPreloader from "@/components/boot-preloader";
@@ -136,6 +136,11 @@ export default function Page() {
   }, []);
 
   return (
+    /* The section choreography — blur, desaturate, stagger — is framer-motion,
+       which does not read prefers-reduced-motion on its own. `reducedMotion="user"`
+       makes it drop transforms and opacity animations for anyone who has asked
+       the OS for stillness, which the CSS animations already respected. */
+    <MotionConfig reducedMotion="user">
     <div data-section={section}>
       {booting && (
         <div className="boot-layer" data-exiting={bootExiting}>
@@ -259,5 +264,6 @@ export default function Page() {
         setMuted={setMuted}
       />
     </div>
+    </MotionConfig>
   );
 }

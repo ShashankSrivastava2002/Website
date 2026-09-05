@@ -43,7 +43,12 @@ export default function ContactSection({ onMood }: { onMood: (m: Mood) => void }
 
       <div className="contact-grid">
         {/* --------------------------- left --------------------------- */}
-        <div className="contact-col scroll-col">
+        <div
+          className="contact-col scroll-col"
+          tabIndex={0}
+          role="group"
+          aria-label="Contact details, scrollable"
+        >
           <motion.div
             className="panel"
             initial={{ opacity: 0, y: 22 }}

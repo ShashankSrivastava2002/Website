@@ -38,18 +38,24 @@
      rather than inventing another half-pixel. */
   --gutter: 26px;
 
+  /* 8px only exists because a 90px medallion and the now-playing strip need a
+     label smaller than anything else on the page. */
+  --text-nano: 8px;
   --text-micro: 9px;
   --text-small: 10px;
   --text-label: 11px;
   --text-body: 13px;
+  --text-md: 14px;
   --text-lg: 15px;
   --text-xl: 17px;
   --text-title: 21px;
 
+  /* Derived from what the stylesheet actually used rather than imposed on it:
+     0.18 / 0.16 / 0.2em were 21 of the 24 declarations between them. */
   --track-ui: 0.18em;
-  --track-wide: 0.26em;
+  --track-wide: 0.16em;
+  --track-ultra: 0.2em;
   --track-body: 0.01em;
-  --track-display: -0.02em;
 
   --radius-chip: 6px;
   --radius-control: 10px;
@@ -57,7 +63,6 @@
   --radius-modal: 20px;
   --radius-pill: 999px;
 
-  --space-1: 6px;
   --space-2: 10px;
   --space-3: 16px;
   --space-4: 26px;
@@ -304,8 +309,8 @@ body::before {
   justify-content: space-between;
   gap: 16px;
   font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.16em;
+  font-size: var(--text-small);
+  letter-spacing: var(--track-wide);
   color: var(--muted);
 }
 
@@ -404,8 +409,8 @@ body::before {
 .brand p {
   margin: 4px 0 0;
   font-family: var(--mono);
-  font-size: 9.5px;
-  letter-spacing: 0.18em;
+  font-size: var(--text-small);
+  letter-spacing: var(--track-ui);
   color: var(--muted);
 }
 
@@ -415,7 +420,7 @@ body::before {
   align-items: center;
   gap: 2px;
   padding: 7px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: rgba(255, 255, 255, 0.6);
   backdrop-filter: blur(18px);
   border: 1px solid rgba(255, 255, 255, 0.8);
@@ -430,7 +435,7 @@ body::before {
   flex: none;
   border: 0;
   padding: 0;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--accent-soft);
   color: var(--accent);
   margin-right: 2px;
@@ -467,10 +472,10 @@ body::before {
   background: none;
   cursor: pointer;
   padding: 9px 17px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.16em;
+  font-size: var(--text-small);
+  letter-spacing: var(--track-wide);
   color: var(--muted);
   transition: color 0.25s var(--ease);
 }
@@ -487,7 +492,7 @@ body::before {
   position: absolute;
   inset: 0;
   z-index: -1;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: rgba(20, 25, 29, 0.07);
 }
 
@@ -549,6 +554,15 @@ body::before {
   -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 56px), transparent);
 }
 
+/* These carry tabIndex so they can be scrolled from the keyboard, which means
+   they can also be focused — so they need to say so. Inset, because an outline
+   on the outside would be clipped by the parent's own overflow. */
+.scroll-col:focus-visible {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--accent-soft), inset 0 0 0 1px var(--accent);
+  border-radius: var(--radius-control);
+}
+
 .scroll-col::-webkit-scrollbar {
   display: none;
 }
@@ -590,8 +604,6 @@ body::before {
   pointer-events: auto;
 }
 
-
-
 /* Contact runs its own conversation in the page, so the dock would be two
    chats side by side. About is the one page where the figure IS the content:
    the dock sat at 28,526→458,753 and swallowed the "99% ACC" and "HBTU '24"
@@ -625,8 +637,8 @@ body::before {
   gap: 12px;
   margin-bottom: 10px;
   font-family: var(--mono);
-  font-size: 9.5px;
-  letter-spacing: 0.2em;
+  font-size: var(--text-small);
+  letter-spacing: var(--track-ultra);
 }
 
 .chat-name {
@@ -652,7 +664,7 @@ body::before {
 
 .chat-msg {
   font-family: var(--mono);
-  font-size: 15px;
+  font-size: var(--text-lg);
   line-height: 1.6;
   letter-spacing: -0.01em;
 }
@@ -700,11 +712,11 @@ body::before {
   border: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.55);
   backdrop-filter: blur(10px);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 9px 15px;
   cursor: pointer;
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--text-label);
   color: var(--ink-2);
   transition: all 0.25s var(--ease);
 }
@@ -726,7 +738,7 @@ body::before {
   align-items: center;
   gap: 8px;
   padding: 6px 6px 6px 16px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   border: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.6);
   backdrop-filter: blur(12px);
@@ -756,7 +768,7 @@ body::before {
   width: 30px;
   height: 30px;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--ink);
   color: #fff;
   cursor: pointer;
@@ -782,8 +794,8 @@ body::before {
 
 .page-index {
   font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.2em;
+  font-size: var(--text-small);
+  letter-spacing: var(--track-ultra);
   color: var(--accent);
   white-space: nowrap;
   padding-top: 5px;
@@ -823,8 +835,8 @@ body::before {
   justify-content: space-between;
   align-items: center;
   font-family: var(--mono);
-  font-size: 9.5px;
-  letter-spacing: 0.2em;
+  font-size: var(--text-small);
+  letter-spacing: var(--track-ultra);
   color: var(--muted);
   padding-bottom: 9px;
   margin-bottom: 10px;
@@ -916,18 +928,18 @@ body::before {
 
 .career-period {
   font-family: var(--mono);
-  font-size: 9.5px;
-  letter-spacing: 0.16em;
+  font-size: var(--text-small);
+  letter-spacing: var(--track-wide);
   color: var(--accent);
 }
 
 .career-company {
-  font-size: 15px;
+  font-size: var(--text-lg);
   font-weight: 600;
 }
 
 .career-title {
-  font-size: 12.5px;
+  font-size: var(--text-body);
   color: var(--muted);
 }
 
@@ -1021,8 +1033,8 @@ body::before {
   display: flex;
   justify-content: space-between;
   font-family: var(--mono);
-  font-size: 9.5px;
-  letter-spacing: 0.18em;
+  font-size: var(--text-small);
+  letter-spacing: var(--track-ui);
   color: var(--muted);
   margin-bottom: 10px;
 }
@@ -1033,14 +1045,14 @@ body::before {
 
 .project h3 {
   margin: 0 0 8px;
-  font-size: 21px;
+  font-size: var(--text-title);
   font-weight: 650;
   letter-spacing: -0.02em;
 }
 
 .project p {
   margin: 0 0 14px;
-  font-size: 14px;
+  font-size: var(--text-md);
   line-height: 1.6;
   color: var(--ink-2);
   max-width: 62ch;
@@ -1054,11 +1066,11 @@ body::before {
 
 .tag {
   font-family: var(--mono);
-  font-size: 9px;
+  font-size: var(--text-micro);
   letter-spacing: 0.14em;
   color: var(--muted);
   border: 1px solid var(--line);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 5px 10px;
 }
 
@@ -1088,8 +1100,8 @@ body::before {
 
 .marquee-label {
   font-family: var(--mono);
-  font-size: 9.5px;
-  letter-spacing: 0.2em;
+  font-size: var(--text-small);
+  letter-spacing: var(--track-ultra);
   color: var(--muted);
   margin-bottom: 12px;
 }
@@ -1117,8 +1129,8 @@ body::before {
 
 .marquee-row span {
   font-family: var(--mono);
-  font-size: 10px;
-  letter-spacing: 0.18em;
+  font-size: var(--text-small);
+  letter-spacing: var(--track-ui);
   color: var(--muted);
   white-space: nowrap;
 }
@@ -1168,14 +1180,14 @@ body::before {
 .about-role {
   margin: 6px 0 14px;
   font-family: var(--mono);
-  font-size: 9.5px;
-  letter-spacing: 0.18em;
+  font-size: var(--text-small);
+  letter-spacing: var(--track-ui);
   color: var(--muted);
 }
 
 .about-bio {
   margin: 0;
-  font-size: 15px;
+  font-size: var(--text-lg);
   line-height: 1.65;
   color: var(--ink-2);
 }
@@ -1208,15 +1220,15 @@ body::before {
   display: block;
   margin-top: 5px;
   font-family: var(--mono);
-  font-size: 8.5px;
-  letter-spacing: 0.16em;
+  font-size: var(--text-micro);
+  letter-spacing: var(--track-wide);
   color: var(--muted);
 }
 
 .manifesto {
   margin-top: 16px;
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: var(--radius-card);
   padding: 15px 16px;
   background: rgba(255, 255, 255, 0.45);
 }
@@ -1224,15 +1236,15 @@ body::before {
 .manifesto-label {
   display: block;
   font-family: var(--mono);
-  font-size: 9px;
-  letter-spacing: 0.2em;
+  font-size: var(--text-micro);
+  letter-spacing: var(--track-ultra);
   color: var(--muted);
   margin-bottom: 9px;
 }
 
 .manifesto p {
   margin: 0;
-  font-size: 14.5px;
+  font-size: var(--text-lg);
   line-height: 1.65;
   color: var(--ink-2);
 }
@@ -1246,8 +1258,8 @@ body::before {
   padding-top: 11px;
   border-top: 1px solid var(--line);
   font-family: var(--mono);
-  font-size: 8.5px;
-  letter-spacing: 0.16em;
+  font-size: var(--text-micro);
+  letter-spacing: var(--track-wide);
   color: var(--muted);
 }
 
@@ -1295,11 +1307,11 @@ body::before {
 
 .figure-hint {
   font-family: var(--mono);
-  font-size: 9.5px;
-  letter-spacing: 0.2em;
+  font-size: var(--text-small);
+  letter-spacing: var(--track-ultra);
   color: var(--muted);
   padding: 8px 15px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: rgba(255, 255, 255, 0.62);
   border: 1px solid rgba(255, 255, 255, 0.85);
   backdrop-filter: blur(14px);
@@ -1390,8 +1402,8 @@ body::before {
 
 .medallion-label {
   font-family: var(--mono);
-  font-size: 7.5px;
-  letter-spacing: 0.16em;
+  font-size: var(--text-nano);
+  letter-spacing: var(--track-wide);
   line-height: 1;
   color: color-mix(in srgb, var(--tint) 58%, var(--muted));
 }
@@ -1426,12 +1438,6 @@ body::before {
   }
   50% {
     transform: translateY(5px);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .medallion {
-    animation: none;
   }
 }
 
@@ -1517,14 +1523,13 @@ body::before {
 }
 
 .link-icon,
-.prompt-icon,
 .msg-icon {
   display: grid;
   place-items: center;
   width: 34px;
   height: 34px;
   flex: none;
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   border: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.7);
   color: var(--ink-2);
@@ -1536,32 +1541,28 @@ body::before {
   color: #fff;
 }
 
-.link-text,
-.prompt-text {
+.link-text {
   display: grid;
   gap: 2px;
   min-width: 0;
 }
 
-.link-text b,
-.prompt-text b {
-  font-size: 14px;
+.link-text b {
+  font-size: var(--text-md);
   font-weight: 600;
 }
 
-.link-text em,
-.prompt-text em {
+.link-text em {
   font-family: var(--mono);
   font-style: normal;
-  font-size: 10px;
+  font-size: var(--text-small);
   color: var(--muted);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.link-out,
-.prompt-go {
+.link-out {
   margin-left: auto;
   flex: none;
   color: var(--muted);
@@ -1584,7 +1585,7 @@ body::before {
 
 .whois b {
   display: block;
-  font-size: 17px;
+  font-size: var(--text-xl);
   font-weight: 650;
   letter-spacing: -0.02em;
 }
@@ -1592,8 +1593,8 @@ body::before {
 .whois em {
   font-family: var(--mono);
   font-style: normal;
-  font-size: 9px;
-  letter-spacing: 0.16em;
+  font-size: var(--text-micro);
+  letter-spacing: var(--track-wide);
   color: var(--muted);
 }
 
@@ -1602,16 +1603,16 @@ body::before {
   align-items: center;
   gap: 9px;
   padding: 11px 14px;
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   background: var(--accent-soft);
-  font-size: 13px;
+  font-size: var(--text-body);
   font-weight: 550;
 }
 
 .availability .dot {
   width: 7px;
   height: 7px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--accent);
   box-shadow: 0 0 0 0 rgba(46, 125, 118, 0.5);
   animation: pulse 2.2s infinite;
@@ -1626,7 +1627,7 @@ body::before {
 .availability .clock {
   margin-left: auto;
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: var(--text-small);
   font-weight: 400;
   color: var(--ink-2);
 }
@@ -1637,7 +1638,7 @@ body::before {
   align-items: baseline;
   padding: 11px 0;
   border-bottom: 1px solid var(--line);
-  font-size: 13.5px;
+  font-size: var(--text-md);
   color: var(--ink-2);
 }
 
@@ -1647,7 +1648,7 @@ body::before {
 
 .goodfor li span {
   font-family: var(--mono);
-  font-size: 9.5px;
+  font-size: var(--text-small);
   letter-spacing: 0.14em;
   color: var(--accent);
   width: 22px;
@@ -1670,20 +1671,10 @@ body::before {
 .msg-head em {
   font-family: var(--mono);
   font-style: normal;
-  font-size: 9.5px;
+  font-size: var(--text-small);
   color: var(--muted);
 }
 
-.msg-bubble {
-  margin: 0 0 16px;
-  padding: 14px 16px;
-  border-radius: 14px 14px 14px 4px;
-  background: rgba(20, 25, 29, 0.05);
-  font-size: 14.5px;
-  line-height: 1.55;
-  color: var(--ink-2);
-  max-width: 40ch;
-}
 
 .prompts {
   display: grid;
@@ -1715,7 +1706,7 @@ body::before {
   background: none;
   cursor: pointer;
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--text-label);
   letter-spacing: 0.1em;
   color: var(--ink-2);
 }
@@ -1776,8 +1767,8 @@ body::before {
   align-items: center;
   gap: 3px;
   font-family: var(--mono);
-  font-size: 8px;
-  letter-spacing: 0.18em;
+  font-size: var(--text-nano);
+  letter-spacing: var(--track-ui);
   color: var(--muted);
 }
 
@@ -1803,14 +1794,14 @@ body::before {
 
 .np-text b {
   font-family: var(--mono);
-  font-size: 13px;
+  font-size: var(--text-body);
   font-weight: 600;
 }
 
 .np-text em {
   font-family: var(--mono);
   font-style: normal;
-  font-size: 10px;
+  font-size: var(--text-small);
   color: var(--muted);
 }
 
@@ -1864,7 +1855,7 @@ body::before {
   background: var(--ink);
   color: var(--bg);
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--text-label);
   letter-spacing: 0.08em;
   text-decoration: none;
   transition: transform 0.22s var(--ease);
@@ -1882,7 +1873,7 @@ select:focus-visible,
 [tabindex]:focus-visible {
   outline: 2px solid var(--accent);
   outline-offset: 3px;
-  border-radius: 6px;
+  border-radius: var(--radius-chip);
 }
 
 /* --- pressed feedback --------------------------------------------------
@@ -1915,8 +1906,7 @@ select:focus-visible,
 .stat-value,
 .boot-pct,
 .likes span,
-.panel-head b,
-.project-meta {
+.panel-head b {
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum" 1;
 }
@@ -1994,7 +1984,7 @@ body::after {
   display: inline-block;
   margin-bottom: 42px;
   font-family: var(--mono);
-  font-size: 11px;
+  font-size: var(--text-label);
   letter-spacing: 0.12em;
   color: var(--muted);
   text-decoration: none;
@@ -2008,8 +1998,8 @@ body::after {
 .doc-eyebrow {
   margin: 0 0 14px;
   font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: 0.18em;
+  font-size: var(--text-label);
+  letter-spacing: var(--track-ui);
   color: var(--accent);
 }
 
@@ -2023,7 +2013,7 @@ body::after {
 
 .doc h2 {
   margin: 52px 0 12px;
-  font-size: 15px;
+  font-size: var(--text-lg);
   font-weight: 600;
   letter-spacing: -0.01em;
 }
@@ -2085,7 +2075,7 @@ body::after {
   margin-top: 64px;
   padding-top: 22px;
   border-top: 1px solid var(--line);
-  font-size: 13px;
+  font-size: var(--text-body);
   color: var(--muted);
 }
 
@@ -2107,8 +2097,8 @@ body::after {
 .notfound-code {
   margin: 0 0 18px;
   font-family: var(--mono);
-  font-size: 11px;
-  letter-spacing: 0.18em;
+  font-size: var(--text-label);
+  letter-spacing: var(--track-ui);
   color: var(--accent);
 }
 
@@ -2130,9 +2120,9 @@ body::after {
   display: inline-block;
   padding: 11px 20px;
   border: 1px solid var(--line-2);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   color: var(--ink);
-  font-size: 13px;
+  font-size: var(--text-body);
   text-decoration: none;
   transition:
     transform 0.16s var(--ease),
@@ -2165,7 +2155,7 @@ body::after {
   padding-right: var(--chrome-right);
   border-top: 1px solid var(--line);
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: var(--text-small);
   letter-spacing: 0.13em;
   color: var(--muted);
   text-transform: uppercase;
@@ -2193,7 +2183,7 @@ body::after {
 .likes-hint {
   margin-left: 8px;
   font-family: var(--mono);
-  font-size: 9px;
+  font-size: var(--text-micro);
   font-style: normal;
   letter-spacing: 0.14em;
   color: var(--muted);
@@ -2243,8 +2233,8 @@ body::after {
   gap: 22px;
   padding-right: 22px;
   font-family: var(--mono);
-  font-size: 9.5px;
-  letter-spacing: 0.2em;
+  font-size: var(--text-small);
+  letter-spacing: var(--track-ultra);
   color: var(--muted);
   white-space: nowrap;
 }
@@ -2280,9 +2270,22 @@ body::after {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .ticker-track { animation: none; }
-  body::after { animation: none; }
-  body::before { animation: none; }
+  /* Everything that loops forever. The earlier blocks named animations one at
+     a time and drifted out of date as new ones were added — the stack marquee
+     (46s), the now-playing EQ bars, the chat caret and the availability dot
+     were all still running for someone who had asked the OS for stillness.
+     Listing the elements rather than the animations means the next one added
+     is covered by default. */
+  body::before,
+  body::after,
+  .ticker-track,
+  .marquee-track,
+  .medallion,
+  .np-label i,
+  .caret[data-on="true"],
+  .availability .dot {
+    animation: none !important;
+  }
 }
 
 /* Nothing ambient should keep compositing while the tab is in the background.
@@ -2318,8 +2321,8 @@ body[data-away="true"] .medallion {
 .cchat-msg {
   max-width: 82%;
   padding: 11px 14px;
-  border-radius: 14px;
-  font-size: 13.5px;
+  border-radius: var(--radius-card);
+  font-size: var(--text-md);
   line-height: 1.5;
 }
 
@@ -2384,13 +2387,13 @@ body[data-away="true"] .medallion {
 }
 
 .cchat-intent-text b {
-  font-size: 14px;
+  font-size: var(--text-md);
   font-weight: 600;
 }
 
 .cchat-intent-text em {
   font-family: var(--mono);
-  font-size: 10px;
+  font-size: var(--text-small);
   font-style: normal;
   letter-spacing: 0.1em;
   color: var(--muted);
@@ -2402,7 +2405,7 @@ body[data-away="true"] .medallion {
   gap: 8px;
   padding: 6px 6px 6px 15px;
   border: 1px solid var(--line-2);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--panel-solid);
 }
 
@@ -2426,7 +2429,7 @@ body[data-away="true"] .medallion {
   height: 32px;
   flex: none;
   border: 0;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--ink);
   color: var(--bg);
   cursor: pointer;
@@ -2445,7 +2448,7 @@ body[data-away="true"] .medallion {
 .cchat-error {
   margin: 0;
   font-family: var(--mono);
-  font-size: 10.5px;
+  font-size: var(--text-label);
   letter-spacing: 0.06em;
   color: #b4462f;
 }
@@ -2456,10 +2459,10 @@ body[data-away="true"] .medallion {
   justify-content: center;
   gap: 9px;
   padding: 13px 18px;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: var(--ink);
   color: var(--bg);
-  font-size: 13px;
+  font-size: var(--text-body);
   text-decoration: none;
   transition: transform 0.16s var(--ease), opacity 0.22s var(--ease);
 }

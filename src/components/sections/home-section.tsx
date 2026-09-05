@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { persona } from "@/lib/content";
+import { EASE, STAGE } from "@/lib/motion";
 
 export default function HomeSection() {
   return (
@@ -10,7 +11,7 @@ export default function HomeSection() {
         className="wordmark"
         initial={{ opacity: 0, y: 40 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 1, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
+        transition={{ duration: 1, ease: EASE, delay: STAGE.intro }}
       >
         {persona.wordmark}
       </motion.h1>

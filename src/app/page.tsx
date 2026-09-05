@@ -15,17 +15,11 @@ import AboutSection from "@/components/sections/about-section";
 import ContactSection from "@/components/sections/contact-section";
 import { LikeCounter, NowPlaying, UtilityCluster } from "@/components/floating-ui";
 import { persona, sections, type Section, type Mood } from "@/lib/content";
+import { sectionFade } from "@/lib/motion";
 import type { Pose } from "@/components/robot/poses";
 
 // WebGL only ever runs in the browser.
 const RobotStage = dynamic(() => import("@/components/robot"), { ssr: false });
-
-const fade = {
-  initial: { opacity: 0, y: 18, filter: "blur(6px)" },
-  animate: { opacity: 1, y: 0, filter: "blur(0px)" },
-  exit: { opacity: 0, y: -12, filter: "blur(6px)" },
-  transition: { duration: 0.55, ease: [0.16, 1, 0.3, 1] as const },
-};
 
 /** Which pose the robot holds on each section. Home runs its own cycle. */
 const SECTION_POSE: Record<Section, Pose> = {
@@ -58,6 +52,18 @@ export default function Page() {
     // tab, where rAF is suspended, and trap the visitor on the preloader.
     setBootExiting(true);
     setTimeout(() => setBooting(false), 520);
+  }, []);
+
+  /* Ambient CSS animation (the grain layer, the ticker, the badge float)
+     keeps compositing in a background tab — Chrome throttles it but does not
+     stop it. The stylesheet pauses all three off this attribute. */
+  useEffect(() => {
+    const sync = () => {
+      document.body.dataset.away = String(document.visibilityState === "hidden");
+    };
+    sync();
+    document.addEventListener("visibilitychange", sync);
+    return () => document.removeEventListener("visibilitychange", sync);
   }, []);
 
   // The tab title reflects the robot's mood, the way the reference does.
@@ -219,7 +225,7 @@ export default function Page() {
             grid cell. `mode="wait"` would stall forever in a hidden tab, since
             the exit animation never gets a frame. */}
         <AnimatePresence>
-          <motion.div key={section} {...fade} className="stage-inner">
+          <motion.div key={section} {...sectionFade} className="stage-inner">
             {section === "home" && <HomeSection />}
             {section === "work" && <WorkSection />}
             {section === "about" && (

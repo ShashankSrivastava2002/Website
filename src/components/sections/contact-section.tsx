@@ -7,6 +7,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Mail, Github, Linkedin, FileText, MessageSquare, ArrowUpRight } from "lucide-react";
 import { contact, persona, type Mood } from "@/lib/content";
+import { EASE, STAGE, bodyDelay } from "@/lib/motion";
 import { SectionIntro } from "./work-section";
 
 const ICONS = {
@@ -42,12 +43,12 @@ export default function ContactSection({ onMood }: { onMood: (m: Mood) => void }
 
       <div className="contact-grid">
         {/* --------------------------- left --------------------------- */}
-        <div className="contact-col">
+        <div className="contact-col scroll-col">
           <motion.div
             className="panel"
             initial={{ opacity: 0, y: 22 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.65, ease: [0.16, 1, 0.3, 1] }}
+            transition={{ duration: STAGE.duration, ease: EASE, delay: bodyDelay(0) }}
           >
             <div className="panel-head panel-head--flush">
               <span>FIND ME</span>
@@ -81,7 +82,7 @@ export default function ContactSection({ onMood }: { onMood: (m: Mood) => void }
             className="panel"
             initial={{ opacity: 0, y: 22 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.65, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
+            transition={{ duration: STAGE.duration, ease: EASE, delay: bodyDelay(2) }}
           >
             <div className="whois">
               <div className="whois-avatar" aria-hidden />
@@ -119,7 +120,7 @@ export default function ContactSection({ onMood }: { onMood: (m: Mood) => void }
           className="panel panel--raised"
           initial={{ opacity: 0, y: 22 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.65, ease: [0.16, 1, 0.3, 1], delay: 0.05 }}
+          transition={{ duration: STAGE.duration, ease: EASE, delay: bodyDelay(1) }}
         >
           <div className="msg-head">
             <span className="msg-icon"><MessageSquare size={16} /></span>

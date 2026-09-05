@@ -3,7 +3,8 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { ContactShadows, Environment } from "@react-three/drei";
-import { EffectComposer, Bloom } from "@react-three/postprocessing";
+import { EffectComposer, Bloom, ToneMapping, Noise } from "@react-three/postprocessing";
+import { ToneMappingMode, BlendFunction } from "postprocessing";
 import { suspend } from "suspend-react";
 import * as THREE from "three";
 
@@ -282,7 +283,14 @@ function Scene({
 
   return (
     <>
-      <ambientLight intensity={0.62} />
+      {/* Cut hard, from 0.62. Ambient is flat fill — it lights every surface
+          equally and is the enemy of anything trying to read as metal. It was
+          only that high to stop the old tone curve clipping the chrome; AgX
+          rolls those highlights off on its own, so the fill can come out and
+          the HDRI can do the work it is there for. The reference runs 0.02;
+          0.16 is as far as ours goes without the unlit side of the figure
+          going to solid black against a light page. */}
+      <ambientLight intensity={0.16} />
       {/* Front-key so the gloss and chrome catch a highlight rather than only
           mirroring the environment.
 
@@ -291,12 +299,15 @@ function Scene({
           with no form in them. A little more ambient and a little less key
           keeps the same contrast without losing the highlight roll-off, which
           is the part that makes chrome read as metal rather than as paint. */}
-      <directionalLight position={[2, 4, 6]} intensity={1.12} castShadow />
-      <directionalLight position={[-5, 2, -3]} intensity={0.75} color="#a8d8ff" />
-      <pointLight position={[-2.4, 1.2, 3]} intensity={0.8} color="#ffffff" />
-      <pointLight position={[2.6, -0.6, 2.4]} intensity={0.55} color="#cfe6ff" />
+      <directionalLight position={[2, 4, 6]} intensity={1.25} castShadow />
+      <directionalLight position={[-5, 2, -3]} intensity={0.55} color="#a8d8ff" />
+      <pointLight position={[-2.4, 1.2, 3]} intensity={0.45} color="#ffffff" />
+      <pointLight position={[2.6, -0.6, 2.4]} intensity={0.32} color="#cfe6ff" />
 
-      <Environment files={suspend(studio) as string} />
+      {/* With the fill lights pulled back this is now the main source, which
+          is the point — reflections off a real environment are what separate
+          chrome from grey paint. */}
+      <Environment files={suspend(studio) as string} environmentIntensity={1.25} />
 
       {/* Raised from -0.62: the bottom ticker now occupies the last ~30px of
           the viewport and the boots were crowding it. */}
@@ -356,6 +367,17 @@ function Scene({
           qualify and the chrome's specular highlights do not; the tighter
           radius keeps what is left close to the source instead of spreading
           into a smudge. */}
+      {/* Order matters: bloom runs on the linear HDR buffer (which is why the
+          threshold can sit above 1), tone mapping maps that to display, and the
+          grain goes on last so it lands in display space rather than being
+          crushed by the curve.
+
+          AgX rather than the default ACES. ACES pushes bright saturated pixels
+          toward white and skews warm; the figure is chrome under a studio HDRI,
+          so its highlights were clipping to flat white and losing the roll-off
+          that reads as metal. AgX holds hue through the shoulder — it is what
+          the reference uses, and it is the single biggest difference between
+          their render and ours. */}
       <EffectComposer multisampling={0}>
         <Bloom
           intensity={0.4}
@@ -364,6 +386,8 @@ function Scene({
           radius={0.55}
           mipmapBlur
         />
+        <ToneMapping mode={ToneMappingMode.AGX} />
+        <Noise premultiply blendFunction={BlendFunction.OVERLAY} opacity={0.1} />
       </EffectComposer>
     </>
   );
@@ -417,7 +441,9 @@ export default function RobotStage({
       dpr={[1, 1.6]}
       shadows
       camera={{ position: [0, 0.15, 6.2], fov: 34 }}
-      gl={{ antialias: true, alpha: true }}
+      /* The composer owns tone mapping now — leaving the renderer's own
+         curve on as well would apply it twice. */
+      gl={{ antialias: true, alpha: true, toneMapping: THREE.NoToneMapping }}
     >
       <Suspense fallback={null}>
         <Scene

@@ -4,8 +4,10 @@ import { useEffect, useRef, useState } from "react";
 
 import { motion } from "framer-motion";
 import { about, persona } from "@/lib/content";
+import { EASE, STAGE, bodyDelay } from "@/lib/motion";
 import { SectionIntro } from "./work-section";
 import Scramble from "@/components/scramble";
+import Medallions from "@/components/medallions";
 import { MORPH_DURATION } from "@/components/robot/poses";
 
 /** Corrupted characters used while the headline swaps identity. */
@@ -79,24 +81,7 @@ export default function AboutSection({
             </span>
           </button>
 
-          <div className="badges" aria-hidden>
-            {about.badges.map((b, i) => (
-              <span
-                key={b.label}
-                className="badge"
-                style={
-                  {
-                    "--i": i,
-                    "--x": `${b.x}%`,
-                    "--y": `${b.y}%`,
-                    "--tint": b.tint,
-                  } as React.CSSProperties
-                }
-              >
-                {b.label}
-              </span>
-            ))}
-          </div>
+          <Medallions items={about.badges} />
         </div>
 
         {/* --------------------------- copy --------------------------- */}
@@ -104,42 +89,48 @@ export default function AboutSection({
           className="about-card"
           initial={{ opacity: 0, y: 22 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1], delay: 0.1 }}
+          transition={{ duration: STAGE.duration, ease: EASE, delay: bodyDelay(1) }}
         >
-          <h2 className="about-mark" data-human={human}>
-            <GlitchText text={identity.name} trigger={gen} />
-          </h2>
-          <p className="about-role">{identity.role}</p>
-          <p className="about-bio">{identity.bio}</p>
+          {/* The card's frame stays fixed to the stage; its contents scroll.
+              Masking the card itself would fade its own border and read as a
+              rendering fault rather than as "more below". */}
+          <div className="about-card-body scroll-col">
+            <h2 className="about-mark" data-human={human}>
+              <GlitchText text={identity.name} trigger={gen} />
+            </h2>
+            <p className="about-role">{identity.role}</p>
+            <p className="about-bio">{identity.bio}</p>
 
-          <div className="panel-head panel-head--flush">
-            <span>BY THE NUMBERS</span>
-            <b>{String(about.stats.length).padStart(2, "0")}</b>
+            <div className="panel-head panel-head--flush">
+              <span>BY THE NUMBERS</span>
+              <b>{String(about.stats.length).padStart(2, "0")}</b>
+            </div>
+
+            <div className="stats">
+              {about.stats.map((s, i) => (
+                <div className="stat" key={s.label}>
+                  <span className="stat-value">
+                    {/* keying on `gen` restarts the scramble on every morph */}
+                    {/* Timed off the 3D swap's own duration so the figures land
+                        as the figure resolves, rather than on their own clock. */}
+                    <Scramble
+                      key={gen}
+                      value={s.value}
+                      duration={MORPH_DURATION * 1000 * (0.72 + i * 0.09)}
+                    />
+                  </span>
+                  <span className="stat-label">{s.label}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="manifesto">
+              <span className="manifesto-label">MANIFESTO</span>
+              <p>{about.manifesto}</p>
+            </div>
           </div>
 
-          <div className="stats">
-            {about.stats.map((s, i) => (
-              <div className="stat" key={s.label}>
-                <span className="stat-value">
-                  {/* keying on `gen` restarts the scramble on every morph */}
-                  {/* Timed off the 3D swap's own duration so the figures land
-                      as the figure resolves, rather than on their own clock. */}
-                  <Scramble
-                    key={gen}
-                    value={s.value}
-                    duration={MORPH_DURATION * 1000 * (0.72 + i * 0.09)}
-                  />
-                </span>
-                <span className="stat-label">{s.label}</span>
-              </div>
-            ))}
-          </div>
-
-          <div className="manifesto">
-            <span className="manifesto-label">MANIFESTO</span>
-            <p>{about.manifesto}</p>
-          </div>
-
+          {/* Outside the scroll region, so the card always has a bottom edge. */}
           <footer className="about-foot">
             <span>APPLIED AI · PRODUCTION SCALE</span>
             <span>© {new Date().getFullYear()} SHASHANK SRIVASTAVA</span>

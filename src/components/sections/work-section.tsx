@@ -2,13 +2,15 @@
 
 import { motion } from "framer-motion";
 import { work } from "@/lib/content";
+import ProjectGlyph from "@/components/project-glyph";
+import { EASE, STAGE, bodyDelay } from "@/lib/motion";
 
 const rise = {
   hidden: { opacity: 0, y: 22 },
   show: (i: number) => ({
     opacity: 1,
     y: 0,
-    transition: { duration: 0.65, ease: [0.16, 1, 0.3, 1] as const, delay: 0.06 * i },
+    transition: { duration: STAGE.duration, ease: EASE, delay: bodyDelay(i) },
   }),
 };
 
@@ -42,32 +44,45 @@ export default function WorkSection() {
         <div className="projects">
           <PanelHead title="SELECTED WORK" count={work.projects.length} />
 
-          {work.projects.map((p, i) => (
-            <motion.article
-              key={p.index}
-              className="project"
-              initial="hidden"
-              animate="show"
-              custom={i + 1}
-              variants={rise}
-            >
-              <header>
-                <span className="project-kind">
-                  {p.index} · {p.kind}
-                </span>
-                <span className="project-stat">{p.stat}</span>
-              </header>
-              <h3>{p.title}</h3>
-              <p>{p.blurb}</p>
-              <div className="tagrow">
-                {p.tags.map((t) => (
-                  <span key={t} className="tag">
-                    {t}
-                  </span>
-                ))}
-              </div>
-            </motion.article>
-          ))}
+          {/* The head above stays put; the cards scroll under it rather than
+              pushing the page taller than the viewport. */}
+          <div className="project-list scroll-col">
+            {work.projects.map((p, i) => (
+              <motion.article
+                key={p.index}
+                className="project"
+                initial="hidden"
+                animate="show"
+                custom={i + 1}
+                variants={rise}
+              >
+                {/* The plate carries the project's kind as a drawn mark —
+                    see ProjectGlyph. Without it the column is six paragraphs
+                    in a row and reads as a list rather than a portfolio. */}
+                <div className="project-art" data-kind={p.kind}>
+                  <ProjectGlyph kind={p.kind} />
+                </div>
+
+                <div className="project-body">
+                  <header>
+                    <span className="project-kind">
+                      {p.index} · {p.kind}
+                    </span>
+                    <span className="project-stat">{p.stat}</span>
+                  </header>
+                  <h3>{p.title}</h3>
+                  <p>{p.blurb}</p>
+                  <div className="tagrow">
+                    {p.tags.map((t) => (
+                      <span key={t} className="tag">
+                        {t}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </motion.article>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -104,7 +119,7 @@ export function SectionIntro({
       className="page-intro"
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
+      transition={{ duration: STAGE.duration, ease: EASE, delay: STAGE.intro }}
     >
       <span className="page-index">
         {index} / {label}

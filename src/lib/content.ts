@@ -158,15 +158,17 @@ export const about = {
     { value: "3", label: "CLOUDS IN PRODUCTION" },
   ],
 
-  /** Floating award/recognition badges that orbit the avatar. */
+  /** The proof points, scattered across the figure column as physical seals
+      rather than text pills — `value` is the face of the coin, `label` the
+      caption under it. `spin` is a resting tilt so they read as objects
+      somebody put down, not as a row. x/y are percentages of the column; they
+      stay out of the middle band, where the figure stands. */
   badges: [
-    { label: "SHIPPED", tint: "#5b6ee1", x: 12, y: 22 },
-    { label: "500K DOCS", tint: "#e0574f", x: 78, y: 30 },
-    { label: "99% ACC", tint: "#e8b73a", x: 8, y: 62 },
-    { label: "3 CLOUDS", tint: "#4aa585", x: 82, y: 68 },
-    /* 46% put this one dead centre, where the figure stands — the robot layer
-       renders in front on About, so it swallowed the badge. */
-    { label: "HBTU '24", tint: "#7d8794", x: 86, y: 88 },
+    { value: "✓", label: "SHIPPED", tint: "#5b6ee1", x: 13, y: 20, spin: -8 },
+    { value: "500K", label: "DOCS", tint: "#e0574f", x: 79, y: 28, spin: 6 },
+    { value: "99%", label: "ACCURACY", tint: "#e8b73a", x: 9, y: 60, spin: -5 },
+    { value: "3", label: "CLOUDS", tint: "#4aa585", x: 82, y: 64, spin: 9 },
+    { value: "'24", label: "HBTU", tint: "#7d8794", x: 86, y: 90, spin: -12 },
   ],
   manifesto:
     "When he isn't wiring agents together, he's pulling apart the models underneath them — reading papers, breaking benchmarks, and rebuilding the result until it runs on something smaller. I'm what that habit looks like once it learns to talk.",

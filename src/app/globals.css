@@ -21,13 +21,92 @@
   --line: rgba(20, 25, 29, 0.09);
   --line-2: rgba(20, 25, 29, 0.16);
   --accent: #2e7d76;
-  --accent-soft: rgba(46, 125, 118, 0.12);
+  /* derived, so it follows the section accent below instead of pinning the
+     base teal into every tinted surface */
+  --accent-soft: color-mix(in srgb, var(--accent) 12%, transparent);
 
   /* Fallbacks inside var() so a failed webfont still lands on a sane stack. */
   --sans: var(--font-sans, ui-sans-serif), system-ui, -apple-system, sans-serif;
   --mono: var(--font-mono, ui-monospace), "SF Mono", Menlo, monospace;
 
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* ---- scale -----------------------------------------------------------
+     Added after an audit found 20 distinct font sizes, 13 radii and 9
+     letter-spacings in this file — values nudged by hand until something fit
+     rather than steps picked from a scale. New work should reach for these
+     rather than inventing another half-pixel. */
+  --gutter: 26px;
+
+  --text-micro: 9px;
+  --text-small: 10px;
+  --text-label: 11px;
+  --text-body: 13px;
+  --text-lg: 15px;
+  --text-xl: 17px;
+  --text-title: 21px;
+
+  --track-ui: 0.18em;
+  --track-wide: 0.26em;
+  --track-body: 0.01em;
+  --track-display: -0.02em;
+
+  --radius-chip: 6px;
+  --radius-control: 10px;
+  --radius-card: 14px;
+  --radius-modal: 20px;
+  --radius-pill: 999px;
+
+  --space-1: 6px;
+  --space-2: 10px;
+  --space-3: 16px;
+  --space-4: 26px;
+  --space-5: 40px;
+
+  /* The now-playing card floats at the bottom-right of every page (22px
+     inset, ~180px wide). Page content that reaches the bottom of the stage
+     has to keep clear of it — Contact's footer links were landing underneath
+     it, a measured 95x26px overlap. */
+  --chrome-right: 214px;
+
+  /* ---- glass ------------------------------------------------------------
+     Every card here used to be a flat white fill and ONE drop shadow, which
+     is why the surfaces read as paper rather than glass. Three things do the
+     work: a directional fill so the sheet has a lit side, saturate() so the
+     colour behind the blur intensifies instead of washing out, and a shadow
+     stack — an inset top highlight for the lit edge, an inset bottom glow,
+     a wide ambient, and a tight contact shadow to seat it. */
+  --glass-fill: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.88),
+    rgba(255, 255, 255, 0.6) 46%,
+    rgba(255, 255, 255, 0.78)
+  );
+  --glass-edge: rgba(255, 255, 255, 0.9);
+  --glass-blur: blur(20px) saturate(180%) brightness(1.02);
+  --glass-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.95),
+    inset 0 -8px 20px rgba(255, 255, 255, 0.24),
+    0 18px 44px -24px rgba(20, 30, 45, 0.26),
+    0 3px 10px -4px rgba(20, 30, 45, 0.1);
+
+  /* ---- layer order -----------------------------------------------------
+     These are the values the site already used, given names. They were 13
+     ad-hoc numbers including the adjacent 40/41/42, which made every new
+     overlay a coin flip — the ticker painting over the now-playing card came
+     from exactly that. Numbers unchanged, so nothing moves; the point is that
+     the next overlay has somewhere to go. */
+  --z-figure: 1;         /* the 3D stage, behind the page */
+  --z-figure-lift: 9;    /* About: the figure is the subject, still under .stage */
+  --z-stage: 10;         /* page content */
+  --z-hearts: 22;
+  --z-chrome: 30;        /* topbar, chat dock */
+  --z-grain: 40;
+  --z-ticker: 41;
+  --z-float: 42;         /* now-playing card, utility cluster */
+  --z-boot: 200;
+  --z-boot-figure: 201;  /* the walk-in plays over the boot screen */
+  --z-modal: 300;
 }
 
 * {
@@ -38,7 +117,14 @@ html,
 body {
   margin: 0;
   padding: 0;
-  height: 100%;
+  /* min-height, not height. At height:100% the html box was capped at the
+     viewport, and since body carries overflow-x:hidden (which computes
+     overflow-y to auto) the wheel had no reachable scroll container — the
+     long document routes (/colophon, /privacy, the 404) could not be scrolled
+     by mouse at all, only by keyboard or scrollbar. Pre-existing; verified
+     against the original stylesheet before changing it. The app shell is
+     unaffected: .stage sizes itself off 100dvh, not off its parent. */
+  min-height: 100%;
 }
 
 body {
@@ -49,20 +135,128 @@ body {
   overflow-x: hidden;
 }
 
-/* soft vignette so the flat bg has some depth */
+/* The page is a fixed stage, not a scrolling document.
+   Every overlay here (topbar, ticker, now-playing, utility cluster) is
+   position:fixed while the content used to scroll underneath it, so anything
+   tall enough slid straight through them — that single mismatch was the cause
+   of the ticker/now-playing, brand-block/card and chat-dock/career collisions.
+   Density is absorbed by .scroll-col instead. Released on narrow screens,
+   where a column of stacked cards genuinely is a scrolling document. */
+@media (min-width: 769px) {
+  /* Scoped to the single-screen app shell. /colophon, /privacy and the 404 are
+     ordinary long documents on the same stylesheet — locking html globally
+     trapped them with their content below the fold and no way to reach it.
+     A browser without :has() just scrolls, which is the safe way to fail. */
+  html:has(.stage),
+  html:has(.stage) body {
+    overflow: hidden;
+  }
+}
+
+/* Below this the grids have already collapsed to one column and a phone
+   screen is far too short to hold a section, so the fixed stage stops making
+   sense: the page becomes an ordinary scrolling document and every inner
+   scroller stands down. Nested scroll regions on a touch screen are miserable
+   — you swipe and the wrong thing moves. */
+@media (max-width: 768px) {
+  .stage {
+    height: auto;
+    min-height: 100dvh;
+    padding: 96px 18px 84px;
+    grid-template-rows: auto;
+  }
+
+  .stage-inner,
+  .page,
+  .home {
+    flex: none;
+  }
+
+  .work-grid,
+  .about-grid,
+  .contact-grid {
+    flex: none;
+    min-height: 0;
+  }
+
+  .scroll-col {
+    overflow: visible;
+    padding-right: 0;
+    margin-right: 0;
+    padding-bottom: 0;
+    mask-image: none;
+    -webkit-mask-image: none;
+  }
+
+  /* Both of these reserve room for the now-playing card, which is only
+     alongside them on a wide screen. */
+  .site-foot {
+    padding-right: 0;
+  }
+
+  .marquee {
+    mask-image: none;
+    -webkit-mask-image: none;
+  }
+}
+
+/* The ambient field. A static vignette makes a flat colour read as flat; this
+   drifts on a slow cycle so the background is never quite the same twice,
+   which is most of what separates a designed surface from a painted one.
+   Oversized and blurred, so the drift never exposes an edge and the shapes
+   stay shapes rather than becoming visible ellipses. */
 body::before {
   content: "";
   position: fixed;
-  inset: 0;
+  inset: -12%;
   pointer-events: none;
   z-index: 0;
+  filter: blur(20px);
   background:
-    radial-gradient(1100px 700px at 72% 18%, rgba(255, 255, 255, 0.28), transparent 72%),
-    radial-gradient(800px 600px at 12% 88%, rgba(46, 125, 118, 0.04), transparent 72%);
+    radial-gradient(1100px 700px at 72% 18%, rgba(255, 255, 255, 0.3), transparent 72%),
+    radial-gradient(760px 620px at 14% 84%, color-mix(in srgb, var(--accent) 7%, transparent), transparent 70%),
+    radial-gradient(620px 520px at 86% 76%, rgba(120, 140, 190, 0.07), transparent 72%);
+  animation: field-drift 48s ease-in-out infinite alternate;
+}
+
+@keyframes field-drift {
+  0% {
+    transform: translate(0, 0) scale(1);
+  }
+  100% {
+    transform: translate(-2.5vw, 1.8vh) scale(1.07);
+  }
 }
 
 ::selection {
   background: var(--accent-soft);
+}
+
+/* Registering the property is what makes a custom property interpolate at all
+   — without this the accent would snap between sections instead of crossing
+   over. The shifts are deliberately small: same teal family, moved a few
+   degrees to suit each page, so it reads as the light changing rather than as
+   a different site. */
+@property --accent {
+  syntax: "<color>";
+  inherits: true;
+  initial-value: #2e7d76;
+}
+
+[data-section] {
+  transition: --accent 1.2s var(--ease);
+}
+
+[data-section="work"] {
+  --accent: #2f7286;
+}
+
+[data-section="about"] {
+  --accent: #3d7a5f;
+}
+
+[data-section="contact"] {
+  --accent: #2d8579;
 }
 
 /* ====================================================================== */
@@ -72,7 +266,7 @@ body::before {
 .boot-layer {
   position: fixed;
   inset: 0;
-  z-index: 200;
+  z-index: var(--z-boot);
   background: var(--bg);
   opacity: 1;
   transition: opacity 0.5s var(--ease);
@@ -126,7 +320,7 @@ body::before {
 .robot-layer {
   position: fixed;
   inset: 0;
-  z-index: 1;
+  z-index: var(--z-figure);
   pointer-events: none;
   transition: opacity 0.5s var(--ease);
 }
@@ -138,7 +332,7 @@ body::before {
 /* During boot the robot sits ABOVE the boot screen, so the walk-in plays on
    the empty background before the site itself fades in around it. */
 .robot-layer[data-boot="true"] {
-  z-index: 201;
+  z-index: var(--z-boot-figure);
 }
 
 /* On About the figure is the subject, so it gets lifted clear of the default
@@ -147,7 +341,7 @@ body::before {
    have to stay readable. Nothing else in the About grid reaches into that
    column, so there is nothing left for it to hide behind. */
 .robot-layer[data-front="true"] {
-  z-index: 9;
+  z-index: var(--z-figure-lift);
 }
 
 .robot-canvas {
@@ -164,7 +358,7 @@ body::before {
   top: 0;
   left: 0;
   right: 0;
-  z-index: 30;
+  z-index: var(--z-chrome);
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -303,12 +497,16 @@ body::before {
 
 .stage {
   position: relative;
-  z-index: 10;
-  min-height: 100dvh;
-  padding: 104px 26px 90px;
+  z-index: var(--z-stage);
+  /* A definite height, so the overflow chain below it has something to
+     resolve against. min-height would let the content push the page taller
+     again, which is the behaviour this replaces. */
+  height: 100dvh;
+  padding: 104px var(--gutter) 90px;
   /* single cell — outgoing and incoming sections stack here during a crossfade */
   display: grid;
   grid-template-columns: minmax(0, 1fr);
+  grid-template-rows: minmax(0, 1fr);
 }
 
 .stage-inner {
@@ -316,12 +514,50 @@ body::before {
   width: 100%;
   max-width: 1240px;
   margin: 0 auto;
+  /* min-height:0 at every step or the flex children refuse to shrink below
+     their content and the scroll never engages. */
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Every section fills the stage; the dense column inside it does the
+   scrolling. `.page` had no rule at all before this. */
+.page {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* A column that absorbs its own overflow instead of pushing the page taller.
+   The mask fades the last stretch so a clipped card reads as "more below"
+   rather than as a hard cut, and the scrollbar is hidden because the fade
+   already says it. The bottom padding is deliberately close to the fade
+   distance, so at the end of the scroll the gradient is mostly over padding
+   and the last line stays legible. */
+.scroll-col {
+  overflow-y: auto;
+  min-height: 0;
+  padding-right: 14px;
+  margin-right: -14px;
+  padding-bottom: 40px;
+  overscroll-behavior: contain;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  mask-image: linear-gradient(to bottom, #000 calc(100% - 56px), transparent);
+  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 56px), transparent);
+}
+
+.scroll-col::-webkit-scrollbar {
+  display: none;
 }
 
 /* ---------------------------- home ---------------------------- */
 
 .home {
-  min-height: calc(100dvh - 200px);
+  flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -345,7 +581,7 @@ body::before {
   position: fixed;
   left: 28px;
   bottom: 52px;
-  z-index: 30;
+  z-index: var(--z-chrome);
   width: min(430px, calc(100vw - 56px));
   pointer-events: none;
 }
@@ -354,17 +590,20 @@ body::before {
   pointer-events: auto;
 }
 
-.chat-dock:not([data-section="home"]) .chat-log {
-  max-height: 84px;
-}
+
 
 /* Contact runs its own conversation in the page, so the dock would be two
    chats side by side. About is the one page where the figure IS the content:
    the dock sat at 28,526→458,753 and swallowed the "99% ACC" and "HBTU '24"
    badges and the TAP TO RETURN hint, all of which live in that same column.
    The reference drops its chat on About for the same reason. */
-.chat-dock[data-section="contact"],
-.chat-dock[data-section="about"] {
+/* Home only. The dock is 430px wide at the bottom-left, which is exactly
+   where every inner page puts its first column — on Work it sat across the
+   career card (a measured 340x59 overlap), on About it swallowed two badges
+   and the flip hint, on Contact the FIND ME panel. There is no free corner to
+   move it to at this width, and the reference reaches the same conclusion:
+   the assistant is the Home hero, not a persistent overlay. */
+.chat-dock:not([data-section="home"]) {
   display: none;
 }
 
@@ -534,8 +773,9 @@ body::before {
 /* ====================================================================== */
 
 .page-intro {
+  flex: none;
   display: flex;
-  gap: 40px;
+  gap: var(--space-5);
   align-items: flex-start;
   margin-bottom: 28px;
 }
@@ -552,18 +792,25 @@ body::before {
 .page-intro p {
   margin: 0;
   max-width: 560px;
-  font-size: 17px;
+  font-size: var(--text-xl);
+  /* Space Grotesk is variable across 300-700. The lead sets the page's tone
+     and at 400 it read as body copy; 300 gives it the airier voice the
+     reference gets from Inter Light without changing the family. */
+  font-weight: 300;
   line-height: 1.55;
+  letter-spacing: var(--track-body);
   color: var(--ink-2);
 }
 
 .panel {
-  border-radius: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.9);
-  background: var(--panel);
-  backdrop-filter: blur(20px);
-  box-shadow: 0 16px 40px -24px rgba(20, 30, 45, 0.3);
+  border-radius: var(--radius-modal);
+  border: 1px solid var(--glass-edge);
+  background: var(--glass-fill);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-shadow);
   padding: 22px;
+  isolation: isolate;
 }
 
 .panel--raised {
@@ -598,21 +845,69 @@ body::before {
 .work-grid {
   display: grid;
   grid-template-columns: minmax(260px, 340px) 1fr;
-  gap: 26px;
-  align-items: start;
+  gap: var(--space-4);
+  /* stretch, not start: the project column needs the row's full height to
+     have something to scroll inside. The career card opts back out below. */
+  align-items: stretch;
+  flex: 1;
+  min-height: 0;
 }
 
+/* The career card is short and shouldn't be stretched to the row height. */
+.work-grid > .panel {
+  align-self: start;
+}
+
+/* A rail with a station per role, rather than three rows separated by rules.
+   The reference does this and it is the difference between a career section
+   and a bulleted list — the eye gets a direction to travel in. */
 .career {
+  position: relative;
   list-style: none;
   margin: 0;
-  padding: 0;
+  padding: 0 0 0 22px;
+}
+
+.career::before {
+  content: "";
+  position: absolute;
+  left: 4px;
+  top: 20px;
+  bottom: 20px;
+  width: 1px;
+  background: linear-gradient(
+    to bottom,
+    var(--line-2),
+    var(--line-2) 82%,
+    transparent
+  );
 }
 
 .career li {
+  position: relative;
   display: grid;
   gap: 2px;
   padding: 13px 0;
   border-bottom: 1px solid var(--line);
+}
+
+.career li::before {
+  content: "";
+  position: absolute;
+  left: -22px;
+  top: 17px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 1px solid var(--line-2);
+}
+
+/* the current role is the filled station */
+.career li:first-child::before {
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 .career li:last-child {
@@ -637,18 +932,84 @@ body::before {
 }
 
 .projects {
-  display: grid;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+/* The panel head stays put; only the cards under it scroll.
+
+   Flex, not grid. As a grid the six implicit `auto` rows were sized against
+   the scroller's definite height and came out equal — every card clamped to
+   51px with its title and blurb cropped by the card's own overflow:hidden.
+   A flex column sizes each child to its content and overflows, which is the
+   whole point of a scroll region. `flex: none` keeps them from shrinking. */
+.project-list {
+  display: flex;
+  flex-direction: column;
   gap: 12px;
 }
 
+.project-list > * {
+  flex: none;
+}
+
 .project {
-  border-radius: 16px;
-  border: 1px solid rgba(255, 255, 255, 0.9);
-  background: var(--panel);
-  backdrop-filter: blur(20px);
-  box-shadow: 0 14px 36px -26px rgba(20, 30, 45, 0.3);
-  padding: 20px 22px;
+  border-radius: var(--radius-card);
+  border: 1px solid var(--glass-edge);
+  background: var(--glass-fill);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-shadow);
+  padding: 0;
+  isolation: isolate;
+  overflow: hidden;
+  /* art plate | copy — the reference's proportions, at our column width */
+  display: grid;
+  grid-template-columns: 152px minmax(0, 1fr);
+  align-items: stretch;
   transition: transform 0.35s var(--ease), box-shadow 0.35s var(--ease);
+}
+
+/* A tinted plate carrying the drawn mark. The dot grid is the same trick the
+   reference uses behind its illustrations — it gives the panel a surface, so
+   the mark sits ON something instead of floating in the card. */
+.project-art {
+  position: relative;
+  display: grid;
+  place-items: center;
+  border-right: 1px solid var(--line);
+  color: var(--accent);
+  background-color: rgba(255, 255, 255, 0.34);
+  background-image: radial-gradient(
+    circle at center,
+    rgba(20, 30, 45, 0.13) 1px,
+    transparent 1px
+  );
+  background-size: 7px 7px;
+}
+
+/* Each kind gets its own hue, so the column reads as a set of six different
+   things at a glance rather than six of the same card. */
+.project-art[data-kind="AGENTS"] { color: #5b6ee1; }
+.project-art[data-kind="DOCUMENTS"] { color: #e0574f; }
+.project-art[data-kind="RETRIEVAL"] { color: #2e7d76; }
+.project-art[data-kind="TOOLING"] { color: #b1791f; }
+.project-art[data-kind="VISION"] { color: #4a7fa5; }
+
+.project-glyph {
+  width: 68px;
+  height: 68px;
+  transition: transform 0.45s var(--ease);
+}
+
+.project:hover .project-glyph {
+  transform: scale(1.08) rotate(-2deg);
+}
+
+.project-body {
+  min-width: 0;
+  padding: 20px 22px;
 }
 
 .project:hover {
@@ -704,10 +1065,25 @@ body::before {
 /* --------------------------- marquee --------------------------- */
 
 .marquee {
-  margin-top: 16px;
+  flex: none;
+  margin-top: var(--space-3);
   border-top: 1px solid var(--line);
   padding-top: 13px;
   overflow: hidden;
+  /* The now-playing card floats over this strip's right end (a measured
+     95x49 overlap on Work), so an opaque card sat on top of moving text.
+     Fade the strip out before the card instead: opaque until --chrome-right
+     from the edge, gone by half that, which clears the card's inner edge. */
+  mask-image: linear-gradient(
+    to right,
+    #000 calc(100% - var(--chrome-right)),
+    transparent calc(100% - var(--chrome-right) / 2)
+  );
+  -webkit-mask-image: linear-gradient(
+    to right,
+    #000 calc(100% - var(--chrome-right)),
+    transparent calc(100% - var(--chrome-right) / 2)
+  );
 }
 
 .marquee-label {
@@ -763,12 +1139,23 @@ body::before {
 .about-card {
   max-width: 720px;
   margin-left: auto;
-  border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.9);
-  background: var(--panel);
-  backdrop-filter: blur(20px);
-  box-shadow: 0 20px 56px -30px rgba(20, 30, 45, 0.35);
+  width: 100%;
+  border-radius: var(--radius-modal);
+  border: 1px solid var(--glass-edge);
+  background: var(--glass-fill);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  box-shadow: var(--glass-shadow);
   padding: 22px 26px;
+  isolation: isolate;
+  /* the frame is the flex container; .about-card-body is what scrolls */
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.about-card-body {
+  min-height: 0;
 }
 
 .about-mark {
@@ -801,9 +1188,12 @@ body::before {
 
 .stat {
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: var(--radius-control);
   padding: 13px 14px;
   background: rgba(255, 255, 255, 0.5);
+  /* nested inside .about-card, so just the lit edge — a full glass stack
+     inside another one reads as a card in a card. */
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.9);
 }
 
 .stat-value {
@@ -848,9 +1238,10 @@ body::before {
 }
 
 .about-foot {
+  flex: none;
   display: flex;
   justify-content: space-between;
-  gap: 16px;
+  gap: var(--space-3);
   margin-top: 15px;
   padding-top: 11px;
   border-top: 1px solid var(--line);
@@ -871,8 +1262,10 @@ body::before {
 .about-grid {
   display: grid;
   grid-template-columns: minmax(300px, 1fr) minmax(430px, 660px);
-  gap: 26px;
-  align-items: start;
+  gap: var(--space-4);
+  align-items: stretch;
+  flex: 1;
+  min-height: 0;
 }
 
 /* The stage the badges are positioned against. It has no content of its own —
@@ -880,7 +1273,10 @@ body::before {
    percentages have nothing to resolve into. */
 .about-figure {
   position: relative;
-  min-height: 460px;
+  /* Inside the fixed stage this stretches to the row height, and the badge
+     percentages resolve against that. The floor only matters once the grid
+     collapses to one column — see the 1100px query. */
+  min-height: 0;
 }
 
 /* Bottom-LEFT, not bottom-centre: centred, the label sat under the figure's
@@ -919,63 +1315,126 @@ body::before {
 .badges {
   position: absolute;
   inset: 0;
-  /* decorative, and the whole column is one hit area for the flip */
+  /* the container stays transparent to the pointer; the seals opt back in, so
+     the flip hit-area underneath still works everywhere between them */
   pointer-events: none;
 }
 
-/* `translate` rather than a transform, so the centring survives the float
-   keyframes owning `transform`. */
-.badge {
+/* A seal, not a pill. The face is lit from the top-left, there is a dashed
+   inner ring, and the shadow has real distance under it — the point is that
+   these read as objects lying in the column with the figure, which is what
+   makes the page feel built rather than laid out.
+
+   `translate` carries both the centring and the drag offset, so the float
+   keyframes below can own `transform` and the resting tilt can own `rotate`.
+   Three separate properties, no matrix fighting. */
+.medallion {
   position: absolute;
   left: var(--x);
   top: var(--y);
-  translate: -50% -50%;
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 8px 14px;
-  border-radius: 999px;
-  white-space: nowrap;
-  font-family: var(--mono);
-  font-size: 9.5px;
-  letter-spacing: 0.18em;
-  color: var(--tint);
-  background: rgba(255, 255, 255, 0.78);
-  border: 1px solid color-mix(in srgb, var(--tint) 32%, transparent);
-  box-shadow: 0 14px 30px -18px color-mix(in srgb, var(--tint) 75%, transparent);
-  backdrop-filter: blur(14px);
-  animation: badge-float 7.5s var(--ease) infinite;
-  /* negative delay so every badge starts mid-cycle, not in lockstep */
-  animation-delay: calc(var(--i) * -1.45s);
-}
-
-.badge::before {
-  content: "";
-  flex: none;
-  width: 6px;
-  height: 6px;
+  translate: calc(-50% + var(--dx, 0px)) calc(-50% + var(--dy, 0px));
+  rotate: var(--spin);
+  width: 90px;
+  height: 90px;
   border-radius: 50%;
-  background: var(--tint);
+  display: grid;
+  place-content: center;
+  gap: 3px;
+  text-align: center;
+  pointer-events: auto;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  background:
+    radial-gradient(
+      circle at 34% 26%,
+      rgba(255, 255, 255, 0.96),
+      rgba(255, 255, 255, 0.62) 56%,
+      rgba(255, 255, 255, 0.34)
+    ),
+    color-mix(in srgb, var(--tint) 15%, #ffffff);
+  border: 1px solid color-mix(in srgb, var(--tint) 36%, transparent);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.95),
+    inset 0 -7px 16px color-mix(in srgb, var(--tint) 14%, transparent),
+    0 18px 30px -14px color-mix(in srgb, var(--tint) 62%, transparent),
+    0 3px 8px -3px rgba(20, 30, 45, 0.2);
+  backdrop-filter: blur(12px) saturate(160%);
+  -webkit-backdrop-filter: blur(12px) saturate(160%);
+  animation: medallion-float 7.5s var(--ease) infinite;
+  /* negative delay so every seal starts mid-cycle, not in lockstep */
+  animation-delay: calc(var(--i) * -1.45s);
+  transition:
+    box-shadow 0.3s var(--ease),
+    rotate 0.3s var(--ease),
+    scale 0.3s var(--ease);
 }
 
-@keyframes badge-float {
+/* the milled edge */
+.medallion::before {
+  content: "";
+  position: absolute;
+  inset: 7px;
+  border-radius: 50%;
+  border: 1px dashed color-mix(in srgb, var(--tint) 32%, transparent);
+  pointer-events: none;
+}
+
+.medallion-value {
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: color-mix(in srgb, var(--tint) 76%, var(--ink));
+}
+
+.medallion-label {
+  font-family: var(--mono);
+  font-size: 7.5px;
+  letter-spacing: 0.16em;
+  line-height: 1;
+  color: color-mix(in srgb, var(--tint) 58%, var(--muted));
+}
+
+/* picked up: straighten, lift, and throw a longer shadow */
+.medallion:hover {
+  rotate: 0deg;
+  scale: 1.06;
+  z-index: 2;
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.95),
+    inset 0 -7px 16px color-mix(in srgb, var(--tint) 14%, transparent),
+    0 30px 44px -16px color-mix(in srgb, var(--tint) 66%, transparent),
+    0 5px 12px -4px rgba(20, 30, 45, 0.24);
+}
+
+/* while it is actually being dragged the float has to stop, or the seal
+   drifts away from the cursor */
+.medallion[data-held="true"] {
+  cursor: grabbing;
+  animation-play-state: paused;
+  rotate: 0deg;
+  scale: 1.08;
+  z-index: 3;
+  transition: none;
+}
+
+@keyframes medallion-float {
   0%,
   100% {
-    transform: translateY(-5px) rotate(-1.5deg);
+    transform: translateY(-5px);
   }
   50% {
-    transform: translateY(5px) rotate(1.5deg);
+    transform: translateY(5px);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .badge {
+  .medallion {
     animation: none;
   }
 }
 
-/* Below the split the figure moves behind the copy, so the gutter would be a
-   tall empty box pushing the card off-screen. */
 @media (max-width: 1100px) {
   .about-grid {
     grid-template-columns: minmax(0, 1fr);
@@ -996,8 +1455,15 @@ body::before {
 .contact-grid {
   display: grid;
   grid-template-columns: minmax(280px, 380px) minmax(180px, 1fr) minmax(340px, 480px);
-  gap: 26px;
-  align-items: start;
+  gap: var(--space-4);
+  align-items: stretch;
+  flex: 1;
+  min-height: 0;
+}
+
+/* The message panel is short; only the left column overflows. */
+.contact-grid > .panel--raised {
+  align-self: start;
 }
 
 .contact-gutter {
@@ -1013,9 +1479,16 @@ body::before {
   }
 }
 
+/* Flex for the same reason as .project-list — this is a scroll region, and
+   grid rows would be sized against its height rather than their content. */
 .contact-col {
-  display: grid;
-  gap: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+
+.contact-col > * {
+  flex: none;
 }
 
 .links,
@@ -1265,18 +1738,19 @@ body::before {
   position: fixed;
   right: 22px;
   bottom: 52px;
-  z-index: 42;
+  z-index: var(--z-float);
   display: flex;
   align-items: center;
   gap: 11px;
   padding: 9px 16px 9px 9px;
-  border-radius: 14px;
+  border-radius: var(--radius-card);
   text-decoration: none;
   color: inherit;
-  background: rgba(255, 255, 255, 0.72);
-  backdrop-filter: blur(18px);
-  border: 1px solid rgba(255, 255, 255, 0.9);
-  box-shadow: 0 14px 36px -20px rgba(20, 30, 45, 0.35);
+  background: var(--glass-fill);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--glass-edge);
+  box-shadow: var(--glass-shadow);
   transition: transform 0.3s var(--ease);
 }
 
@@ -1349,7 +1823,7 @@ body::before {
   position: fixed;
   left: 22px;
   bottom: 20px;
-  z-index: 42;
+  z-index: var(--z-float);
   display: flex;
   align-items: center;
   gap: 4px;
@@ -1384,7 +1858,7 @@ body::before {
   top: 0;
   left: 50%;
   transform: translate(-50%, -110%);
-  z-index: 300;
+  z-index: var(--z-modal);
   padding: 10px 18px;
   border-radius: 0 0 10px 10px;
   background: var(--ink);
@@ -1474,10 +1948,16 @@ p,
 body::after {
   content: "";
   position: fixed;
-  inset: 0;
-  z-index: 40;
+  /* oversized, so the drift below never exposes an edge */
+  inset: -2%;
+  z-index: var(--z-grain);
   pointer-events: none;
-  opacity: 0.035;
+  /* overlay rather than a flat wash: the grain darkens the light areas and
+     lifts the dark ones instead of greying the whole frame, which is what
+     keeps a flat colour field from banding. */
+  opacity: 0.05;
+  mix-blend-mode: overlay;
+  animation: grain-shift 0.7s steps(3) infinite;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
 }
 
@@ -1679,8 +2159,10 @@ body::after {
   gap: 10px 26px;
   align-items: center;
   justify-content: space-between;
-  margin-top: 44px;
-  padding-top: 20px;
+  flex: none;
+  margin-top: var(--space-3);
+  padding-top: var(--space-2);
+  padding-right: var(--chrome-right);
   border-top: 1px solid var(--line);
   font-family: var(--mono);
   font-size: 10px;
@@ -1734,7 +2216,7 @@ body::after {
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 41;
+  z-index: var(--z-ticker);
   overflow: hidden;
   padding: 9px 0;
   border-top: 1px solid var(--line);
@@ -1774,6 +2256,24 @@ body::after {
 }
 
 /* -50% is exactly one copy of the duplicated row, so the loop has no seam. */
+/* Three discrete positions, not a smooth slide — film grain jitters, it does
+   not pan. steps() also means three composited frames a second rather than
+   sixty. */
+@keyframes grain-shift {
+  0% {
+    transform: translate(0, 0);
+  }
+  33% {
+    transform: translate(-1.5%, 1%);
+  }
+  66% {
+    transform: translate(1%, -1.5%);
+  }
+  100% {
+    transform: translate(0, 0);
+  }
+}
+
 @keyframes ticker {
   from { transform: translate3d(0, 0, 0); }
   to { transform: translate3d(-50%, 0, 0); }
@@ -1781,6 +2281,19 @@ body::after {
 
 @media (prefers-reduced-motion: reduce) {
   .ticker-track { animation: none; }
+  body::after { animation: none; }
+  body::before { animation: none; }
+}
+
+/* Nothing ambient should keep compositing while the tab is in the background.
+   Chrome throttles hidden tabs but does not reliably stop them, and a
+   full-viewport grain layer plus a 48s marquee is exactly the pair worth
+   stopping. `data-away` is set from page.tsx on visibilitychange. */
+body[data-away="true"]::before,
+body[data-away="true"]::after,
+body[data-away="true"] .ticker-track,
+body[data-away="true"] .medallion {
+  animation-play-state: paused;
 }
 
 /* ====================================================================== */
@@ -1973,7 +2486,7 @@ body::after {
   top: 58%;
   width: 0;
   height: 0;
-  z-index: 22;
+  z-index: var(--z-hearts);
   pointer-events: none;
 }
 

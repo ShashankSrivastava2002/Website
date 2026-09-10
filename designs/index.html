@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Design Directions — Shashank</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Mono&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{background:#0c0c10;color:#e8e8ee;font-family:'Inter',sans-serif;padding:60px 24px;line-height:1.6}
+  .wrap{max-width:960px;margin:0 auto}
+  h1{font-size:34px;font-weight:700;letter-spacing:-.02em}
+  .sub{color:#8b8b9c;margin:8px 0 40px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+  a.card{display:block;text-decoration:none;color:inherit;border:1px solid #24242e;border-radius:16px;overflow:hidden;transition:.2s;background:#121218}
+  a.card:hover{border-color:#4b4bff;transform:translateY(-3px)}
+  .swatch{height:140px;display:flex;align-items:center;justify-content:center;font-family:'Space Mono',monospace;font-size:13px;letter-spacing:1px;text-transform:uppercase}
+  .s1{background:#0b0e0d;color:#5ef2a4;border-bottom:1px solid #1e2624}
+  .s2{background:#f4f1ea;color:#c2410c}
+  .s3{background:#eae6dd;color:#0a0a0a;font-weight:700}
+  .s4{background:linear-gradient(120deg,#7c3aed,#0ea5e9,#db2777);color:#fff}
+  .meta{padding:18px 20px}
+  .meta .n{font-family:'Space Mono',monospace;font-size:12px;color:#6b6b7c}
+  .meta h3{font-size:19px;font-weight:600;margin:4px 0 6px}
+  .meta p{font-size:14px;color:#9a9aab}
+  .note{margin-top:36px;color:#6b6b7c;font-size:14px}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Design directions</h1>
+    <p class="sub">The four explorations, plus the synthesized world-class build that combines the best of all of them.</p>
+    <a class="card" href="portfolio.html" style="grid-column:1/-1;margin-bottom:20px;border-color:#bf3f22">
+      <div class="swatch" style="background:#141110;color:#efe9df;font-family:'Fraunces',serif;font-size:26px;letter-spacing:0;text-transform:none;border-bottom:1px solid #332d28">The layer <span style="color:#bf3f22;font-style:italic">agents</span> run on.</div>
+      <div class="meta"><div class="n" style="color:#bf3f22">★ RECOMMENDED — SYNTHESIS</div><h3>The Final Build</h3><p>Editorial-brutalist on warm paper, bookended by dark bands, a monospace dev-accent, and original SVG mechanism-diagrams as project visuals. Scored ≥9/10 across the board; keyboard-accessible and fully responsive.</p></div>
+    </a>
+    <div class="grid">
+      <a class="card" href="01-terminal.html"><div class="swatch s1">➜ ~ whoami</div><div class="meta"><div class="n">01</div><h3>Terminal / Console</h3><p>Dev-native. Monospace, command-output sections, amber-on-black. Reads as an engineer's shell.</p></div></a>
+      <a class="card" href="02-editorial.html"><div class="swatch s2">Aa — Fraunces</div><div class="meta"><div class="n">02</div><h3>Editorial / Swiss</h3><p>Big serif, asymmetric grid, generous whitespace, one ink accent. Quiet, confident, magazine-grade.</p></div></a>
+      <a class="card" href="03-brutalist.html"><div class="swatch s3">▓ BRUTAL ▓</div><div class="meta"><div class="n">03</div><h3>Brutalist / Grid</h3><p>Loud. Hard borders, oversized display type, electric lime + red, visible structure. Awwwards energy.</p></div></a>
+      <a class="card" href="04-aurora.html"><div class="swatch s4">◍ aurora</div><div class="meta"><div class="n">04</div><h3>Aurora / Dark Glass</h3><p>Premium SaaS. Animated gradient, glass cards, bento grid, pointer glow. Modern and futuristic.</p></div></a>
+    </div>
+    <p class="note">← <a href="../index.html" style="color:#8b8bff">back to current live site</a></p>
+  </div>
+</body>
+</html>

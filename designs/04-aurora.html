@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shashank Srivastava — Aurora</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800&family=Space+Grotesk:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#07070c; --card:rgba(255,255,255,.035); --stroke:rgba(255,255,255,.09);
+    --fg:#eceaf5; --dim:#8b88a8; --v:#a78bfa; --c:#22d3ee; --p:#f472b6; --g:#34d399;
+    --disp:'Sora',sans-serif; --mono:'Space Grotesk',sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{background:var(--bg);color:var(--fg);font-family:var(--disp);font-size:16px;line-height:1.65;overflow-x:hidden}
+  ::selection{background:var(--v);color:#0b0b12}
+  a{color:inherit;text-decoration:none}
+  /* aurora bg */
+  .aurora{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none}
+  .blob{position:absolute;border-radius:50%;filter:blur(90px);opacity:.5;animation:float 22s ease-in-out infinite}
+  .b1{width:520px;height:520px;background:#7c3aed;top:-120px;left:-80px}
+  .b2{width:460px;height:460px;background:#0ea5e9;top:20%;right:-120px;animation-delay:-7s}
+  .b3{width:420px;height:420px;background:#db2777;bottom:-140px;left:25%;animation-delay:-13s}
+  @keyframes float{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(40px,30px) scale(1.08)}66%{transform:translate(-30px,-20px) scale(.95)}}
+  .grain{position:fixed;inset:0;z-index:1;pointer-events:none;opacity:.5;
+    background-image:radial-gradient(rgba(255,255,255,.04) 1px,transparent 1px);background-size:3px 3px}
+  .wrap{position:relative;z-index:2;max-width:1080px;margin:0 auto;padding:0 28px}
+  /* nav */
+  .nav{display:flex;justify-content:space-between;align-items:center;padding:26px 0}
+  .nav .logo{font-weight:700;letter-spacing:-.3px;display:flex;align-items:center;gap:10px}
+  .nav .logo .d{width:10px;height:10px;border-radius:50%;background:var(--g);box-shadow:0 0 12px var(--g)}
+  .nav .links{display:flex;gap:8px;padding:6px;border:1px solid var(--stroke);border-radius:999px;background:var(--card);backdrop-filter:blur(12px)}
+  .nav .links a{padding:7px 16px;border-radius:999px;font-size:13.5px;color:var(--dim);transition:.2s}
+  .nav .links a:hover{color:var(--fg);background:rgba(255,255,255,.06)}
+  /* hero */
+  .hero{padding:80px 0 60px;text-align:center}
+  .pill{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--dim);
+    border:1px solid var(--stroke);border-radius:999px;padding:6px 16px;background:var(--card);backdrop-filter:blur(12px)}
+  .pill .dot{width:6px;height:6px;border-radius:50%;background:var(--g);box-shadow:0 0 10px var(--g)}
+  .hero h1{font-size:clamp(40px,6.5vw,84px);font-weight:800;line-height:1.02;letter-spacing:-.03em;margin:26px 0 20px}
+  .hero h1 .grad{background:linear-gradient(100deg,var(--v),var(--c) 55%,var(--p));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .hero p{font-size:19px;color:var(--dim);max-width:56ch;margin:0 auto 34px}
+  .hero .cta{display:flex;gap:14px;justify-content:center;flex-wrap:wrap}
+  .btn{padding:13px 26px;border-radius:12px;font-weight:600;font-size:15px;transition:.2s}
+  .btn.primary{background:linear-gradient(100deg,var(--v),var(--c));color:#0b0b12}
+  .btn.primary:hover{transform:translateY(-2px);box-shadow:0 12px 30px rgba(124,58,237,.4)}
+  .btn.ghost{border:1px solid var(--stroke);color:var(--fg);background:var(--card)}
+  .btn.ghost:hover{background:rgba(255,255,255,.07)}
+  /* stat row */
+  .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:56px 0 20px}
+  .stat{border:1px solid var(--stroke);border-radius:16px;padding:22px;background:var(--card);backdrop-filter:blur(12px);text-align:center}
+  .stat b{font-size:34px;font-weight:700;background:linear-gradient(120deg,var(--fg),var(--dim));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .stat span{display:block;font-size:12px;color:var(--dim);text-transform:uppercase;letter-spacing:.08em;margin-top:4px}
+  /* section */
+  section{padding:70px 0}
+  .eye{font-family:var(--mono);font-size:13px;color:var(--v);text-transform:uppercase;letter-spacing:.2em;margin-bottom:8px}
+  h2.sec{font-size:32px;font-weight:700;letter-spacing:-.02em;margin-bottom:34px}
+  /* experience cards */
+  .xp{border:1px solid var(--stroke);border-radius:18px;padding:26px;background:var(--card);backdrop-filter:blur(12px);margin-bottom:16px;transition:.25s}
+  .xp:hover{border-color:rgba(167,139,250,.4);transform:translateY(-2px)}
+  .xp .top{display:flex;justify-content:space-between;flex-wrap:wrap;gap:6px;align-items:baseline;margin-bottom:14px}
+  .xp h3{font-size:20px;font-weight:600}
+  .xp h3 .co{color:var(--c)}
+  .xp .dt{font-family:var(--mono);font-size:13px;color:var(--dim)}
+  .xp ul{list-style:none;display:grid;gap:8px}
+  .xp li{position:relative;padding-left:20px;color:#c7c4dc;font-size:15px}
+  .xp li::before{content:'';position:absolute;left:0;top:9px;width:7px;height:7px;border-radius:50%;background:var(--v)}
+  /* bento projects */
+  .bento{display:grid;grid-template-columns:repeat(6,1fr);gap:14px}
+  .box{border:1px solid var(--stroke);border-radius:18px;padding:24px;background:var(--card);backdrop-filter:blur(12px);
+    transition:.25s;position:relative;overflow:hidden}
+  .box::after{content:'';position:absolute;inset:0;background:radial-gradient(400px circle at var(--mx,50%) var(--my,0%),rgba(167,139,250,.12),transparent 40%);opacity:0;transition:.3s}
+  .box:hover::after{opacity:1}
+  .box:hover{border-color:rgba(34,211,238,.35);transform:translateY(-3px)}
+  .box .k{font-family:var(--mono);font-size:12px;color:var(--dim);text-transform:uppercase;letter-spacing:.1em}
+  .box h4{font-size:21px;font-weight:600;margin:8px 0 10px}
+  .box p{font-size:14.5px;color:#b9b6d0}
+  .box p .hp{color:var(--v);font-weight:600}
+  .box .tags{display:flex;flex-wrap:wrap;gap:7px;margin-top:16px}
+  .box .tags span{font-family:var(--mono);font-size:11.5px;color:var(--dim);border:1px solid var(--stroke);padding:3px 9px;border-radius:7px}
+  .box .gh{position:relative;z-index:1;display:inline-block;margin-top:14px;font-size:13px;color:var(--c)}
+  .b-featured{grid-column:span 4}
+  .b-3{grid-column:span 3}.b-2{grid-column:span 2}
+  .b-featured h4{font-size:26px}
+  /* skills */
+  .skills{display:grid;gap:12px}
+  .skg{display:grid;grid-template-columns:170px 1fr;gap:18px;align-items:center;border:1px solid var(--stroke);border-radius:14px;padding:16px 20px;background:var(--card)}
+  .skg .k{font-weight:600;font-size:14px;color:var(--fg)}
+  .skg .v{display:flex;flex-wrap:wrap;gap:8px}
+  .skg .v span{font-family:var(--mono);font-size:12.5px;color:var(--dim)}
+  .skg .v span::after{content:'·';margin-left:8px;color:rgba(255,255,255,.2)}
+  .skg .v span:last-child::after{content:''}
+  /* contact */
+  .end{text-align:center;padding:90px 0}
+  .end h2{font-size:clamp(34px,5vw,60px);font-weight:800;letter-spacing:-.02em}
+  .end h2 .grad{background:linear-gradient(100deg,var(--v),var(--p));-webkit-background-clip:text;background-clip:text;color:transparent}
+  .end .links{display:flex;gap:14px;justify-content:center;flex-wrap:wrap;margin-top:30px}
+  .foot{text-align:center;color:var(--dim);font-size:13px;padding-bottom:40px;font-family:var(--mono)}
+  @media(max-width:820px){.stats{grid-template-columns:1fr 1fr}.bento{grid-template-columns:1fr}
+    .b-featured,.b-3,.b-2{grid-column:span 1}.skg{grid-template-columns:1fr;gap:8px}.nav .links{display:none}}
+</style>
+</head>
+<body>
+  <div class="aurora"><div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div></div>
+  <div class="grain"></div>
+  <div class="wrap">
+    <nav class="nav">
+      <div class="logo"><span class="d"></span>shashank.ai</div>
+      <div class="links"><a href="#work">Work</a><a href="#projects">Projects</a><a href="#stack">Stack</a><a href="#contact">Contact</a></div>
+    </nav>
+
+    <header class="hero">
+      <span class="pill"><span class="dot"></span>Open to AI platform &amp; agent roles</span>
+      <h1>The layer<br>production <span class="grad">LLM agents</span><br>run on.</h1>
+      <p>I'm Shashank — I build the runtime, gateway, cost governance and observability behind agentic AI, and the agents themselves. Currently at Delhivery.</p>
+      <div class="cta">
+        <a class="btn primary" href="#projects">View projects</a>
+        <a class="btn ghost" href="../shashank-resume.pdf" target="_blank" rel="noopener">Résumé ↗</a>
+      </div>
+      <div class="stats">
+        <div class="stat"><b>500K+</b><span>Docs processed</span></div>
+        <div class="stat"><b>99%</b><span>Classification</span></div>
+        <div class="stat"><b>20+</b><span>Agents in prod</span></div>
+        <div class="stat"><b>89<small style="font-size:16px;color:var(--dim)">/1k</small></b><span>Agent red-team</span></div>
+      </div>
+    </header>
+
+    <section id="work">
+      <div class="eye">// Experience</div>
+      <h2 class="sec">Where I've shipped</h2>
+      <div class="xp">
+        <div class="top"><h3>Software Engineer · <span class="co">Delhivery</span></h3><span class="dt">Jan 2026 — Present</span></div>
+        <ul>
+          <li>Architected a deterministic graph workflow engine — LLM, agent, branching, sandboxed-code, guardrail &amp; concurrent-iteration nodes — with staged versioning and zero-redeploy rollback.</li>
+          <li>Drove a multi-provider LLM gateway across services; unblocked Claude-backed agents by root-causing provider-specific routing.</li>
+          <li>Built per-agent cost governance (cache-aware pricing, hard budget short-circuits) with Langfuse tracing and Presto/Trino outcome evaluation.</li>
+          <li>Cut agent tool-calling iterations 8→3 via SOP-scoped lazy tool loading over six MCP servers.</li>
+        </ul>
+      </div>
+      <div class="xp">
+        <div class="top"><h3>AI Developer · <span class="co">InteligenAI · Spector.AI</span></h3><span class="dt">Jan 2024 — Jan 2026</span></div>
+        <ul>
+          <li>MCP-orchestrated agent frameworks on LangGraph for industrial-plant diagnostics.</li>
+          <li>Document intelligence — 99% classification, 90% extraction over 500K+ docs — with a fine-tuned custom NER.</li>
+          <li>RAG (hybrid search · RRF · HyDE), NL→SQL/Mongo over 20+ tables, vision (YOLO/SAM/GroundingDINO) and SDXL DreamBooth. AWS · Azure · GCP.</li>
+        </ul>
+      </div>
+    </section>
+
+    <section id="projects">
+      <div class="eye">// Selected work</div>
+      <h2 class="sec">Projects</h2>
+      <div class="bento">
+        <div class="box b-featured">
+          <div class="k">01 · Agent Security · 2026</div>
+          <h4>JED Red-Team Attack</h4>
+          <p>Algorithmic red-teaming for the JED benchmark (OpenAI · Google · IEEE). <span class="hp">The hard part:</span> the guardrail inspects only the first arg key — url before data — so a clean URL exfiltrates a secret payload. Tuned across real leaderboard runs to 89/1000.</p>
+          <div class="tags"><span>Python</span><span>GPT-OSS</span><span>Gemma</span></div>
+          <a class="gh" href="https://github.com/ShashankSrivastava2002/ass-evaluate" target="_blank" rel="noopener">GitHub ↗</a>
+        </div>
+        <div class="box b-2">
+          <div class="k">02 · RAG · 2026</div>
+          <h4>Groot</h4>
+          <p>Multimodal, multilingual plant-disease assistant — a ReAct gate refuses to diagnose until plant + symptoms are confirmed.</p>
+          <a class="gh" href="https://github.com/ShashankSrivastava2002/Groot" target="_blank" rel="noopener">GitHub ↗</a>
+        </div>
+        <div class="box b-3">
+          <div class="k">03 · From scratch · 2026</div>
+          <h4>Variational Autoencoder</h4>
+          <p>AE → MLP-VAE → CNN-VAE across MNIST/CIFAR — reparameterization trick and Gaussian ELBO by hand, with math notes.</p>
+          <a class="gh" href="https://github.com/ShashankSrivastava2002/Vae_implementation" target="_blank" rel="noopener">GitHub ↗</a>
+        </div>
+        <div class="box b-3">
+          <div class="k">04 · Vision · 2024</div>
+          <h4>Object Semantic Separator</h4>
+          <p>YOLOv8 boxes become SAM's region prompts — coarse detection into pixel-precise masks without training a segmenter.</p>
+          <a class="gh" href="https://github.com/ShashankSrivastava2002/object_sementatic_separator" target="_blank" rel="noopener">GitHub ↗</a>
+        </div>
+      </div>
+    </section>
+
+    <section id="stack">
+      <div class="eye">// Toolkit</div>
+      <h2 class="sec">Stack</h2>
+      <div class="skills">
+        <div class="skg"><div class="k">LLM &amp; Agents</div><div class="v"><span>LangGraph</span><span>LangChain</span><span>MCP</span><span>RAG</span><span>HyDE</span><span>LLM Observability</span></div></div>
+        <div class="skg"><div class="k">ML &amp; Vision</div><div class="v"><span>PyTorch</span><span>TensorFlow</span><span>YOLOv8</span><span>SAM</span><span>GroundingDINO</span><span>NER</span></div></div>
+        <div class="skg"><div class="k">Backend &amp; Infra</div><div class="v"><span>FastAPI</span><span>Celery</span><span>Redis</span><span>Docker</span><span>Kubernetes</span><span>CI/CD</span></div></div>
+        <div class="skg"><div class="k">Data &amp; Cloud</div><div class="v"><span>AWS</span><span>Azure</span><span>GCP</span><span>PostgreSQL</span><span>Presto/Trino</span><span>PySpark</span></div></div>
+      </div>
+    </section>
+
+    <div class="end" id="contact">
+      <h2>Let's build something <span class="grad">that ships.</span></h2>
+      <div class="links">
+        <a class="btn primary" href="mailto:srivastavashashank46@gmail.com">Email me</a>
+        <a class="btn ghost" href="https://github.com/ShashankSrivastava2002" target="_blank" rel="noopener">GitHub</a>
+        <a class="btn ghost" href="https://linkedin.com/in/shashank-srivastava-70b62a255" target="_blank" rel="noopener">LinkedIn</a>
+      </div>
+    </div>
+    <div class="foot">Gurugram, India · B.Tech ECE, HBTU Kanpur '24</div>
+  </div>
+  <script>
+    // pointer glow on bento boxes
+    document.querySelectorAll('.box').forEach(b=>{
+      b.addEventListener('pointermove',e=>{
+        const r=b.getBoundingClientRect();
+        b.style.setProperty('--mx',(e.clientX-r.left)+'px');
+        b.style.setProperty('--my',(e.clientY-r.top)+'px');
+      });
+    });
+  </script>
+</body>
+</html>

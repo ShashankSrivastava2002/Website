@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shashank Srivastava — Editorial</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,900;1,9..144,400&family=Inter:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#f4f1ea; --ink:#16130f; --muted:#6a6257; --line:#d8d2c6;
+    --accent:#c2410c; --serif:'Fraunces',Georgia,serif; --sans:'Inter',sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:16px;line-height:1.7;
+    -webkit-font-smoothing:antialiased}
+  ::selection{background:var(--accent);color:var(--paper)}
+  a{color:inherit}
+  .wrap{max-width:1100px;margin:0 auto;padding:0 40px}
+  /* top bar */
+  .top{display:flex;justify-content:space-between;align-items:baseline;padding:28px 0;border-bottom:1px solid var(--ink)}
+  .top .mark{font-family:var(--serif);font-weight:900;font-size:20px;letter-spacing:-.5px}
+  .top nav{display:flex;gap:28px;font-size:13px;text-transform:uppercase;letter-spacing:.12em}
+  .top nav a{text-decoration:none;color:var(--muted);transition:.2s}
+  .top nav a:hover{color:var(--accent)}
+  /* hero */
+  .hero{padding:70px 0 40px;border-bottom:1px solid var(--line)}
+  .eyebrow{font-size:12px;text-transform:uppercase;letter-spacing:.22em;color:var(--accent);margin-bottom:26px}
+  .hero h1{font-family:var(--serif);font-weight:400;font-size:clamp(44px,7vw,104px);line-height:.98;letter-spacing:-.02em}
+  .hero h1 em{font-style:italic;color:var(--accent)}
+  .hero .sub{display:grid;grid-template-columns:1.4fr 1fr;gap:40px;margin-top:44px;align-items:end}
+  .hero .sub p{font-size:19px;line-height:1.55;max-width:46ch}
+  .hero .sub .meta{font-size:13px;color:var(--muted);text-align:right;line-height:2}
+  .hero .sub .meta b{color:var(--ink)}
+  /* marquee stats */
+  .figs{display:grid;grid-template-columns:repeat(4,1fr);border-bottom:1px solid var(--line)}
+  .figs div{padding:34px 0;border-right:1px solid var(--line)}
+  .figs div:last-child{border-right:0}
+  .figs b{font-family:var(--serif);font-weight:600;font-size:46px;display:block;line-height:1}
+  .figs span{font-size:12px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted)}
+  /* section head */
+  section{padding:64px 0;border-bottom:1px solid var(--line)}
+  .sh{display:flex;align-items:baseline;gap:16px;margin-bottom:38px}
+  .sh .no{font-family:var(--serif);font-size:14px;color:var(--accent)}
+  .sh h2{font-family:var(--serif);font-weight:600;font-size:15px;text-transform:uppercase;letter-spacing:.16em}
+  .sh .rule{flex:1;height:1px;background:var(--line)}
+  /* experience */
+  .job{display:grid;grid-template-columns:200px 1fr;gap:40px;padding:30px 0;border-top:1px solid var(--line)}
+  .job:first-of-type{border-top:0}
+  .job .l .role{font-family:var(--serif);font-size:26px;line-height:1.1}
+  .job .l .co{color:var(--accent);font-size:14px;margin-top:6px;display:block}
+  .job .l .dt{color:var(--muted);font-size:13px;margin-top:2px;display:block}
+  .job .r p{font-size:16.5px;color:#2c2822;margin-bottom:10px}
+  .job .r p:last-child{margin:0}
+  .job .r .lead-word{color:var(--accent);font-weight:500}
+  /* projects — editorial list */
+  .proj{display:grid;grid-template-columns:64px 1fr 220px;gap:30px;padding:34px 0;border-top:1px solid var(--line);align-items:start;transition:.25s;cursor:default}
+  .proj:hover{background:#efeae1;padding-left:14px;padding-right:14px}
+  .proj .idx{font-family:var(--serif);font-size:34px;color:var(--accent)}
+  .proj h3{font-family:var(--serif);font-weight:600;font-size:30px;line-height:1.05}
+  .proj h3 .yr{font-size:14px;color:var(--muted);font-family:var(--sans);margin-left:10px}
+  .proj p{margin-top:12px;font-size:16px;color:#332e27;max-width:60ch}
+  .proj p .hp{color:var(--accent);font-weight:500}
+  .proj .side{font-size:12px;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);line-height:2;text-align:right}
+  .proj .side a{color:var(--ink)}
+  /* skills */
+  .sk{display:grid;grid-template-columns:180px 1fr;gap:20px 40px;font-size:15px}
+  .sk .cat{font-family:var(--serif);font-size:17px}
+  .sk .list{color:#332e27;border-top:1px solid var(--line);padding-top:14px}
+  /* footer */
+  footer{padding:70px 0;text-align:center}
+  footer h3{font-family:var(--serif);font-weight:400;font-size:clamp(32px,5vw,64px);line-height:1.1}
+  footer a{color:var(--accent);text-decoration:none;border-bottom:2px solid transparent;transition:.2s}
+  footer a:hover{border-color:var(--accent)}
+  footer .row{margin-top:26px;font-size:13px;text-transform:uppercase;letter-spacing:.12em;color:var(--muted);display:flex;gap:24px;justify-content:center;flex-wrap:wrap}
+  @media(max-width:780px){
+    .wrap{padding:0 22px}.hero .sub,.job,.proj,.sk{grid-template-columns:1fr;gap:14px}
+    .figs{grid-template-columns:1fr 1fr}.figs div:nth-child(2){border-right:0}
+    .hero .sub .meta,.proj .side{text-align:left}.proj .idx{font-size:26px}.top nav{display:none}
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="top">
+      <span class="mark">Shashank Srivastava</span>
+      <nav><a href="#work">Work</a><a href="#projects">Projects</a><a href="#stack">Stack</a><a href="#say">Contact</a></nav>
+    </div>
+
+    <header class="hero">
+      <div class="eyebrow">AI Platform Engineer — Gurugram, India</div>
+      <h1>I build the platform<br>LLM agents <em>run on.</em></h1>
+      <div class="sub">
+        <p>Runtime, gateway, cost governance, and observability for production agentic AI — and the agents themselves. Currently at Delhivery; previously InteligenAI.</p>
+        <div class="meta"><b>Now</b> — Delhivery<br><b>Before</b> — InteligenAI · Spector.AI<br><b>Study</b> — B.Tech ECE, HBTU '24</div>
+      </div>
+    </header>
+
+    <div class="figs">
+      <div><b>500K+</b><span>Docs processed</span></div>
+      <div><b>99%</b><span>Classification</span></div>
+      <div><b>20+</b><span>Agents in prod</span></div>
+      <div><b>89</b><span>/1000 red-team</span></div>
+    </div>
+
+    <section id="work">
+      <div class="sh"><span class="no">01</span><h2>Experience</h2><span class="rule"></span></div>
+      <div class="job">
+        <div class="l"><div class="role">Software Engineer</div><span class="co">Delhivery</span><span class="dt">Jan 2026 — Present</span></div>
+        <div class="r">
+          <p><span class="lead-word">Architected</span> a deterministic graph workflow engine — LLM, agent, branching, sandboxed-code, guardrail and concurrent-iteration nodes — with staged versioning and zero-redeploy rollback.</p>
+          <p><span class="lead-word">Drove</span> a multi-provider LLM gateway across services and unblocked Claude-backed agents by root-causing provider-specific routing; built cost governance with cache-aware pricing and hard budget short-circuits.</p>
+          <p><span class="lead-word">Instrumented</span> the platform with Langfuse tracing and a Presto/Trino evaluation pipeline; cut agent tool-calling iterations 8→3 via SOP-scoped lazy loading over six MCP servers.</p>
+        </div>
+      </div>
+      <div class="job">
+        <div class="l"><div class="role">AI Developer</div><span class="co">InteligenAI · Spector.AI</span><span class="dt">Jan 2024 — Jan 2026</span></div>
+        <div class="r">
+          <p><span class="lead-word">Built</span> MCP-orchestrated agent frameworks on LangGraph for industrial-plant diagnostics, and document intelligence at 99% classification / 90% extraction over 500K+ docs with a fine-tuned custom NER.</p>
+          <p><span class="lead-word">Shipped</span> RAG with hybrid search, RRF and HyDE; an NL→SQL/Mongo agent over 20+ tables; vision systems (YOLO, SAM, GroundingDINO); and SDXL DreamBooth for subject-consistent generation — across AWS, Azure and GCP.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="projects">
+      <div class="sh"><span class="no">02</span><h2>Selected Projects</h2><span class="rule"></span></div>
+      <div class="proj">
+        <div class="idx">01</div>
+        <div><h3>JED Red-Team Attack<span class="yr">2026</span></h3>
+          <p>Algorithmic red-teaming for the JED agent-security benchmark (OpenAI · Google · IEEE). <span class="hp">The hard part:</span> the guardrail inspects only the first argument key — url before data — so a clean URL exfiltrates a secret payload. Tuned across real leaderboard runs to 89/1000.</p></div>
+        <div class="side">Agent Security<br>Python · GPT-OSS<br><a href="https://github.com/ShashankSrivastava2002/ass-evaluate" target="_blank" rel="noopener">GitHub ↗</a></div>
+      </div>
+      <div class="proj">
+        <div class="idx">02</div>
+        <div><h3>Groot — Plant Disease Assistant<span class="yr">2026</span></h3>
+          <p>Multimodal, multilingual diagnosis (Kaggle Gemma hackathon) — photo, voice or text in 7 languages, cited and fully local. A ReAct gate refuses to diagnose until plant and symptoms are confirmed.</p></div>
+        <div class="side">Gemma · ChromaDB<br>RAG · ReAct<br><a href="https://github.com/ShashankSrivastava2002/Groot" target="_blank" rel="noopener">GitHub ↗</a></div>
+      </div>
+      <div class="proj">
+        <div class="idx">03</div>
+        <div><h3>Variational Autoencoder<span class="yr">2026</span></h3>
+          <p>From-scratch AE → MLP-VAE → CNN-VAE across MNIST/CIFAR — the reparameterization trick and Gaussian ELBO implemented by hand, with written notes deriving the math from the paper.</p></div>
+        <div class="side">PyTorch<br>Generative<br><a href="https://github.com/ShashankSrivastava2002/Vae_implementation" target="_blank" rel="noopener">GitHub ↗</a></div>
+      </div>
+      <div class="proj">
+        <div class="idx">04</div>
+        <div><h3>Object Semantic Separator<span class="yr">2024</span></h3>
+          <p>YOLOv8's bounding boxes become SAM's region prompts — turning coarse detection into pixel-precise per-object masks without training a segmentation model.</p></div>
+        <div class="side">YOLOv8 · SAM<br>OpenCV<br><a href="https://github.com/ShashankSrivastava2002/object_sementatic_separator" target="_blank" rel="noopener">GitHub ↗</a></div>
+      </div>
+    </section>
+
+    <section id="stack">
+      <div class="sh"><span class="no">03</span><h2>Stack</h2><span class="rule"></span></div>
+      <div class="sk">
+        <div class="cat">LLM &amp; Agents</div><div class="list">LangGraph · LangChain · MCP · RAG · Hybrid Search · HyDE · LLM Observability</div>
+        <div class="cat">ML &amp; Vision</div><div class="list">PyTorch · TensorFlow · Keras · Scikit-learn · YOLOv8 · SAM · GroundingDINO · NER</div>
+        <div class="cat">Backend &amp; Infra</div><div class="list">FastAPI · Celery · Redis · Docker · Kubernetes · CI/CD · MLOps</div>
+        <div class="cat">Data &amp; Cloud</div><div class="list">AWS · Azure · GCP · PostgreSQL · Presto/Trino · PySpark</div>
+      </div>
+    </section>
+
+    <footer id="say">
+      <h3>Let's build something<br>that ships.</h3>
+      <div class="row">
+        <a href="mailto:srivastavashashank46@gmail.com">Email</a>
+        <a href="https://github.com/ShashankSrivastava2002" target="_blank" rel="noopener">GitHub</a>
+        <a href="https://linkedin.com/in/shashank-srivastava-70b62a255" target="_blank" rel="noopener">LinkedIn</a>
+        <a href="../shashank-resume.pdf" target="_blank" rel="noopener">Résumé</a>
+      </div>
+    </footer>
+  </div>
+</body>
+</html>

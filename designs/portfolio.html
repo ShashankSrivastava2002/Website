@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shashank Srivastava — AI Platform Engineer</title>
+<meta name="description" content="Shashank Srivastava — AI Platform Engineer. I build the runtime, gateway, cost governance and observability that production LLM agents run on.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --paper:#f3f0e9; --paper-2:#ebe6db; --ink:#17130f; --ink-2:#5a544b; --ink-3:#8b8478;
+    --line:#ddd6c8; --line-strong:#c9c0ae;
+    --accent:#bf3f22; --accent-ink:#a3341b;
+    --night:#141110; --night-2:#1d1917; --night-line:#332d28; --night-fg:#efe9df; --night-dim:#9a9186;
+    --serif:'Fraunces',Georgia,serif; --sans:'Inter',system-ui,sans-serif; --mono:'JetBrains Mono',monospace;
+    --wrap:1160px; --gut:40px;
+    --e:cubic-bezier(.22,1,.36,1);
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html{scroll-behavior:smooth;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+  body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:17px;line-height:1.6}
+  ::selection{background:var(--accent);color:var(--paper)}
+  a{color:inherit;text-decoration:none}
+  img{max-width:100%}
+  :focus-visible{outline:2px solid var(--accent);outline-offset:3px;border-radius:3px}
+  .hero :focus-visible,.contact :focus-visible{outline-color:#ff7a4d}
+  .wrap{max-width:var(--wrap);margin:0 auto;padding:0 var(--gut)}
+  .mono{font-family:var(--mono)}
+  /* content is unconditionally visible — no entrance animation that could ever hide it */
+  .rv{opacity:1;transform:none}
+  @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+
+  /* ---------- NAV ---------- */
+  .nav{position:fixed;top:0;left:0;right:0;z-index:50;transition:.4s var(--e)}
+  .nav .inner{max-width:var(--wrap);margin:0 auto;padding:18px var(--gut);display:flex;align-items:center;justify-content:space-between}
+  .nav .brand{font-family:var(--mono);font-size:13px;letter-spacing:.02em;display:flex;align-items:center;gap:9px;color:var(--night-fg)}
+  .nav .brand .dot{width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 0 3px rgba(191,63,34,.2)}
+  .nav .links{display:flex;gap:26px;font-family:var(--mono);font-size:12.5px;color:var(--night-dim)}
+  .nav .links a{position:relative;transition:.2s}
+  .nav .links a:hover{color:var(--night-fg)}
+  .nav .links a::after{content:'';position:absolute;left:0;bottom:-5px;height:1px;width:0;background:var(--accent);transition:width .3s var(--e)}
+  .nav .links a:hover::after{width:100%}
+  .nav.scrolled{background:rgba(243,240,233,.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+  .nav.scrolled .brand{color:var(--ink)} .nav.scrolled .links{color:var(--ink-2)}
+  .nav.scrolled .links a:hover{color:var(--ink)}
+
+  /* ---------- HERO (dark band) ---------- */
+  .hero{background:var(--night);color:var(--night-fg);position:relative;overflow:hidden;
+    padding:150px 0 70px;border-bottom:1px solid var(--night-line)}
+  .hero::before{content:'';position:absolute;inset:0;pointer-events:none;
+    background:radial-gradient(650px 400px at 82% 8%,rgba(191,63,34,.16),transparent 60%),
+               radial-gradient(700px 500px at 0% 100%,rgba(191,63,34,.07),transparent 55%)}
+  .hero .grid-lines{position:absolute;inset:0;pointer-events:none;opacity:.5;
+    background-image:linear-gradient(90deg,var(--night-line) 1px,transparent 1px);
+    background-size:calc((100% - 0px)/3) 100%;mix-blend-mode:overlay;display:none}
+  .hero .wrap{position:relative}
+  .kicker{font-family:var(--mono);font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--night-dim);
+    display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .kicker .av{color:var(--accent)} .kicker .av b{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent);margin-right:7px;vertical-align:1px;animation:pulse 2s infinite}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+  .hero h1{font-family:var(--serif);font-weight:300;font-size:clamp(46px,7.4vw,116px);line-height:.98;letter-spacing:-.025em;margin:30px 0 0;max-width:15ch}
+  .hero h1 em{font-style:italic;color:var(--accent);font-weight:400}
+  .hero h1 .lg{font-weight:500}
+  .hero .sub{display:grid;grid-template-columns:1.35fr 1fr;gap:50px;margin-top:48px;align-items:end}
+  .hero .sub .p{font-size:19px;line-height:1.55;color:#cfc8bd;max-width:44ch}
+  .hero .cta{display:flex;gap:14px;flex-wrap:wrap;justify-content:flex-end}
+  .btn{font-family:var(--mono);font-size:13px;padding:13px 22px;border-radius:6px;transition:.25s var(--e);display:inline-flex;gap:8px;align-items:center}
+  .btn-solid{background:var(--accent);color:#fff}
+  .btn-solid:hover{background:#d24a2b;transform:translateY(-2px)}
+  .btn-ghost{border:1px solid var(--night-line);color:var(--night-fg)}
+  .btn-ghost:hover{border-color:var(--night-dim);background:rgba(255,255,255,.04)}
+  /* hero status + stats */
+  .hero-foot{display:flex;justify-content:space-between;align-items:end;flex-wrap:wrap;gap:24px;margin-top:66px;padding-top:26px;border-top:1px solid var(--night-line)}
+  .status{font-family:var(--mono);font-size:13px;color:var(--night-dim)}
+  .status .c{color:var(--accent)} .status b{color:var(--night-fg);font-weight:400}
+  .stats{display:flex;gap:38px}
+  .stat b{font-family:var(--serif);font-weight:400;font-size:32px;display:block;line-height:1}
+  .stat span{font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--night-dim)}
+
+  /* ---------- SECTION SCAFFOLD ---------- */
+  section{padding:118px 0}
+  .shead{display:grid;grid-template-columns:auto 1fr;gap:16px;align-items:baseline;margin-bottom:60px}
+  .shead .no{font-family:var(--mono);font-size:13px;color:var(--accent)}
+  .shead h2{font-family:var(--serif);font-weight:400;font-size:clamp(30px,4vw,52px);letter-spacing:-.02em;line-height:1}
+  .shead .rule{grid-column:1/-1;height:1px;background:var(--line-strong);margin-top:22px}
+
+  /* ---------- WORK ---------- */
+  .featured{background:var(--night);color:var(--night-fg);border-radius:16px;overflow:hidden;
+    display:grid;grid-template-columns:1.05fr .95fr;position:relative;isolation:isolate}
+  .featured::after{content:'';position:absolute;inset:0;z-index:-1;
+    background:radial-gradient(500px circle at var(--mx,80%) var(--my,10%),rgba(191,63,34,.18),transparent 45%);opacity:.9}
+  .featured .l{padding:48px 44px}
+  .featured .tag{font-family:var(--mono);font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+  .featured h3{font-family:var(--serif);font-weight:400;font-size:clamp(30px,3.4vw,46px);line-height:1.02;margin:14px 0 18px;letter-spacing:-.01em}
+  .featured p{color:#cbc4b9;font-size:16px;max-width:48ch}
+  .featured p .hp{color:var(--night-fg);font-weight:500;border-bottom:1px solid var(--accent)}
+  .featured .meta{display:flex;gap:26px;margin:26px 0 30px;flex-wrap:wrap}
+  .featured .meta div b{font-family:var(--serif);font-size:26px;display:block;line-height:1}
+  .featured .meta div span{font-family:var(--mono);font-size:10.5px;text-transform:uppercase;letter-spacing:.06em;color:var(--night-dim)}
+  .featured .tags{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:26px}
+  .featured .tags span{font-family:var(--mono);font-size:11.5px;color:var(--night-dim);border:1px solid var(--night-line);padding:4px 10px;border-radius:5px}
+  .featured .r{border-left:1px solid var(--night-line);display:flex;align-items:center;justify-content:center;padding:40px;background:linear-gradient(180deg,rgba(255,255,255,.02),transparent)}
+  .flink{font-family:var(--mono);font-size:13px;color:var(--accent);display:inline-flex;gap:7px;align-items:center;transition:.2s}
+  .flink:hover{gap:11px}
+
+  /* diagram tokens (dark) */
+  .dg{width:100%;height:auto}
+  .dg .b{fill:rgba(255,255,255,.03);stroke:var(--night-line)}
+  .dg .ba{fill:none;stroke:var(--accent);stroke-width:1.4}
+  .dg .ln{stroke:var(--night-dim);stroke-width:1.3;fill:none;opacity:.55}
+  .dg .la{stroke:var(--accent);stroke-width:1.5;fill:none}
+  .dg .ar{fill:var(--night-dim);opacity:.55} .dg .ara{fill:var(--accent)}
+  .dg .t{fill:var(--night-fg);font-family:var(--sans);font-size:9.5px;font-weight:600}
+  .dg .s{fill:var(--night-dim);font-family:var(--mono);font-size:8.5px}
+  .dg .a{fill:var(--accent);font-family:var(--mono);font-size:8.5px;font-weight:500}
+
+  /* project index rows */
+  .rows{margin-top:22px;border-top:1px solid var(--line)}
+  .row{display:grid;grid-template-columns:56px 1fr auto;gap:28px;align-items:baseline;
+    padding:30px 12px;border-bottom:1px solid var(--line);position:relative;transition:.35s var(--e);cursor:pointer}
+  .row::before{content:'';position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--accent);transform:scaleY(0);transform-origin:top;transition:transform .35s var(--e)}
+  .row:hover{padding-left:24px;background:var(--paper-2)}
+  .row:hover::before{transform:scaleY(1)}
+  .row .idx{font-family:var(--mono);font-size:13px;color:var(--ink-3)}
+  .row .main h4{font-family:var(--serif);font-weight:400;font-size:clamp(24px,2.6vw,34px);letter-spacing:-.01em;line-height:1.05}
+  .row .main h4 .yr{font-family:var(--mono);font-size:12px;color:var(--ink-3);margin-left:12px;letter-spacing:0}
+  .row .main .oneline{color:var(--ink-2);font-size:15.5px;margin-top:8px;max-width:62ch}
+  .row .main .reveal{max-height:0;overflow:hidden;transition:max-height .5s var(--e),opacity .4s var(--e);opacity:0}
+  .row.open .reveal{max-height:220px;opacity:1;margin-top:16px}
+  .row .reveal .hp{font-size:15px;color:var(--ink-2);border-left:2px solid var(--accent);padding-left:16px;max-width:64ch}
+  .row .reveal .hp b{color:var(--accent);font-weight:500}
+  .row .side{display:flex;flex-direction:column;align-items:flex-end;gap:10px}
+  .row .side .tg{font-family:var(--mono);font-size:11.5px;color:var(--ink-3)}
+  .row .side .gh{font-family:var(--mono);font-size:12px;color:var(--ink);display:inline-flex;gap:6px;align-items:center;opacity:.6;transition:.2s}
+  .row:hover .side .gh{opacity:1;color:var(--accent)}
+  .row .chev{font-family:var(--mono);color:var(--ink-3);font-size:12px;transition:.3s}
+  .row.open .chev{transform:rotate(90deg);color:var(--accent)}
+
+  /* ---------- APPROACH ---------- */
+  .approach{background:var(--paper-2)}
+  .appgrid{display:grid;grid-template-columns:1fr 1fr;gap:60px;align-items:start}
+  .approach .lede{font-family:var(--serif);font-weight:300;font-size:clamp(24px,2.8vw,34px);line-height:1.32;letter-spacing:-.01em}
+  .approach .lede em{font-style:italic;color:var(--accent)}
+  .principles{display:grid;gap:2px;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:var(--line)}
+  .principles .p{background:var(--paper);padding:22px 24px}
+  .principles .p .k{font-family:var(--mono);font-size:11.5px;text-transform:uppercase;letter-spacing:.1em;color:var(--accent)}
+  .principles .p .v{margin-top:6px;font-size:15.5px;color:var(--ink-2)}
+
+  /* ---------- EXPERIENCE ---------- */
+  .job{display:grid;grid-template-columns:230px 1fr;gap:44px;padding:36px 0;border-top:1px solid var(--line)}
+  .job:first-child{border-top:0;padding-top:0}
+  .job .l .role{font-family:var(--serif);font-size:26px;line-height:1.08}
+  .job .l .co{color:var(--accent);font-family:var(--mono);font-size:13px;margin-top:8px;display:block}
+  .job .l .dt{font-family:var(--mono);font-size:12.5px;color:var(--ink-3);margin-top:4px;display:block}
+  .job ul{list-style:none;display:grid;gap:10px}
+  .job li{position:relative;padding-left:22px;color:var(--ink-2);font-size:16px}
+  .job li::before{content:'';position:absolute;left:0;top:10px;width:6px;height:6px;background:var(--accent);border-radius:50%}
+  .job li b{color:var(--ink);font-weight:600}
+
+  /* ---------- SKILLS ---------- */
+  .skills{border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  .skrow{display:grid;grid-template-columns:210px 1fr;border-top:1px solid var(--line)}
+  .skrow:first-child{border-top:0}
+  .skrow .k{font-family:var(--mono);font-size:12.5px;text-transform:uppercase;letter-spacing:.08em;color:var(--ink);padding:22px 26px;background:var(--paper-2);border-right:1px solid var(--line)}
+  .skrow .v{padding:22px 26px;display:flex;flex-wrap:wrap;gap:9px}
+  .skrow .v span{font-size:14px;color:var(--ink-2);border:1px solid var(--line-strong);border-radius:6px;padding:5px 12px;transition:.2s}
+  .skrow .v span:hover{border-color:var(--accent);color:var(--accent);transform:translateY(-2px)}
+
+  /* ---------- CONTACT (dark) ---------- */
+  .contact{background:var(--night);color:var(--night-fg);padding:120px 0 60px;position:relative;overflow:hidden}
+  .contact::before{content:'';position:absolute;inset:0;background:radial-gradient(700px 420px at 50% 0%,rgba(191,63,34,.14),transparent 60%);pointer-events:none}
+  .contact .wrap{position:relative;text-align:center}
+  .contact .k{font-family:var(--mono);font-size:12.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--night-dim)}
+  .contact h2{font-family:var(--serif);font-weight:300;font-size:clamp(40px,6vw,86px);line-height:1.02;letter-spacing:-.02em;margin:22px 0 10px}
+  .contact h2 em{font-style:italic;color:var(--accent)}
+  .contact .mail{font-family:var(--serif);font-size:clamp(20px,2.4vw,30px);color:var(--night-fg);border-bottom:1px solid var(--night-line);padding-bottom:3px;transition:.25s;display:inline-block;margin-top:20px}
+  .contact .mail:hover{color:var(--accent);border-color:var(--accent)}
+  .contact .soc{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-top:44px}
+  .contact .soc a{font-family:var(--mono);font-size:13px;padding:11px 20px;border:1px solid var(--night-line);border-radius:6px;color:var(--night-fg);transition:.25s}
+  .contact .soc a:hover{border-color:var(--accent);color:var(--accent);transform:translateY(-2px)}
+  .foot{margin-top:76px;padding-top:26px;border-top:1px solid var(--night-line);display:flex;justify-content:space-between;flex-wrap:wrap;gap:12px;
+    font-family:var(--mono);font-size:12px;color:var(--night-dim)}
+
+  /* ---------- RESPONSIVE ---------- */
+  @media(max-width:880px){
+    :root{--gut:22px}
+    .nav .links{display:none}
+    .hero{padding:120px 0 50px}
+    .hero .sub{grid-template-columns:1fr;gap:26px}
+    .hero .cta{justify-content:flex-start}
+    .hero-foot{flex-direction:column;align-items:flex-start}
+    .stats{gap:26px}
+    .featured{grid-template-columns:1fr}
+    .featured .r{border-left:0;border-top:1px solid var(--night-line);padding:30px}
+    .featured .l{padding:34px 26px}
+    .appgrid{grid-template-columns:1fr;gap:34px}
+    .row{grid-template-columns:34px 1fr;gap:8px 16px}
+    .row:hover{padding-left:16px}
+    .row .side{grid-column:2/-1;flex-direction:row;align-items:center;justify-content:flex-start;gap:16px;margin-top:6px}
+    .row .side .gh{opacity:1;color:var(--accent)}
+    .row .chev{display:none}
+    .job{grid-template-columns:1fr;gap:14px}
+    .skrow{grid-template-columns:1fr}
+    .skrow .k{border-right:0;border-bottom:1px solid var(--line)}
+    section{padding:80px 0}
+  }
+</style>
+</head>
+<body>
+  <!-- NAV -->
+  <nav class="nav" id="nav">
+    <div class="inner">
+      <a href="#top" class="brand"><span class="dot"></span>shashank srivastava</a>
+      <div class="links">
+        <a href="#work">work</a>
+        <a href="#approach">approach</a>
+        <a href="#experience">experience</a>
+        <a href="#contact">contact</a>
+      </div>
+    </div>
+  </nav>
+
+  <!-- HERO -->
+  <header class="hero" id="top">
+    <div class="grid-lines"></div>
+    <div class="wrap">
+      <div class="kicker">
+        <span>AI Platform Engineer</span><span>—</span><span>Gurugram, India</span>
+        <span class="av"><b></b>Open to work</span>
+      </div>
+      <h1>I build the layer <span class="lg">production</span><br><em>LLM agents</em> run on.</h1>
+      <div class="sub">
+        <p class="p">The runtime, gateway, cost governance and observability behind agentic AI — and the agents themselves. I care about the unglamorous half: evals, unit economics, and traces that tell the truth.</p>
+        <div class="cta">
+          <a class="btn btn-solid" href="#work">Selected work ↓</a>
+          <a class="btn btn-ghost" href="../shashank-resume.pdf" target="_blank" rel="noopener">Résumé ↗</a>
+        </div>
+      </div>
+      <div class="hero-foot">
+        <div class="status"><span class="c">~</span> currently: shipping the agent platform at <b>Delhivery</b> · previously <b>InteligenAI</b></div>
+        <div class="stats">
+          <div class="stat"><b>500K+</b><span>docs processed</span></div>
+          <div class="stat"><b>89<small style="font-size:16px;color:var(--night-dim)">/1k</small></b><span>agent red-team</span></div>
+          <div class="stat"><b>20+</b><span>agents in prod</span></div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <!-- WORK -->
+  <section id="work">
+    <div class="wrap">
+      <div class="shead rv"><span class="no">01</span><h2>Selected Work</h2><div class="rule"></div></div>
+
+      <!-- FEATURED -->
+      <div class="featured rv" id="feat">
+        <div class="l">
+          <span class="tag">Flagship · Agent Security · 2026</span>
+          <h3>JED Red-Team Attack</h3>
+          <p>Algorithmic red-teaming for the JED benchmark (OpenAI · Google · IEEE) — searching multi-step paths that carry an agent from untrusted input to an unsafe action. <span class="hp">The hard part</span> wasn't out-prompting the model; it was reading the guardrail's own source. It inspects only the first argument key — <span style="color:var(--accent)">url</span> before <span style="color:#e08">data</span> — so a clean URL exfiltrates a secret payload straight through.</p>
+          <div class="meta">
+            <div><b>89</b><span>/1000 best score</span></div>
+            <div><b>2</b><span>target models</span></div>
+            <div><b>4</b><span>predicates broken</span></div>
+          </div>
+          <div class="tags"><span>Python</span><span>GPT-OSS</span><span>Gemma</span><span>Gym env</span></div>
+          <a class="flink" href="https://github.com/ShashankSrivastava2002/ass-evaluate" target="_blank" rel="noopener">Read the code on GitHub →</a>
+        </div>
+        <div class="r">
+          <svg class="dg" viewBox="0 0 340 210" role="img" aria-label="Attack flow: untrusted input drives the agent to call http.post; the guardrail checks the URL but never the data field, so the secret exfiltrates.">
+            <defs>
+              <marker id="m" markerWidth="7" markerHeight="7" refX="5.5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" class="ar"/></marker>
+              <marker id="ma" markerWidth="7" markerHeight="7" refX="5.5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" class="ara"/></marker>
+            </defs>
+            <rect class="b" x="20" y="20" width="130" height="40" rx="7"/><text class="s" x="85" y="38" text-anchor="middle">UNTRUSTED</text><text class="s" x="85" y="50" text-anchor="middle">INPUT</text>
+            <rect class="b" x="190" y="20" width="130" height="40" rx="7"/><text class="t" x="255" y="44" text-anchor="middle">AGENT</text>
+            <rect class="b" x="190" y="90" width="130" height="40" rx="7"/><text class="s" x="255" y="114" text-anchor="middle">http.post</text>
+            <rect class="b" x="20" y="90" width="130" height="40" rx="7"/><text class="t" x="85" y="114" text-anchor="middle">GUARDRAIL</text>
+            <rect class="ba" x="20" y="160" width="130" height="40" rx="7"/><text class="a" x="85" y="184" text-anchor="middle">EXFIL ✓</text>
+            <rect class="b" x="190" y="160" width="130" height="40" rx="7"/><text class="s" x="255" y="184" text-anchor="middle">secret.txt</text>
+            <line class="ln" x1="150" y1="40" x2="188" y2="40" marker-end="url(#m)"/>
+            <line class="ln" x1="255" y1="60" x2="255" y2="88" marker-end="url(#m)"/>
+            <line class="ln" x1="190" y1="110" x2="152" y2="110" marker-end="url(#m)"/>
+            <line class="la" x1="85" y1="130" x2="85" y2="158" marker-end="url(#ma)"/>
+            <text class="a" x="85" y="150" text-anchor="middle" font-size="7.5">url ✓ · data ✗</text>
+          </svg>
+        </div>
+      </div>
+
+      <!-- INDEX ROWS -->
+      <div class="rows rv">
+        <div class="row open" data-row>
+          <div class="idx">02</div>
+          <div class="main">
+            <h4>Groot — Plant Disease Assistant<span class="yr">2026</span></h4>
+            <div class="oneline">Multimodal, multilingual diagnosis (Kaggle Gemma hackathon) — photo, voice or text in 7 languages, cited and fully local.</div>
+            <div class="reveal"><p class="hp"><b>The hard part:</b> a confident diagnosis from one ambiguous photo is dangerous. An information-confirmation gate refuses to diagnose until both plant species and symptoms are confirmed, and a separate treatment tool only fires after the user confirms — so finding and acting never collapse into a guess.</p></div>
+          </div>
+          <div class="side"><span class="tg">Gemma · ChromaDB · ReAct</span><a class="gh" href="https://github.com/ShashankSrivastava2002/Groot" target="_blank" rel="noopener" onclick="event.stopPropagation()">GitHub ↗</a><span class="chev">›</span></div>
+        </div>
+        <div class="row" data-row>
+          <div class="idx">03</div>
+          <div class="main">
+            <h4>Variational Autoencoder<span class="yr">2026</span></h4>
+            <div class="oneline">A from-scratch build — deterministic AE → MLP-VAE → CNN-VAE across MNIST, Fashion-MNIST and CIFAR-10.</div>
+            <div class="reveal"><p class="hp"><b>The hard part:</b> implementing by hand what a library hides — the encoder emitting μ and log-variance, the reparameterization trick that makes a stochastic latent differentiable, and a Gaussian ELBO that tracks reconstruction and KL separately so you can watch KL pull the latent toward the prior.</p></div>
+          </div>
+          <div class="side"><span class="tg">PyTorch · Generative</span><a class="gh" href="https://github.com/ShashankSrivastava2002/Vae_implementation" target="_blank" rel="noopener" onclick="event.stopPropagation()">GitHub ↗</a><span class="chev">›</span></div>
+        </div>
+        <div class="row" data-row>
+          <div class="idx">04</div>
+          <div class="main">
+            <h4>Object Semantic Separator<span class="yr">2024</span></h4>
+            <div class="oneline">Pixel-precise object separation by pairing YOLOv8 detection with Meta's SAM.</div>
+            <div class="reveal"><p class="hp"><b>The hard part:</b> using one model's output as another's prompt — YOLO's bounding boxes become the region prompts that focus SAM into clean per-object masks, turning coarse detection into precise segmentation without training a segmenter.</p></div>
+          </div>
+          <div class="side"><span class="tg">YOLOv8 · SAM · OpenCV</span><a class="gh" href="https://github.com/ShashankSrivastava2002/object_sementatic_separator" target="_blank" rel="noopener" onclick="event.stopPropagation()">GitHub ↗</a><span class="chev">›</span></div>
+        </div>
+        <div class="row" data-row>
+          <div class="idx">05</div>
+          <div class="main">
+            <h4>Source Code Converter<span class="yr">2024</span></h4>
+            <div class="oneline">A Streamlit + Gemini translator that converts a function to a target language and self-scores the result.</div>
+            <div class="reveal"><p class="hp"><b>The hard part:</b> off-the-shelf libraries misclassified raw source as plain text, so language is detected from the file extension instead; a second Gemini pass then scores the conversion 1–5, so the tool reports its own confidence rather than going quiet.</p></div>
+          </div>
+          <div class="side"><span class="tg">Gemini · Streamlit</span><a class="gh" href="https://github.com/ShashankSrivastava2002/souce_code_generator" target="_blank" rel="noopener" onclick="event.stopPropagation()">GitHub ↗</a><span class="chev">›</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- APPROACH -->
+  <section class="approach" id="approach">
+    <div class="wrap">
+      <div class="shead rv"><span class="no">02</span><h2>How I work</h2><div class="rule"></div></div>
+      <div class="appgrid">
+        <p class="lede rv">Almost anyone can call an LLM API. What I build is the boring, load-bearing half around it — the layer that decides whether an agent is <em>safe to ship</em>: does it stay in budget, can you trace why it failed, and does "success" actually mean success?</p>
+        <div class="principles rv">
+          <div class="p"><div class="k">Production thinking</div><div class="v">Evals, cost-per-token, and crash-resilient state — treated as first-class, not afterthoughts.</div></div>
+          <div class="p"><div class="k">Root-cause depth</div><div class="v">I chase failures to their source — a reversed guardrail check, a silently-ignored reasoning kwarg, a lost auth token across boundaries.</div></div>
+          <div class="p"><div class="k">Honest measurement</div><div class="v">Outcome-classification pipelines that grade every production run, not vanity numbers.</div></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- EXPERIENCE -->
+  <section id="experience">
+    <div class="wrap">
+      <div class="shead rv"><span class="no">03</span><h2>Experience</h2><div class="rule"></div></div>
+      <div class="job rv">
+        <div class="l"><div class="role">Software Engineer</div><span class="co">Delhivery</span><span class="dt">Jan 2026 — Present</span></div>
+        <ul>
+          <li><b>Architected</b> a deterministic graph workflow engine — LLM, agent, branching, sandboxed-code, guardrail &amp; concurrent-iteration nodes — with staged versioning and zero-redeploy rollback.</li>
+          <li><b>Drove</b> a multi-provider LLM gateway across services and unblocked Claude-backed agents by root-causing provider-specific routing; built cost governance with cache-aware pricing and hard budget short-circuits.</li>
+          <li><b>Instrumented</b> the platform with Langfuse tracing and a Presto/Trino evaluation pipeline; cut agent tool-calling iterations 8→3 via SOP-scoped lazy loading over six MCP servers.</li>
+        </ul>
+      </div>
+      <div class="job rv">
+        <div class="l"><div class="role">AI Developer</div><span class="co">InteligenAI · Spector.AI</span><span class="dt">Jan 2024 — Jan 2026</span></div>
+        <ul>
+          <li><b>Built</b> MCP-orchestrated agent frameworks on LangGraph for industrial-plant diagnostics, and document intelligence at 99% classification / 90% extraction over 500K+ docs with a fine-tuned custom NER.</li>
+          <li><b>Shipped</b> RAG with hybrid search, RRF and HyDE; an NL→SQL/Mongo agent over 20+ tables; vision systems (YOLO · SAM · GroundingDINO); and SDXL DreamBooth for subject-consistent generation — across AWS, Azure and GCP.</li>
+        </ul>
+      </div>
+      <!-- skills -->
+      <div class="skills rv" style="margin-top:54px">
+        <div class="skrow"><div class="k">LLM &amp; Agents</div><div class="v"><span>LangGraph</span><span>LangChain</span><span>MCP</span><span>RAG</span><span>HyDE</span><span>LLM Observability</span></div></div>
+        <div class="skrow"><div class="k">ML &amp; Vision</div><div class="v"><span>PyTorch</span><span>TensorFlow</span><span>YOLOv8</span><span>SAM</span><span>GroundingDINO</span><span>NER</span></div></div>
+        <div class="skrow"><div class="k">Backend &amp; Infra</div><div class="v"><span>FastAPI</span><span>Celery</span><span>Redis</span><span>Docker</span><span>Kubernetes</span><span>CI/CD</span></div></div>
+        <div class="skrow"><div class="k">Data &amp; Cloud</div><div class="v"><span>AWS</span><span>Azure</span><span>GCP</span><span>PostgreSQL</span><span>Presto/Trino</span><span>PySpark</span></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- CONTACT -->
+  <section class="contact" id="contact">
+    <div class="wrap">
+      <span class="k rv">04 — Contact</span>
+      <h2 class="rv">Let's build something<br>that <em>ships.</em></h2>
+      <a class="mail rv" href="mailto:srivastavashashank46@gmail.com">srivastavashashank46@gmail.com</a>
+      <div class="soc rv">
+        <a href="https://github.com/ShashankSrivastava2002" target="_blank" rel="noopener">GitHub ↗</a>
+        <a href="https://linkedin.com/in/shashank-srivastava-70b62a255" target="_blank" rel="noopener">LinkedIn ↗</a>
+        <a href="../shashank-resume.pdf" target="_blank" rel="noopener">Résumé ↗</a>
+        <a href="tel:+918429548955">+91 84295 48955</a>
+      </div>
+      <div class="foot">
+        <span>Shashank Srivastava · B.Tech ECE, HBTU Kanpur '24</span>
+        <span>© 2026 · Gurugram, India</span>
+      </div>
+    </div>
+  </section>
+
+  <script>
+    // nav scrolled state
+    const nav=document.getElementById('nav');
+    const onScroll=()=>nav.classList.toggle('scrolled',window.scrollY>60);
+    onScroll();addEventListener('scroll',onScroll,{passive:true});
+
+    // entrance handled by CSS (.rv animation) — no scroll dependency, content never hidden
+
+    // project rows expand — mouse + keyboard accessible
+    document.querySelectorAll('[data-row]').forEach(r=>{
+      r.setAttribute('role','button');
+      r.setAttribute('tabindex','0');
+      r.setAttribute('aria-expanded', r.classList.contains('open')?'true':'false');
+      const toggle=()=>{const open=r.classList.toggle('open');r.setAttribute('aria-expanded',open?'true':'false');};
+      r.addEventListener('click',toggle);
+      r.addEventListener('keydown',e=>{
+        if(e.key==='Enter'||e.key===' '){e.preventDefault();toggle();}
+      });
+    });
+
+    // featured pointer glow
+    const feat=document.getElementById('feat');
+    if(feat && !matchMedia('(prefers-reduced-motion: reduce)').matches){
+      feat.addEventListener('pointermove',e=>{const b=feat.getBoundingClientRect();
+        feat.style.setProperty('--mx',(e.clientX-b.left)+'px');feat.style.setProperty('--my',(e.clientY-b.top)+'px');});
+    }
+  </script>
+</body>
+</html>

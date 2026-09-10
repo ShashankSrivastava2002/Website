@@ -11,22 +11,6 @@ export const persona = {
 };
 
 /** Suggestion chips differ for first-time vs returning visitors. */
-/**
- * What used to be a 250px "shash.ai" is now the one thing a recruiter needs in
- * the first ten seconds. Research on technical hiring is blunt about it: the
- * scan is ~90 seconds and it is looking for shipped systems and a number, not
- * for typography.
- */
-export const home = {
-  positioning:
-    "Agent frameworks, document intelligence and vision systems — built to run in production, not in notebooks.",
-  proof: [
-    { value: "500K+", label: "DOCUMENTS PROCESSED" },
-    { value: "99%", label: "CLASSIFICATION ACCURACY" },
-    { value: "3", label: "CLOUDS IN PRODUCTION" },
-  ],
-};
-
 export const suggestions = {
   first: ["what's he built?", "tell me about the agent framework", "his biggest impact?"],
   returning: ["who is shashank?", "is he open to work?", "what's he shipping now?"],
@@ -89,9 +73,6 @@ export const nowPlaying = {
  * it ships and cut anything you would not want to be asked about.
  */
 export const work = {
-  intro:
-    "Two years of production AI across logistics and applied research — where I've been, and what I shipped there.",
-
   companies: [
     {
       id: "delhivery",
@@ -99,14 +80,6 @@ export const work = {
       role: "AI Platform Engineering",
       location: "Gurugram, India",
       period: "Jan 2026 — Present",
-      context:
-        "Delhivery runs India's largest logistics network. I work on the internal agentic AI platform — the runtime, gateway, governance and observability layer that other teams' agents run on. The agents automate real operational work: appointment and PO booking, fleet ETA and delay handling, warehouse order lookups, support-ticket triage.",
-      marks: [
-        { value: "9", label: "SERVICES ON THE PLATFORM" },
-        { value: "8 → 3", label: "TOOL-CALLING ITERATIONS" },
-        { value: "4", label: "SERVICES ON THE GATEWAY" },
-        { value: "6", label: "INTERNAL MCP SERVERS BOUND" },
-      ],
       areas: [
         {
           index: "01",
@@ -194,15 +167,6 @@ export const work = {
       role: "AI Developer",
       location: "Gurugram, India",
       period: "Jan 2024 — Jan 2026",
-      context:
-        "Two years shipping applied AI as delivered product rather than platform — agent frameworks for industrial-plant diagnostics, document intelligence at half-million scale, grounded retrieval, conversational access to operational data, and vision systems spanning defect detection, proctoring and generative imaging. Breadth across the stack, deployed across three clouds.",
-      marks: [
-        { value: "500K+", label: "DOCUMENTS PROCESSED" },
-        { value: "99%", label: "CLASSIFICATION ACCURACY" },
-        { value: "90%", label: "EXTRACTION ACCURACY" },
-        { value: "20+", label: "TABLES IN NATURAL LANGUAGE" },
-        { value: "3", label: "CLOUDS IN PRODUCTION" },
-      ],
       areas: [
         {
           index: "01",
@@ -310,8 +274,8 @@ export const work = {
     },
   ],
 
-  /* Not a section of its own — one degree does not fill a screen, and every
-     hiring guide puts education last. It sits under the rail. */
+  /* Staged for About rather than shown here — Experience is employment now.
+     Kept in place so it is ready when About picks it up. */
   education: [
     {
       period: "2020 — 2024",
@@ -335,9 +299,6 @@ export const work = {
  * ships.
  */
 export const lab = {
-  intro:
-    "What I build when nobody is paying me to — adversarial evaluation, multimodal agents, and papers rebuilt from the maths up.",
-
   projects: [
     {
       id: "jed",

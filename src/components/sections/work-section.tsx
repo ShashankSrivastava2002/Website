@@ -21,9 +21,9 @@ export default function WorkSection() {
     label: c.name,
     rail: (
       <>
+        <span className="md-tab-period">{c.period}</span>
         <span className="md-tab-name">{c.name}</span>
         <span className="md-tab-role">{c.role}</span>
-        <span className="md-tab-period">{c.period}</span>
       </>
     ),
     detail: (
@@ -33,17 +33,7 @@ export default function WorkSection() {
           <p className="co-meta">
             {c.location} · {c.period}
           </p>
-          <p className="co-context">{c.context}</p>
         </header>
-
-        <div className="co-marks">
-          {c.marks.map((m) => (
-            <div className="co-mark" key={m.label}>
-              <span className="co-mark-value">{m.value}</span>
-              <span className="co-mark-label">{m.label}</span>
-            </div>
-          ))}
-        </div>
 
         {c.areas.map((a, i) => (
           <Staggered i={i} key={a.index}>
@@ -51,6 +41,12 @@ export default function WorkSection() {
               <span className="area-index">{a.index}</span>
               <h4>{a.title}</h4>
             </div>
+
+            {/* The schematic leads. It was at the foot of each area, which
+                meant the mechanism only arrived after the reader had already
+                worked it out from the bullets — the diagram should be the
+                first impression of the area, not the summary of it. */}
+            {a.diagram && <Diagram id={a.diagram} alt={a.diagramAlt} />}
 
             {"lead" in a && a.lead && (
               <p className="area-lead">
@@ -70,8 +66,6 @@ export default function WorkSection() {
                 </li>
               ))}
             </ul>
-
-            {a.diagram && <Diagram id={a.diagram} alt={a.diagramAlt} />}
           </Staggered>
         ))}
 
@@ -93,25 +87,9 @@ export default function WorkSection() {
   }));
 
   return (
-    <div className="page">
-      <SectionIntro index="02" label="EXPERIENCE" text={work.intro} />
+    <div className="page page--flush">
+      <MasterDetail items={items} label="Companies" railHead="CAREER" />
 
-      <MasterDetail items={items} label="Companies" />
-
-      {/* One degree does not need a section, but it should not be hidden. */}
-      <motion.footer
-        className="edu-strip"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5, ease: EASE, delay: 0.5 }}
-      >
-        <span className="edu-label">EDUCATION</span>
-        {work.education.map((e) => (
-          <span className="edu-row" key={e.company}>
-            <b>{e.company}</b> · {e.title} · {e.period}
-          </span>
-        ))}
-      </motion.footer>
     </div>
   );
 }

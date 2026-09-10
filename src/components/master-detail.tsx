@@ -33,10 +33,13 @@ export type MDItem = {
 export default function MasterDetail({
   items,
   label,
+  railHead,
   onChange,
 }: {
   items: MDItem[];
   label: string;
+  /** Label shown above the rail; the count is added from `items`. */
+  railHead?: string;
   onChange?: (id: string) => void;
 }) {
   const [active, setActive] = useState(items[0]?.id ?? "");
@@ -95,6 +98,14 @@ export default function MasterDetail({
   return (
     <div className="md">
       <div className="md-rail" role="tablist" aria-label={label} aria-orientation="vertical" ref={railRef}>
+        {/* order:-1 keeps the head above the first tab once the narrow branch
+            turns the rail into `display: contents` and order takes over. */}
+        {railHead && (
+          <div className="md-rail-head" style={{ order: -1 }} aria-hidden>
+            <span>{railHead}</span>
+            <b>{String(items.length).padStart(2, "0")}</b>
+          </div>
+        )}
         {items.map((it, i) => (
           <button
             key={it.id}

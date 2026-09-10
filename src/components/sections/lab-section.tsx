@@ -7,7 +7,6 @@ import { EASE } from "@/lib/motion";
 import MasterDetail, { Staggered, type MDItem } from "@/components/master-detail";
 import RichText from "@/components/rich-text";
 import Diagram from "@/components/diagrams";
-import { SectionIntro } from "./work-section";
 
 /**
  * Personal projects, on the same master-detail model as Experience — the brief
@@ -42,7 +41,6 @@ export default function LabSection() {
           <p className="co-meta">
             {p.status} · <code>{p.repoName}</code>
           </p>
-          <p className="co-context pj-lead">{p.hook}</p>
         </header>
 
         <Staggered i={0}>
@@ -50,6 +48,7 @@ export default function LabSection() {
             <span className="area-index">01</span>
             <h4>Context</h4>
           </div>
+          {p.diagram && <Diagram id={p.diagram} alt={p.diagramAlt} />}
           <p className="area-lead">
             <RichText text={p.context} />
           </p>
@@ -82,12 +81,6 @@ export default function LabSection() {
           </Staggered>
         )}
 
-        {p.diagram && (
-          <Staggered i={3}>
-            <Diagram id={p.diagram} alt={p.diagramAlt} />
-          </Staggered>
-        )}
-
         <Staggered i={4}>
           <div className="area-head">
             <span className="area-index">—</span>
@@ -117,10 +110,8 @@ export default function LabSection() {
   }));
 
   return (
-    <div className="page">
-      <SectionIntro index="03" label="LAB" text={lab.intro} />
-
-      <MasterDetail items={items} label="Projects" />
+    <div className="page page--flush">
+      <MasterDetail items={items} label="Projects" railHead="PROJECTS" />
 
       <motion.footer
         className="edu-strip"

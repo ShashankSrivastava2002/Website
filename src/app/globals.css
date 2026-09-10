@@ -79,7 +79,7 @@
      clears it with a margin. Without reserving it the nav sat 46px on top of
      the content, because a 1240px stage in a 1430px viewport only leaves a
      95px gutter and a labelled column needs more than that. */
-  --nav-col: 132px;
+  --nav-col: 172px;
 
   /* ---- glass ------------------------------------------------------------
      Every card here used to be a flat white fill and ONE drop shadow, which
@@ -493,7 +493,7 @@ body::before {
   display: flex;
   flex-direction: column;
   align-items: stretch;
-  gap: 1px;
+  gap: 2px;
   pointer-events: auto;
 }
 
@@ -529,11 +529,11 @@ body::before {
   display: flex;
   align-items: baseline;
   justify-content: flex-end;
-  gap: 9px;
+  gap: 11px;
   border: 0;
   background: none;
   cursor: pointer;
-  padding: 8px 12px;
+  padding: 12px 14px;
   border-radius: var(--radius-control);
   font-family: var(--mono);
   color: var(--muted);
@@ -544,14 +544,16 @@ body::before {
    tells you how far through the site you are, without competing with the
    label for attention. */
 .nav-index {
-  font-size: var(--text-nano);
+  font-size: var(--text-micro);
   letter-spacing: var(--track-ui);
   color: var(--line-2);
   transition: color 0.25s var(--ease);
 }
 
+/* Up from 10px. In the right gutter at that size the whole column read as a
+   footnote rather than as the site's navigation. */
 .nav-label {
-  font-size: var(--text-small);
+  font-size: var(--text-body);
   letter-spacing: var(--track-wide);
 }
 
@@ -677,59 +679,16 @@ body::before {
 
 /* ---------------------------- home ---------------------------- */
 
+/* Home has no content of its own any more — the chat dock and the figure are
+   both fixed layers owned by the page. This just holds the stage open. */
 .home {
   flex: 1;
   min-height: 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
 }
 
-/* The caption to the figure, where a 250px wordmark used to be. Capped well
-   under the figure's shoulder line (it starts around y330) so the two never
-   fight for the same band. */
-.home-hero {
-  max-width: 620px;
-}
-
-.home-positioning {
-  margin: 0;
-  font-size: clamp(26px, 3vw, 38px);
-  font-weight: 300;
-  line-height: 1.22;
-  letter-spacing: var(--track-display);
-  color: var(--ink);
-  text-wrap: balance;
-}
-
-.home-proof {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 34px;
-  margin-top: 30px;
-  padding-top: 20px;
-  border-top: 1px solid var(--line);
-}
-
-.home-proof-item {
-  display: grid;
-  gap: 4px;
-}
-
-.home-proof-value {
-  font-size: 27px;
-  font-weight: 650;
-  letter-spacing: -0.02em;
-  line-height: 1;
-  color: var(--ink);
-  font-variant-numeric: tabular-nums;
-}
-
-.home-proof-label {
-  font-family: var(--mono);
-  font-size: var(--text-nano);
-  letter-spacing: var(--track-wide);
-  color: var(--muted);
+/* Experience opens straight on the rail, with no section intro above it. */
+.page--flush {
+  padding-top: 6px;
 }
 
 /* The persistent chat dock.
@@ -1076,6 +1035,7 @@ body::before {
   flex-direction: column;
   gap: 6px;
   min-height: 0;
+  padding-left: 22px;
   overflow-y: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;
@@ -1103,38 +1063,74 @@ body::before {
   align-content: start;
 }
 
-/* --- the rail item --- */
+/* --- the rail item ---
+
+   Taken from the reference's career rail rather than invented: a continuous
+   1px rule down a left gutter with a station per entry, the selected one
+   filled in accent and everything else hollow and faded well back. No card
+   behind any of it — a column of filled panels reads as a list of objects,
+   and this needs to read as one timeline with a position on it.
+
+   Theirs is a hover treatment on an otherwise inert list. Ours has to stay a
+   real tablist, so the same visual language is driven by selection instead. */
 
 .md-tab {
+  position: relative;
   display: grid;
   gap: 3px;
   text-align: left;
-  padding: 14px 16px;
-  border: 1px solid transparent;
-  border-radius: var(--radius-card);
-  background: rgba(255, 255, 255, 0.4);
+  padding: 11px 10px 13px 0;
+  border: 0;
+  background: none;
   cursor: pointer;
+  transition: opacity 0.25s var(--ease);
+}
+
+/* the station */
+.md-tab::before {
+  content: "";
+  position: absolute;
+  left: -22px;
+  top: 16px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--bg);
+  border: 1px solid var(--line-2);
   transition:
     background-color 0.25s var(--ease),
     border-color 0.25s var(--ease),
-    transform 0.25s var(--ease);
+    box-shadow 0.25s var(--ease);
 }
 
-.md-tab:hover {
-  background: rgba(255, 255, 255, 0.66);
+/* the rule between this station and the next — drawn per item rather than
+   once down the rail, so it survives the rail scrolling */
+.md-tab::after {
+  content: "";
+  position: absolute;
+  left: -18px;
+  top: 29px;
+  bottom: -6px;
+  width: 1px;
+  background: var(--line-2);
 }
 
-.md-tab[data-active="true"] {
-  background: var(--glass-fill);
-  border-color: var(--glass-edge);
-  box-shadow: var(--glass-shadow);
+.md-tab:last-of-type::after {
+  display: none;
+}
+
+.md-tab[data-active="true"]::before {
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
 }
 
 .md-tab-name {
   font-size: var(--text-lg);
   font-weight: 600;
   letter-spacing: -0.01em;
-  color: var(--ink);
+  color: var(--ink-2);
+  transition: color 0.25s var(--ease);
 }
 
 .md-tab-role,
@@ -1143,10 +1139,49 @@ body::before {
   font-size: var(--text-nano);
   letter-spacing: var(--track-wide);
   color: var(--muted);
+  transition: color 0.25s var(--ease);
 }
 
-.md-tab[data-active="true"] .md-tab-role {
+/* Unselected entries drop well back, the way theirs do — the rail should read
+   as one thing with a current position, not as five equal options. */
+.md-tab:not([data-active="true"]) {
+  opacity: 0.5;
+}
+
+.md-tab:hover {
+  opacity: 0.82;
+}
+
+.md-tab[data-active="true"] {
+  opacity: 1;
+}
+
+.md-tab[data-active="true"] .md-tab-name {
+  color: var(--ink);
+}
+
+.md-tab[data-active="true"] .md-tab-period {
   color: var(--accent);
+}
+
+/* the head above the rail — label left, count right, same as theirs */
+.md-rail-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding-bottom: 9px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--line);
+  font-family: var(--mono);
+  font-size: var(--text-small);
+  letter-spacing: var(--track-ultra);
+  color: var(--muted);
+}
+
+.md-rail-head b {
+  font-weight: 400;
+  color: var(--ink-2);
+  font-variant-numeric: tabular-nums;
 }
 
 /* --- company header --- */
@@ -1169,47 +1204,6 @@ body::before {
   font-size: var(--text-nano);
   letter-spacing: var(--track-wide);
   color: var(--accent);
-}
-
-.co-context {
-  margin: 0;
-  max-width: 68ch;
-  font-size: var(--text-md);
-  font-weight: 300;
-  line-height: 1.62;
-  color: var(--ink-2);
-}
-
-.co-marks {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-}
-
-.co-mark {
-  display: grid;
-  gap: 3px;
-  flex: 1 1 120px;
-  padding: 11px 13px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-control);
-  background: rgba(255, 255, 255, 0.5);
-  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.9);
-}
-
-.co-mark-value {
-  font-size: var(--text-title);
-  font-weight: 650;
-  line-height: 1;
-  letter-spacing: -0.02em;
-  font-variant-numeric: tabular-nums;
-}
-
-.co-mark-label {
-  font-family: var(--mono);
-  font-size: 7px;
-  letter-spacing: var(--track-wide);
-  color: var(--muted);
 }
 
 /* --- a capability area --- */
@@ -1346,11 +1340,6 @@ body::before {
   padding: 3px 6px;
   border: 1px solid var(--line);
   border-radius: var(--radius-chip);
-}
-
-.pj-lead {
-  font-size: var(--text-lg);
-  color: var(--ink);
 }
 
 .pj-framing {

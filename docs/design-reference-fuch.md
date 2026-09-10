@@ -438,3 +438,44 @@ exactly 0.5px below a clean step, so they were snapped up uniformly. `--text-nan
 `--text-md: 14px` were added because a 90px medallion label and 14px body copy are real steps
 in this design, not roundings. `--space-1` was deleted — nothing used it and inventing a use
 would have been the same fault again.
+
+---
+
+## Their Work page — the career rail
+
+Read properly on a later pass, after the Experience rebuild had already shipped without it.
+Recording it here because the first note in this file (`**Work** — two columns: career timeline
+(dots + connecting rule, filled accent dot = current)`) had the shape but not enough detail to
+build from, and I built from the brief alone instead.
+
+**How the rail is put together:**
+
+- Head row: `CAREER` left, `06` right, thin rule under. Same pattern as `SELECTED WORK … 08`.
+- A continuous 1px rule down a left gutter with a **station per entry**.
+- Entry order is **period → company → role**, not company first. On a timeline the date is the
+  index, so it leads.
+- Period is mono and **accent on the current entry**, muted on the rest. Company is sans/semibold.
+  Role is mono/muted.
+- **No card, panel or fill behind any entry.** The whole rail sits bare on the page background.
+- Unselected entries **drop well back** — considerably fainter than the active one, so the column
+  reads as one timeline with a position on it rather than as N equal options.
+
+**The part my first note missed entirely:** the rail is not inert. Hovering an entry fills its
+station in accent, brings its period to accent and its name to full ink, and pushes the others
+further back. It is a reveal-on-focus timeline.
+
+### What was taken
+
+The visual language, driven by *selection* rather than hover — ours has to stay a real tablist,
+which theirs is not. Both `MasterDetail` rails (Experience and Lab) now carry the stations, the
+connecting rule, the bare treatment, the drop-back on unselected entries, and the head with a
+count. The station picks up the per-section accent, so it is teal-blue on Experience and green on
+Lab without any extra rule.
+
+The connecting rule is drawn per item as an `::after` rather than once down the rail, because the
+rail scrolls and a single absolutely-positioned rule would anchor to the visible box instead of
+the content.
+
+**Not taken:** their two-column career-plus-cards layout. The Work brief mandates master-detail —
+rail fixed, detail column the only thing that scrolls — and theirs is a flat list with no detail
+view at all.

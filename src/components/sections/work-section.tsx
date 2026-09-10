@@ -2,114 +2,116 @@
 
 import { motion } from "framer-motion";
 import { work } from "@/lib/content";
-import ProjectGlyph from "@/components/project-glyph";
-import { EASE, STAGE, bodyDelay } from "@/lib/motion";
+import { EASE, STAGE } from "@/lib/motion";
+import MasterDetail, { Staggered, type MDItem } from "@/components/master-detail";
+import RichText from "@/components/rich-text";
+import Diagram from "@/components/diagrams";
 
-const rise = {
-  hidden: { opacity: 0, y: 22 },
-  show: (i: number) => ({
-    opacity: 1,
-    y: 0,
-    transition: { duration: STAGE.duration, ease: EASE, delay: bodyDelay(i) },
-  }),
-};
-
+/**
+ * Experience, company-wise.
+ *
+ * The six-card "Selected Work" grid that used to live here is gone: four of
+ * those were InteligenAI work and now sit under that company, and the other
+ * two are personal projects and moved to Lab. Nothing on the site describes
+ * the same work twice.
+ */
 export default function WorkSection() {
-  return (
-    <div className="page">
-      <SectionIntro index="02" label="WORK" text={work.intro} />
+  const items: MDItem[] = work.companies.map((c) => ({
+    id: c.id,
+    label: c.name,
+    rail: (
+      <>
+        <span className="md-tab-name">{c.name}</span>
+        <span className="md-tab-role">{c.role}</span>
+        <span className="md-tab-period">{c.period}</span>
+      </>
+    ),
+    detail: (
+      <>
+        <header className="co-head">
+          <h3>{c.name}</h3>
+          <p className="co-meta">
+            {c.location} · {c.period}
+          </p>
+          <p className="co-context">{c.context}</p>
+        </header>
 
-      <div className="work-grid">
-        {/* ------------------------- career ------------------------- */}
-        <motion.div
-          className="panel"
-          initial="hidden"
-          animate="show"
-          custom={0}
-          variants={rise}
-        >
-          <PanelHead title="CAREER" count={work.career.length} />
-          <ul className="career">
-            {work.career.map((c) => (
-              <li key={c.company}>
-                <span className="career-period">{c.period}</span>
-                <span className="career-company">{c.company}</span>
-                <span className="career-title">{c.title}</span>
-              </li>
-            ))}
-          </ul>
-        </motion.div>
-
-        {/* ---------------------- selected work ---------------------- */}
-        <div className="projects">
-          <PanelHead title="SELECTED WORK" count={work.projects.length} />
-
-          {/* The head above stays put; the cards scroll under it rather than
-              pushing the page taller than the viewport. */}
-          {/* tabIndex on a scroll region is not decoration: the container
-              scrolls, so a keyboard user has to be able to focus it to reach
-              the cards below the fold (WCAG 2.1.1). Same on the other two
-              scroll-cols. */}
-          <div
-            className="project-list scroll-col"
-            tabIndex={0}
-            role="group"
-            aria-label="Selected work, scrollable"
-          >
-            {work.projects.map((p, i) => (
-              <motion.article
-                key={p.index}
-                className="project"
-                initial="hidden"
-                animate="show"
-                custom={i + 1}
-                variants={rise}
-              >
-                {/* The plate carries the project's kind as a drawn mark —
-                    see ProjectGlyph. Without it the column is six paragraphs
-                    in a row and reads as a list rather than a portfolio. */}
-                <div className="project-art" data-kind={p.kind}>
-                  <ProjectGlyph kind={p.kind} />
-                </div>
-
-                <div className="project-body">
-                  <header>
-                    <span className="project-kind">
-                      {p.index} · {p.kind}
-                    </span>
-                    <span className="project-stat">{p.stat}</span>
-                  </header>
-                  <h3>{p.title}</h3>
-                  <p>{p.blurb}</p>
-                  <div className="tagrow">
-                    {p.tags.map((t) => (
-                      <span key={t} className="tag">
-                        {t}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              </motion.article>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* --------------------------- stack --------------------------- */}
-      <div className="marquee" aria-label="Tools and technologies">
-        <div className="marquee-label">
-          STACK <b>{work.stack.length}</b>
-        </div>
-        <div className="marquee-track">
-          {[0, 1].map((dup) => (
-            <div className="marquee-row" key={dup} aria-hidden={dup === 1}>
-              {work.stack.map((s) => (
-                <span key={s + dup}>{s}</span>
-              ))}
+        <div className="co-marks">
+          {c.marks.map((m) => (
+            <div className="co-mark" key={m.label}>
+              <span className="co-mark-value">{m.value}</span>
+              <span className="co-mark-label">{m.label}</span>
             </div>
           ))}
         </div>
-      </div>
+
+        {c.areas.map((a, i) => (
+          <Staggered i={i} key={a.index}>
+            <div className="area-head">
+              <span className="area-index">{a.index}</span>
+              <h4>{a.title}</h4>
+            </div>
+
+            {"lead" in a && a.lead && (
+              <p className="area-lead">
+                <RichText text={a.lead} />
+              </p>
+            )}
+
+            <ul className="area-points">
+              {a.points.map((p, pi) => (
+                <li key={pi}>
+                  <RichText text={p.text} />
+                  {"inferred" in p && p.inferred && (
+                    <abbr className="inferred" title="Inferred from the nature of the work — confirm before relying on it">
+                      †
+                    </abbr>
+                  )}
+                </li>
+              ))}
+            </ul>
+
+            {a.diagram && <Diagram id={a.diagram} alt={a.diagramAlt} />}
+          </Staggered>
+        ))}
+
+        <Staggered i={c.areas.length}>
+          <div className="area-head">
+            <span className="area-index">—</span>
+            <h4>Stack</h4>
+          </div>
+          <div className="tagrow">
+            {c.stack.map((t) => (
+              <span className="tag" key={t}>
+                {t}
+              </span>
+            ))}
+          </div>
+        </Staggered>
+      </>
+    ),
+  }));
+
+  return (
+    <div className="page">
+      <SectionIntro index="02" label="EXPERIENCE" text={work.intro} />
+
+      <MasterDetail items={items} label="Companies" />
+
+      {/* One degree does not need a section, but it should not be hidden. */}
+      <motion.footer
+        className="edu-strip"
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: 0.5, ease: EASE, delay: 0.5 }}
+      >
+        <span className="edu-label">EDUCATION</span>
+        {work.education.map((e) => (
+          <span className="edu-row" key={e.company}>
+            <b>{e.company}</b> · {e.title} · {e.period}
+          </span>
+        ))}
+      </motion.footer>
     </div>
   );
 }
@@ -138,7 +140,7 @@ export function SectionIntro({
   );
 }
 
-function PanelHead({ title, count }: { title: string; count: number }) {
+export function PanelHead({ title, count }: { title: string; count: number }) {
   return (
     <div className="panel-head">
       <span>{title}</span>

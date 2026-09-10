@@ -2,6 +2,11 @@
 
 import { work } from "@/lib/content";
 
+/** Every technology named across the companies, in order, once each. */
+const TICKER_STACK = Array.from(
+  new Set(work.companies.flatMap((c) => c.stack))
+);
+
 /**
  * The strip pinned along the bottom of every screen.
  *
@@ -19,7 +24,9 @@ export default function BottomTicker() {
       <div className="ticker-track">
         {[0, 1].map((dup) => (
           <div className="ticker-row" key={dup} aria-hidden={dup === 1}>
-            {work.stack.map((s) => (
+            {/* The stack lives per company now; the ticker wants one flat,
+                de-duplicated run across both. */}
+            {TICKER_STACK.map((s) => (
               <span key={s + dup}>
                 {s}
                 <i aria-hidden>•</i>

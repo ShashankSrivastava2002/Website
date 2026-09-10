@@ -74,6 +74,13 @@
      it, a measured 95x26px overlap. */
   --chrome-right: 214px;
 
+  /* The vertical nav owns a column on the right. Measured, not guessed: the
+     widest item is "05 CONTACT" and the stack renders 121px wide, so 132px
+     clears it with a margin. Without reserving it the nav sat 46px on top of
+     the content, because a 1240px stage in a 1430px viewport only leaves a
+     95px gutter and a labelled column needs more than that. */
+  --nav-col: 132px;
+
   /* ---- glass ------------------------------------------------------------
      Every card here used to be a flat white fill and ONE drop shadow, which
      is why the surfaces read as paper rather than glass. Three things do the
@@ -155,6 +162,62 @@ body {
   html:has(.stage),
   html:has(.stage) body {
     overflow: hidden;
+  }
+}
+
+/* The right gutter closes up below this, so the nav gives up the column and
+   returns to a horizontal pill — centred under the brand rather than beside
+   it, because the like counter already owns the top-right corner. The long
+   labels go with it; EXPERIENCE does not fit a pill. */
+@media (max-width: 1180px) {
+  .nav {
+    top: 84px;
+    right: auto;
+    left: 50%;
+    translate: -50% 0;
+    flex-direction: row;
+    align-items: center;
+    gap: 2px;
+    padding: 5px;
+    border-radius: var(--radius-pill);
+    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-edge);
+    box-shadow: var(--glass-shadow);
+  }
+
+  .nav-index,
+  .nav-rule {
+    display: none;
+  }
+
+  .nav-label {
+    display: none;
+  }
+
+  .nav-label--short {
+    display: inline;
+  }
+
+  .nav-item,
+  .nav-pill {
+    border-radius: var(--radius-pill);
+  }
+
+  .nav-item {
+    padding: 8px 14px;
+  }
+
+  .nav-utils {
+    padding-right: 0;
+    margin-left: 4px;
+  }
+
+  /* the nav is a pill at the top again, so it no longer owns a column */
+  .stage {
+    padding-top: 142px;
+    padding-right: var(--gutter);
   }
 }
 
@@ -414,17 +477,24 @@ body::before {
   color: var(--muted);
 }
 
+/* Out of the topbar and down the right gutter.
+   The stage is capped at 1240px, so in a 1450px viewport there is already a
+   ~100px margin on each side that nothing used. Putting the nav in the right
+   one clears the whole top of the page and buys the labels enough room to say
+   EXPERIENCE, which a horizontal pill could never afford. No glass container
+   any more either — against a mostly empty margin it read as a floating slab
+   with nothing to sit on. */
 .nav {
-  pointer-events: auto;
+  position: fixed;
+  right: 20px;
+  top: 50%;
+  translate: 0 -50%;
+  z-index: var(--z-chrome);
   display: flex;
-  align-items: center;
-  gap: 2px;
-  padding: 7px;
-  border-radius: var(--radius-pill);
-  background: rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(18px);
-  border: 1px solid rgba(255, 255, 255, 0.8);
-  box-shadow: 0 10px 30px -14px rgba(20, 30, 45, 0.28);
+  flex-direction: column;
+  align-items: stretch;
+  gap: 1px;
+  pointer-events: auto;
 }
 
 .nav-icon {
@@ -435,10 +505,9 @@ body::before {
   flex: none;
   border: 0;
   padding: 0;
-  border-radius: var(--radius-pill);
-  background: var(--accent-soft);
-  color: var(--accent);
-  margin-right: 2px;
+  border-radius: var(--radius-control);
+  background: none;
+  color: var(--muted);
   cursor: pointer;
   text-decoration: none;
   transition:
@@ -451,33 +520,71 @@ body::before {
   background: rgba(46, 125, 118, 0.2);
 }
 
-.nav-icon--plain:hover {
-  background: var(--accent-soft);
-  color: var(--accent);
-}
-
 .nav-icon:active {
   transform: translateY(1px) scale(0.94);
 }
 
-.nav-icon--plain {
-  background: none;
-  color: var(--muted);
-  margin-right: 6px;
-}
-
 .nav-item {
   position: relative;
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  gap: 9px;
   border: 0;
   background: none;
   cursor: pointer;
-  padding: 9px 17px;
-  border-radius: var(--radius-pill);
+  padding: 8px 12px;
+  border-radius: var(--radius-control);
   font-family: var(--mono);
-  font-size: var(--text-small);
-  letter-spacing: var(--track-wide);
   color: var(--muted);
   transition: color 0.25s var(--ease);
+}
+
+/* The number is the quiet half — it gives the column an edge to align to and
+   tells you how far through the site you are, without competing with the
+   label for attention. */
+.nav-index {
+  font-size: var(--text-nano);
+  letter-spacing: var(--track-ui);
+  color: var(--line-2);
+  transition: color 0.25s var(--ease);
+}
+
+.nav-label {
+  font-size: var(--text-small);
+  letter-spacing: var(--track-wide);
+}
+
+/* Both label lengths ship in the markup so the narrow breakpoint can swap to
+   the short form with no JavaScript. */
+.nav-label--short {
+  display: none;
+}
+
+.nav-item:hover {
+  color: var(--ink-2);
+}
+
+.nav-item[data-active="true"] {
+  color: var(--ink);
+}
+
+.nav-item[data-active="true"] .nav-index {
+  color: var(--accent);
+}
+
+.nav-rule {
+  width: 26px;
+  height: 1px;
+  margin: 12px 12px 10px auto;
+  background: var(--line-2);
+}
+
+.nav-utils {
+  display: flex;
+  justify-content: flex-end;
+  gap: 2px;
+  padding-right: 8px;
 }
 
 .nav-item:hover {
@@ -492,7 +599,7 @@ body::before {
   position: absolute;
   inset: 0;
   z-index: -1;
-  border-radius: var(--radius-pill);
+  border-radius: var(--radius-control);
   background: rgba(20, 25, 29, 0.07);
 }
 
@@ -507,7 +614,8 @@ body::before {
      resolve against. min-height would let the content push the page taller
      again, which is the behaviour this replaces. */
   height: 100dvh;
-  padding: 104px var(--gutter) 90px;
+  /* asymmetric on purpose — the right side is the nav's column */
+  padding: 104px calc(var(--gutter) + var(--nav-col)) 90px var(--gutter);
   /* single cell — outgoing and incoming sections stack here during a crossfade */
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -577,14 +685,51 @@ body::before {
   justify-content: space-between;
 }
 
-.wordmark {
+/* The caption to the figure, where a 250px wordmark used to be. Capped well
+   under the figure's shoulder line (it starts around y330) so the two never
+   fight for the same band. */
+.home-hero {
+  max-width: 620px;
+}
+
+.home-positioning {
   margin: 0;
-  text-align: right;
-  font-size: clamp(72px, 17vw, 250px);
-  line-height: 0.86;
-  font-weight: 800;
-  letter-spacing: -0.05em;
+  font-size: clamp(26px, 3vw, 38px);
+  font-weight: 300;
+  line-height: 1.22;
+  letter-spacing: var(--track-display);
   color: var(--ink);
+  text-wrap: balance;
+}
+
+.home-proof {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 34px;
+  margin-top: 30px;
+  padding-top: 20px;
+  border-top: 1px solid var(--line);
+}
+
+.home-proof-item {
+  display: grid;
+  gap: 4px;
+}
+
+.home-proof-value {
+  font-size: 27px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  line-height: 1;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.home-proof-label {
+  font-family: var(--mono);
+  font-size: var(--text-nano);
+  letter-spacing: var(--track-wide);
+  color: var(--muted);
 }
 
 /* The persistent chat dock.
@@ -854,208 +999,42 @@ body::before {
 
 /* ---------------------------- work ---------------------------- */
 
-.work-grid {
-  display: grid;
-  grid-template-columns: minmax(260px, 340px) 1fr;
-  gap: var(--space-4);
-  /* stretch, not start: the project column needs the row's full height to
-     have something to scroll inside. The career card opts back out below. */
-  align-items: stretch;
-  flex: 1;
-  min-height: 0;
+@media (max-width: 1100px) {
+  .work-grid--split {
+    grid-template-columns: minmax(260px, 340px) 1fr;
+  }
+  .work-gutter {
+    display: none;
+  }
 }
 
-/* The career card is short and shouldn't be stretched to the row height. */
-.work-grid > .panel {
-  align-self: start;
+/* ---------------------------- lab ---------------------------- */
+
+/* Only rendered when a link actually exists — see the note on lab in
+   content.ts. An empty CODE button is worse than no button. */
+.project-links {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
 }
 
-/* A rail with a station per role, rather than three rows separated by rules.
-   The reference does this and it is the difference between a career section
-   and a bulleted list — the eye gets a direction to travel in. */
-.career {
-  position: relative;
-  list-style: none;
-  margin: 0;
-  padding: 0 0 0 22px;
-}
-
-.career::before {
-  content: "";
-  position: absolute;
-  left: 4px;
-  top: 20px;
-  bottom: 20px;
-  width: 1px;
-  background: linear-gradient(
-    to bottom,
-    var(--line-2),
-    var(--line-2) 82%,
-    transparent
-  );
-}
-
-.career li {
-  position: relative;
-  display: grid;
-  gap: 2px;
-  padding: 13px 0;
-  border-bottom: 1px solid var(--line);
-}
-
-.career li::before {
-  content: "";
-  position: absolute;
-  left: -22px;
-  top: 17px;
-  width: 9px;
-  height: 9px;
-  border-radius: 50%;
-  background: var(--bg);
-  border: 1px solid var(--line-2);
-}
-
-/* the current role is the filled station */
-.career li:first-child::before {
-  background: var(--accent);
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--accent-soft);
-}
-
-.career li:last-child {
-  border-bottom: 0;
-}
-
-.career-period {
+.project-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
   font-family: var(--mono);
-  font-size: var(--text-small);
+  font-size: var(--text-nano);
   letter-spacing: var(--track-wide);
   color: var(--accent);
+  text-decoration: none;
+  padding: 5px 10px;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-radius: var(--radius-pill);
+  transition: background-color 0.2s var(--ease), color 0.2s var(--ease);
 }
 
-.career-company {
-  font-size: var(--text-lg);
-  font-weight: 600;
-}
-
-.career-title {
-  font-size: var(--text-body);
-  color: var(--muted);
-}
-
-.projects {
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-}
-
-/* The panel head stays put; only the cards under it scroll.
-
-   Flex, not grid. As a grid the six implicit `auto` rows were sized against
-   the scroller's definite height and came out equal — every card clamped to
-   51px with its title and blurb cropped by the card's own overflow:hidden.
-   A flex column sizes each child to its content and overflows, which is the
-   whole point of a scroll region. `flex: none` keeps them from shrinking. */
-.project-list {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.project-list > * {
-  flex: none;
-}
-
-.project {
-  border-radius: var(--radius-card);
-  border: 1px solid var(--glass-edge);
-  background: var(--glass-fill);
-  backdrop-filter: var(--glass-blur);
-  -webkit-backdrop-filter: var(--glass-blur);
-  box-shadow: var(--glass-shadow);
-  padding: 0;
-  isolation: isolate;
-  overflow: hidden;
-  /* art plate | copy — the reference's proportions, at our column width */
-  display: grid;
-  grid-template-columns: 152px minmax(0, 1fr);
-  align-items: stretch;
-  transition: transform 0.35s var(--ease), box-shadow 0.35s var(--ease);
-}
-
-/* A tinted plate carrying the drawn mark. The dot grid is the same trick the
-   reference uses behind its illustrations — it gives the panel a surface, so
-   the mark sits ON something instead of floating in the card. */
-.project-art {
-  position: relative;
-  display: grid;
-  place-items: center;
-  border-right: 1px solid var(--line);
-  color: var(--accent);
-  background-color: rgba(255, 255, 255, 0.34);
-  background-image: radial-gradient(
-    circle at center,
-    rgba(20, 30, 45, 0.13) 1px,
-    transparent 1px
-  );
-  background-size: 7px 7px;
-}
-
-/* Each kind gets its own hue, so the column reads as a set of six different
-   things at a glance rather than six of the same card. */
-.project-art[data-kind="AGENTS"] { color: #5b6ee1; }
-.project-art[data-kind="DOCUMENTS"] { color: #e0574f; }
-.project-art[data-kind="RETRIEVAL"] { color: #2e7d76; }
-.project-art[data-kind="TOOLING"] { color: #b1791f; }
-.project-art[data-kind="VISION"] { color: #4a7fa5; }
-
-.project-glyph {
-  width: 68px;
-  height: 68px;
-  transition: transform 0.45s var(--ease);
-}
-
-.project:hover .project-glyph {
-  transform: scale(1.08) rotate(-2deg);
-}
-
-.project-body {
-  min-width: 0;
-  padding: 20px 22px;
-}
-
-.project:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 22px 48px -26px rgba(20, 30, 45, 0.4);
-}
-
-.project header {
-  display: flex;
-  justify-content: space-between;
-  font-family: var(--mono);
-  font-size: var(--text-small);
-  letter-spacing: var(--track-ui);
-  color: var(--muted);
-  margin-bottom: 10px;
-}
-
-.project-stat {
-  color: var(--accent);
-}
-
-.project h3 {
-  margin: 0 0 8px;
-  font-size: var(--text-title);
-  font-weight: 650;
-  letter-spacing: -0.02em;
-}
-
-.project p {
-  margin: 0 0 14px;
-  font-size: var(--text-md);
-  line-height: 1.6;
-  color: var(--ink-2);
-  max-width: 62ch;
+.project-links a:hover {
+  background: var(--accent-soft);
 }
 
 .tagrow {
@@ -1072,6 +1051,543 @@ body::before {
   border: 1px solid var(--line);
   border-radius: var(--radius-pill);
   padding: 5px 10px;
+}
+
+/* ------------------- master-detail: Work + Lab ------------------- */
+
+/* Both sections run the same component, so they share these rules outright.
+   Grid above the breakpoint — the rail is column one and the detail spans
+   every row of column two, so selecting never moves the rail. Below it the
+   container turns into a flex column and the `order` set inline on each tab
+   and on the single detail node folds the whole thing into an accordion
+   without the detail ever existing twice in the DOM. */
+.md {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: minmax(240px, 300px) minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: stretch;
+}
+
+.md-rail {
+  grid-column: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.md-rail::-webkit-scrollbar {
+  display: none;
+}
+
+.md-detail {
+  grid-column: 2;
+  grid-row: 1 / -1;
+  min-height: 0;
+}
+
+.md-detail-inner {
+  display: grid;
+  gap: 26px;
+  align-content: start;
+}
+
+.md-block {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+
+/* --- the rail item --- */
+
+.md-tab {
+  display: grid;
+  gap: 3px;
+  text-align: left;
+  padding: 14px 16px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-card);
+  background: rgba(255, 255, 255, 0.4);
+  cursor: pointer;
+  transition:
+    background-color 0.25s var(--ease),
+    border-color 0.25s var(--ease),
+    transform 0.25s var(--ease);
+}
+
+.md-tab:hover {
+  background: rgba(255, 255, 255, 0.66);
+}
+
+.md-tab[data-active="true"] {
+  background: var(--glass-fill);
+  border-color: var(--glass-edge);
+  box-shadow: var(--glass-shadow);
+}
+
+.md-tab-name {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--ink);
+}
+
+.md-tab-role,
+.md-tab-period {
+  font-family: var(--mono);
+  font-size: var(--text-nano);
+  letter-spacing: var(--track-wide);
+  color: var(--muted);
+}
+
+.md-tab[data-active="true"] .md-tab-role {
+  color: var(--accent);
+}
+
+/* --- company header --- */
+
+.co-head {
+  display: grid;
+  gap: 8px;
+}
+
+.co-head h3 {
+  margin: 0;
+  font-size: var(--text-title);
+  font-weight: 650;
+  letter-spacing: var(--track-display);
+}
+
+.co-meta {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: var(--text-nano);
+  letter-spacing: var(--track-wide);
+  color: var(--accent);
+}
+
+.co-context {
+  margin: 0;
+  max-width: 68ch;
+  font-size: var(--text-md);
+  font-weight: 300;
+  line-height: 1.62;
+  color: var(--ink-2);
+}
+
+.co-marks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.co-mark {
+  display: grid;
+  gap: 3px;
+  flex: 1 1 120px;
+  padding: 11px 13px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-control);
+  background: rgba(255, 255, 255, 0.5);
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.9);
+}
+
+.co-mark-value {
+  font-size: var(--text-title);
+  font-weight: 650;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.co-mark-label {
+  font-family: var(--mono);
+  font-size: 7px;
+  letter-spacing: var(--track-wide);
+  color: var(--muted);
+}
+
+/* --- a capability area --- */
+
+.area-head {
+  display: flex;
+  align-items: baseline;
+  gap: 11px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--line);
+}
+
+.area-index {
+  font-family: var(--mono);
+  font-size: var(--text-small);
+  letter-spacing: var(--track-ui);
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+.area-head h4 {
+  margin: 0;
+  font-size: var(--text-lg);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.area-lead {
+  margin: 0;
+  max-width: 70ch;
+  font-size: var(--text-md);
+  line-height: 1.62;
+  color: var(--ink-2);
+}
+
+.area-points {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 9px;
+  max-width: 74ch;
+}
+
+.area-points li {
+  position: relative;
+  padding-left: 16px;
+  font-size: var(--text-body);
+  line-height: 1.62;
+  color: var(--ink-2);
+}
+
+.area-points li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 8px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  border: 1px solid var(--line-2);
+}
+
+.area-points b {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.area-points code,
+.co-meta code,
+.area-lead code {
+  font-family: var(--mono);
+  font-size: 0.92em;
+  padding: 1px 4px;
+  border-radius: var(--radius-chip);
+  background: rgba(20, 25, 29, 0.05);
+}
+
+/* Inferred from the nature of the work rather than stated in the source. The
+   marker is deliberately visible: these are the claims to confirm or cut. */
+.inferred {
+  margin-left: 4px;
+  font-size: 0.85em;
+  color: var(--accent);
+  text-decoration: none;
+  cursor: help;
+}
+
+/* --- Lab-specific rail + detail --- */
+
+.pj-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.pj-index {
+  font-family: var(--mono);
+  font-size: var(--text-nano);
+  letter-spacing: var(--track-ui);
+  color: var(--muted);
+}
+
+.pj-status {
+  font-family: var(--mono);
+  font-size: 7px;
+  letter-spacing: var(--track-wide);
+  color: var(--accent);
+  padding: 3px 7px;
+  border: 1px solid color-mix(in srgb, var(--accent) 26%, transparent);
+  border-radius: var(--radius-pill);
+}
+
+.pj-hook {
+  font-size: var(--text-body);
+  line-height: 1.5;
+  color: var(--muted);
+}
+
+.pj-tech {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 3px;
+}
+
+.pj-tech em {
+  font-family: var(--mono);
+  font-style: normal;
+  font-size: 7px;
+  letter-spacing: var(--track-wide);
+  color: var(--muted);
+  padding: 3px 6px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-chip);
+}
+
+.pj-lead {
+  font-size: var(--text-lg);
+  color: var(--ink);
+}
+
+.pj-framing {
+  margin: 8px 0 0;
+  font-family: var(--mono);
+  font-size: var(--text-nano);
+  letter-spacing: var(--track-wide);
+  color: var(--accent);
+}
+
+.pj-note {
+  display: grid;
+  gap: 6px;
+  padding: 13px 15px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.pj-note[data-warn="true"] {
+  border-color: color-mix(in srgb, #c0453c 34%, transparent);
+  background: color-mix(in srgb, #c0453c 5%, rgba(255, 255, 255, 0.5));
+}
+
+.pj-note-label {
+  font-family: var(--mono);
+  font-size: 7px;
+  letter-spacing: var(--track-ultra);
+  color: var(--muted);
+}
+
+.pj-note[data-warn="true"] .pj-note-label {
+  color: #a83b33;
+}
+
+.pj-note p {
+  margin: 0;
+  font-size: var(--text-body);
+  line-height: 1.58;
+  color: var(--ink-2);
+}
+
+/* --- the muted strip at the foot of both sections --- */
+
+.edu-strip {
+  flex: none;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 18px;
+  margin-top: var(--space-3);
+  padding-top: 11px;
+  border-top: 1px solid var(--line);
+  font-size: var(--text-body);
+  color: var(--muted);
+}
+
+.edu-label {
+  font-family: var(--mono);
+  font-size: var(--text-nano);
+  letter-spacing: var(--track-ultra);
+  color: var(--accent);
+}
+
+.edu-row b {
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
+/* ----------------------------- schematics ----------------------------- */
+
+/* One drawing language for all sixteen. Mechanisms, not decoration — so the
+   only colour in here is on the element the brief calls the point of its
+   area. */
+.dgm {
+  margin: 6px 0 2px;
+}
+
+.dgm-svg {
+  display: block;
+  width: 100%;
+  max-width: 660px;
+  height: auto;
+}
+
+.dgm-node {
+  fill: rgba(255, 255, 255, 0.62);
+  stroke: var(--line-2);
+  stroke-width: 1;
+}
+
+.dgm-node--muted {
+  fill: rgba(255, 255, 255, 0.34);
+  stroke: var(--line);
+}
+
+.dgm-node--accent {
+  fill: var(--accent-soft);
+  stroke: var(--accent);
+}
+
+.dgm-edge {
+  fill: none;
+  stroke: var(--line-2);
+  stroke-width: 1.2;
+  stroke-linecap: round;
+}
+
+.dgm-edge--accent {
+  stroke: var(--accent);
+  stroke-width: 1.5;
+}
+
+.dgm-edge--dashed {
+  stroke-dasharray: 4 3;
+}
+
+.dgm-arrowhead {
+  fill: var(--line-2);
+}
+
+.dgm-edge--accent {
+  marker-end: url(#dgm-arrow);
+}
+
+.dgm-group {
+  fill: none;
+  stroke: var(--line);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+}
+
+.dgm-rule {
+  stroke: var(--line);
+  stroke-width: 1;
+}
+
+.dgm-text {
+  font-family: var(--sans);
+  font-size: 11px;
+  fill: var(--ink);
+}
+
+.dgm-sub {
+  font-family: var(--mono);
+  font-size: 7px;
+  letter-spacing: 0.06em;
+  fill: var(--muted);
+}
+
+.dgm-cap {
+  font-family: var(--mono);
+  font-size: 7.5px;
+  letter-spacing: var(--track-wide);
+  fill: var(--muted);
+}
+
+.dgm-cap--accent {
+  fill: var(--accent);
+}
+
+.dgm-heading {
+  font-family: var(--mono);
+  font-size: 7px;
+  letter-spacing: var(--track-ultra);
+  fill: var(--line-2);
+}
+
+/* Drawn once, the first time a diagram is shown. `pathLength="1"` on every
+   edge is what lets one keyframe draw paths of wildly different lengths.
+   Dashed edges can't use the dash trick — their dasharray is the look — so
+   they fade instead, and the shared arrowhead waits for the lines to land. */
+@keyframes dgm-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes dgm-fade {
+  to {
+    opacity: 1;
+  }
+}
+
+.dgm-draw .dgm-edge:not(.dgm-edge--dashed) {
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  animation: dgm-draw 0.9s var(--ease) forwards;
+}
+
+.dgm-draw .dgm-edge--dashed,
+.dgm-draw .dgm-node,
+.dgm-draw .dgm-group,
+.dgm-draw text {
+  opacity: 0;
+  animation: dgm-fade 0.5s var(--ease) 0.18s forwards;
+}
+
+.dgm-draw .dgm-arrowhead {
+  opacity: 0;
+  animation: dgm-fade 0.3s var(--ease) 0.85s forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  /* final state immediately */
+  .dgm-draw .dgm-edge:not(.dgm-edge--dashed),
+  .dgm-draw .dgm-edge--dashed,
+  .dgm-draw .dgm-node,
+  .dgm-draw .dgm-group,
+  .dgm-draw .dgm-arrowhead,
+  .dgm-draw text {
+    animation: none;
+    opacity: 1;
+    stroke-dashoffset: 0;
+  }
+}
+
+/* A split cannot hold on a narrow screen, so the rail becomes an accordion:
+   the inline `order` on the tabs and on the detail node interleaves them, and
+   only the open row has a panel under it because there is only one panel. */
+@media (max-width: 1100px) {
+  .md {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .md-rail {
+    display: contents;
+  }
+
+  .md-detail {
+    max-height: none;
+    padding: 4px 0 20px;
+    mask-image: none;
+    -webkit-mask-image: none;
+  }
 }
 
 /* --------------------------- marquee --------------------------- */

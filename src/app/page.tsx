@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { motion, AnimatePresence, MotionConfig } from "framer-motion";
-import { MessageCircle, FileText } from "lucide-react";
+import { MessageCircle, FileText, Github } from "lucide-react";
 
 import BootPreloader from "@/components/boot-preloader";
 import BottomTicker from "@/components/bottom-ticker";
@@ -11,20 +11,43 @@ import ChatWidget from "@/components/chat-widget";
 import HeartBurst from "@/components/heart-burst";
 import HomeSection from "@/components/sections/home-section";
 import WorkSection from "@/components/sections/work-section";
+import LabSection from "@/components/sections/lab-section";
 import AboutSection from "@/components/sections/about-section";
 import ContactSection from "@/components/sections/contact-section";
 import { LikeCounter, NowPlaying, UtilityCluster } from "@/components/floating-ui";
-import { persona, sections, type Section, type Mood } from "@/lib/content";
+import { persona, sections, sectionLabels, contact, type Section, type Mood } from "@/lib/content";
 import { sectionFade } from "@/lib/motion";
 import type { Pose } from "@/components/robot/poses";
 
 // WebGL only ever runs in the browser.
 const RobotStage = dynamic(() => import("@/components/robot"), { ssr: false });
 
+/**
+ * Where the figure stands, in world units. One unit is ~216px at this camera
+ * (34 fov, z 6.2).
+ *
+ * Home pushes it right of centre: the hero copy now occupies the left half
+ * where a wordmark used to, and at 0 the figure's head landed across the
+ * proof numbers. About pulls it left into its own column — see .about-grid.
+ */
+const FIGURE_X: Record<Section, number> = {
+  home: 0.62,
+  /* Experience runs career | gutter | stack; the gutter centres ~166px left
+     of the viewport centre, which is what this is. */
+  work: -0.77,
+  /* Lab has no gutter — its cards want the width — so the figure goes left,
+     under the tracks panel, where the column is empty below y470. At 0 it
+     stood behind the first card and the blurb was reading through chrome. */
+  lab: -2.2,
+  about: -1.62,
+  contact: 0,
+};
+
 /** Which pose the robot holds on each section. Home runs its own cycle. */
 const SECTION_POSE: Record<Section, Pose> = {
   home: "idle",
   work: "work",
+  lab: "work",
   about: "idle",
   contact: "bow",
 };
@@ -75,7 +98,7 @@ export default function Page() {
   }, [mood]);
 
   useEffect(() => {
-    if (section === "work") setMood("thinking");
+    if (section === "work" || section === "lab") setMood("thinking");
     else if (section === "about") setMood("bashful");
     else if (section === "contact") setMood("listening");
     else setMood("idle");
@@ -112,6 +135,9 @@ export default function Page() {
 
   // The About page flips between the robot and the human figure. The state
   // lives here because both the 3D stage and the copy need to stay in sync.
+  /** Pulled from the contact links so there is one source of truth for it. */
+  const githubHref = contact.links.find((l) => l.icon === "github")?.href;
+
   const [human, setHuman] = useState(false);
   const [morphGen, setMorphGen] = useState(0);
 
@@ -149,10 +175,16 @@ export default function Page() {
       )}
 
       {/* -------------------- the robot, behind everything -------------------- */}
+      {/* Experience and Lab are dense reading surfaces now — a master-detail
+          rail plus long-form body copy, with no empty column left for the
+          figure to stand in. Behind text it was a legibility problem, not
+          depth, so it steps off for those two and keeps Home, About and
+          Contact where it has room. */}
       <div
         className="robot-layer"
         data-boot={booting}
         data-front={section === "about"}
+        data-hidden={section === "work" || section === "lab"}
         aria-hidden
       >
         <RobotStage
@@ -166,7 +198,7 @@ export default function Page() {
              and z=6.2 one world unit is 212px, so -1.62 centres it in the
              column; it also brings the figure under the heart emitter, which
              sits at 50% - 330px = 405px. */
-          offsetX={section === "about" ? -1.62 : 0}
+          offsetX={FIGURE_X[section]}
           tumbleGen={tumbleGen}
           danceGen={danceGen}
           walkIn
@@ -182,47 +214,74 @@ export default function Page() {
 
         <LikeCounter onLike={onLike} />
 
-        <nav className="nav" aria-label="Sections">
-          {/* These two were <span aria-hidden> styled to look exactly like
-              buttons — a chat bubble and a document icon that did nothing when
-              clicked. They now do the obvious thing each one promises. */}
+      </header>
+
+      {/* The nav runs down the right gutter rather than across the top. The
+          stage is capped at 1240px inside a wider viewport, so there was
+          already a ~100px margin the old horizontal pill never used — moving
+          into it clears the top of the page entirely and, incidentally, gives
+          the labels room to say EXPERIENCE where a pill could only fit WORK.
+          Both label lengths are in the DOM so the narrow breakpoint can swap
+          to the short form without JavaScript. */}
+      <nav className="nav" aria-label="Sections">
+        {sections.map((s, i) => (
+          <button
+            key={s}
+            className="nav-item"
+            data-active={section === s}
+            aria-current={section === s ? "page" : undefined}
+            onClick={() => setSection(s)}
+          >
+            <span className="nav-index">{String(i + 1).padStart(2, "0")}</span>
+            <span className="nav-label">{sectionLabels[s]}</span>
+            <span className="nav-label nav-label--short">{s.toUpperCase()}</span>
+            {section === s && (
+              <motion.span
+                layoutId="nav-pill"
+                className="nav-pill"
+                transition={{ type: "spring", stiffness: 420, damping: 34 }}
+              />
+            )}
+          </button>
+        ))}
+
+        <span className="nav-rule" aria-hidden />
+
+        {/* CV and the repo are what a recruiter reaches for first, and both
+            used to be several clicks deep on Contact. */}
+        <div className="nav-utils">
           <button
             className="nav-icon"
             onClick={jumpToChat}
             aria-label="Ask the assistant a question"
             title="Ask a question"
           >
-            <MessageCircle size={15} />
+            <MessageCircle size={14} />
           </button>
           <a
-            className="nav-icon nav-icon--plain"
+            className="nav-icon"
             href="/shashank-resume.pdf"
             target="_blank"
             rel="noreferrer"
             aria-label="Open CV as a PDF in a new tab"
             title="CV (PDF)"
           >
-            <FileText size={14} />
+            <FileText size={13} />
           </a>
-          {sections.map((s) => (
-            <button
-              key={s}
-              className="nav-item"
-              data-active={section === s}
-              onClick={() => setSection(s)}
+          {githubHref && (
+            <a
+              className="nav-icon"
+              href={githubHref}
+              target="_blank"
+              rel="noreferrer"
+              aria-label="GitHub profile"
+              title="GitHub"
             >
-              {s.toUpperCase()}
-              {section === s && (
-                <motion.span
-                  layoutId="nav-pill"
-                  className="nav-pill"
-                  transition={{ type: "spring", stiffness: 420, damping: 34 }}
-                />
-              )}
-            </button>
-          ))}
-        </nav>
-      </header>
+              <Github size={13} />
+            </a>
+          )}
+        </div>
+      </nav>
 
       {/* ------------------------------ pages ------------------------------ */}
       <main className="stage" id="main">
@@ -233,6 +292,7 @@ export default function Page() {
           <motion.div key={section} {...sectionFade} className="stage-inner">
             {section === "home" && <HomeSection />}
             {section === "work" && <WorkSection />}
+            {section === "lab" && <LabSection />}
             {section === "about" && (
               <AboutSection human={human} gen={morphGen} onFlip={flip} />
             )}
@@ -245,7 +305,7 @@ export default function Page() {
       {/* Love shots leave the FIGURE in a V, not the counter — see heart-burst.
           On About the robot is offset into the left column, so the emitter
           follows it. */}
-      <HeartBurst gen={danceGen} offset={section === "about" ? -330 : 0} />
+      <HeartBurst gen={danceGen} offset={Math.round(FIGURE_X[section] * 216)} />
 
       {/* The chat follows the visitor instead of living only on Home — it is
           the persona, and having it disappear the moment you click Work made

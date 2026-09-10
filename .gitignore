@@ -1,0 +1,53 @@
+# dependencies
+/node_modules
+node_modules
+/.pnp
+.pnp.js
+
+# testing
+/coverage
+
+# next.js
+/.next/
+.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# reference media — large, and mirrored outside the repo
+*.mov
+*.mp4
+*.pptx
+
+# debug render captures
+/.snaps/
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# local env files
+.env*.local
+.env
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.
+
+.context
+ref_images
+
+# three.js reference checkout — vendored only for reading the examples and the
+# Mixamo captures in examples/models/gltf. The curves derived from them are
+# committed as src/components/robot/walkdata.ts; the 951MB source is not.
+/three.js/
+/sample_snippets/

@@ -630,6 +630,38 @@ a.exp-date:hover {
   line-height: 1.6;
 }
 
+/* Bulleted descriptions for experience & projects */
+.exp-points,
+.project-points {
+  list-style: none;
+  margin-top: 4px;
+}
+.project-points {
+  margin-bottom: 12px;
+}
+.exp-points li,
+.project-points li {
+  position: relative;
+  padding-left: 16px;
+  margin-bottom: 5px;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+.exp-points li:last-child,
+.project-points li:last-child {
+  margin-bottom: 0;
+}
+.exp-points li::before,
+.project-points li::before {
+  content: '▸';
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: var(--accent);
+  font-size: 0.75rem;
+}
+
 .project-link {
   color: var(--text-muted);
   text-decoration: none;
@@ -672,6 +704,40 @@ a.exp-date:hover {
   border-color: var(--accent);
   color: var(--accent);
 }
+
+/* Diagrams — hand-drawn inline SVG, theme-aware via tokens */
+.project-diagram {
+  width: 100%;
+  height: auto;
+  display: block;
+  margin: 4px 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--bg-warm);
+  padding: 8px 6px;
+}
+.exp-diagram {
+  grid-column: 1 / -1;
+  margin-top: 12px;
+}
+.pd-box { fill: var(--code-bg); stroke: var(--border); stroke-width: 1; }
+.pd-box-accent { fill: none; stroke: var(--accent); stroke-width: 1.5; }
+.pd-line { stroke: var(--text-muted); stroke-width: 1.4; fill: none; opacity: 0.65; }
+.pd-line-accent { stroke: var(--accent); stroke-width: 1.6; fill: none; }
+.pd-dash { stroke: var(--text-muted); stroke-width: 1.4; fill: none; opacity: 0.65; stroke-dasharray: 3 3; }
+.pd-arrow { fill: var(--text-muted); opacity: 0.65; }
+.pd-arrow-accent { fill: var(--accent); }
+.pd-t { fill: var(--text); font-family: var(--font-body); font-size: 9.5px; font-weight: 600; }
+.pd-s { fill: var(--text-muted); font-family: 'SF Mono', 'Fira Code', monospace; font-size: 8.5px; letter-spacing: 0.2px; }
+.pd-a { fill: var(--accent); font-family: 'SF Mono', 'Fira Code', monospace; font-size: 8.5px; letter-spacing: 0.2px; font-weight: 600; }
+
+/* GitHub link buttons on project cards */
+.project-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.project-link svg { display: block; }
 
 /* Skills */
 .skills-tags {

@@ -89,7 +89,16 @@
             <span class="exp-role">Software Engineer</span>
             <a href="https://www.delhivery.com/" class="exp-company" target="_blank" rel="noopener noreferrer">Delhivery</a>
           </div>
-          <div class="exp-desc">Building and shipping software at scale for India's largest integrated logistics platform.</div>
+          <div class="exp-desc">
+            <ul class="exp-points">
+              <li>Building the internal agentic AI platform — the runtime, gateway, and governance layer other teams' agents run on.</li>
+              <li>Architected a deterministic graph-based workflow engine (LLM, agent, branching, sandboxed-code, guardrail, and concurrent-iteration nodes) with staged versioning and zero-redeploy rollback.</li>
+              <li>Drove adoption of a multi-provider LLM gateway across services — unblocking Claude-backed agents by root-causing provider-specific routing.</li>
+              <li>Built per-agent cost governance with cache-aware pricing and hard budget short-circuits.</li>
+              <li>Instrumented the platform with Langfuse distributed tracing and a Presto/Trino outcome-evaluation pipeline.</li>
+              <li>Cut agent tool-calling iterations 8→3 via SOP-scoped lazy tool loading over six internal MCP servers.</li>
+            </ul>
+          </div>
           <a href="https://www.delhivery.com/" class="exp-date" target="_blank" rel="noopener noreferrer">jan 2026 – present ↗</a>
         </article>
         <article class="experience-item">
@@ -98,7 +107,17 @@
             <a href="https://inteligenai.com/" class="exp-company" target="_blank" rel="noopener noreferrer">InteligenAI</a>
             <a href="https://spector.ai/" class="exp-product" target="_blank" rel="noopener noreferrer">· Spector.AI</a>
           </div>
-          <div class="exp-desc">Built MCP-orchestrated AI agent frameworks with LangGraph for multi-step reasoning in industrial plants. Delivered document intelligence (99% classification, 90% extraction on 500K+ docs), RAG chatbots with hybrid search &amp; RRF, async backends with FastAPI and Celery, and vision systems with YOLO, SAM, and Gemini — deployed on AWS, Azure, and GCP with Docker, Kubernetes, and CI/CD.</div>
+          <div class="exp-desc">
+            <ul class="exp-points">
+              <li>Built MCP-orchestrated AI agent frameworks with LangGraph for multi-step reasoning in industrial plants.</li>
+              <li>Delivered document intelligence (99% classification, 90% extraction on 500K+ docs) with a fine-tuned custom NER for field extraction.</li>
+              <li>Built RAG chatbots with hybrid search, RRF, and HyDE, plus a natural-language-to-SQL/Mongo agent querying 20+ tables.</li>
+              <li>Engineered async backends with FastAPI and Celery, deployed behind Apache load balancing.</li>
+              <li>Delivered vision systems with YOLO, SAM, GroundingDINO, and Gemini for industrial defect detection.</li>
+              <li>Fine-tuned SDXL (DreamBooth) for subject-consistent image generation.</li>
+              <li>Deployed on AWS, Azure, and GCP with Docker, Kubernetes, and CI/CD.</li>
+            </ul>
+          </div>
           <a href="https://inteligenai.com/" class="exp-date" target="_blank" rel="noopener noreferrer">jan 2024 – jan 2026 ↗</a>
         </article>
         <article class="experience-item">
@@ -106,7 +125,11 @@
             <span class="exp-role">Electronics &amp; Design Engineer</span>
             <span class="exp-company">Eleqzee Motors</span>
           </div>
-          <div class="exp-desc">Internship at IIT Kanpur — electronics design and prototyping for motor systems.</div>
+          <div class="exp-desc">
+            <ul class="exp-points">
+              <li>Internship at IIT Kanpur — electronics design and prototyping for motor systems.</li>
+            </ul>
+          </div>
           <div class="exp-date">jun – jul 2023</div>
         </article>
         <article class="experience-item">
@@ -114,7 +137,11 @@
             <span class="exp-role">IoT Engineer</span>
             <span class="exp-company">Invariance Automation</span>
           </div>
-          <div class="exp-desc">Internship at IIT Kanpur — IoT systems and automation for industrial applications.</div>
+          <div class="exp-desc">
+            <ul class="exp-points">
+              <li>Internship at IIT Kanpur — IoT systems and automation for industrial applications.</li>
+            </ul>
+          </div>
           <div class="exp-date">jan – feb 2023</div>
         </article>
       </div>
@@ -148,44 +175,247 @@
       <h2 class="section-title">Projects</h2>
       <div class="projects-list">
         <article class="project-card featured">
-          <div class="project-status">● apr 2024</div>
-          <h3 class="project-name">Source Code Converter</h3>
-          <p class="project-desc">Built a source code converter utilizing LLM (Gen AI) and prompt engineering for accurate conversion to a target programming language with conversion accuracy scores. Designed a Streamlit UI for file uploads, function name and target language specs — showcasing final code and accuracy metrics with 90% overall conversion accuracy.</p>
+          <div class="project-status">● sep 2026</div>
+          <h3 class="project-name">JED Red-Team Attack</h3>
+          <ul class="project-points">
+            <li>Algorithmic red-teaming submission for the JED agent-security benchmark (Kaggle, hosted by OpenAI, Google &amp; IEEE), stress-testing tool-using AI agents.</li>
+            <li>Searches multi-step attack paths that carry an agent from untrusted input to an unsafe action.</li>
+            <li>Reverse-engineered the benchmark's guardrail from its SDK to find structural bypasses rather than clever prompts.</li>
+            <li>Iterated across real leaderboard submissions to a best score of 89/1000.</li>
+          </ul>
+          <svg class="project-diagram" viewBox="0 0 600 96" role="img" aria-label="Attack flow: untrusted input drives the agent to call http.post; the guardrail inspects the URL field but never the data field, so a secret payload exfiltrates.">
+            <defs>
+              <marker id="m1" markerWidth="7" markerHeight="7" refX="5.5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" class="pd-arrow"/></marker>
+              <marker id="a1" markerWidth="7" markerHeight="7" refX="5.5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" class="pd-arrow-accent"/></marker>
+            </defs>
+            <rect class="pd-box" x="0" y="24" width="104" height="36" rx="5"/>
+            <text class="pd-s" x="52" y="39" text-anchor="middle">UNTRUSTED</text>
+            <text class="pd-s" x="52" y="51" text-anchor="middle">INPUT</text>
+            <rect class="pd-box" x="124" y="24" width="104" height="36" rx="5"/>
+            <text class="pd-t" x="186" y="46" text-anchor="middle">AGENT</text>
+            <rect class="pd-box" x="248" y="24" width="104" height="36" rx="5"/>
+            <text class="pd-s" x="310" y="45" text-anchor="middle">http.post</text>
+            <rect class="pd-box" x="372" y="24" width="104" height="36" rx="5"/>
+            <text class="pd-t" x="434" y="46" text-anchor="middle">GUARDRAIL</text>
+            <rect class="pd-box-accent" x="496" y="24" width="104" height="36" rx="5"/>
+            <text class="pd-a" x="548" y="46" text-anchor="middle">EXFIL ✓</text>
+            <line class="pd-line" x1="106" y1="42" x2="122" y2="42" marker-end="url(#m1)"/>
+            <line class="pd-line" x1="230" y1="42" x2="246" y2="42" marker-end="url(#m1)"/>
+            <line class="pd-line" x1="354" y1="42" x2="370" y2="42" marker-end="url(#m1)"/>
+            <line class="pd-line-accent" x1="478" y1="42" x2="494" y2="42" marker-end="url(#a1)"/>
+            <text class="pd-a" x="434" y="80" text-anchor="middle">inspects url ✓ · never checks data ✗</text>
+          </svg>
+          <div class="project-links-row">
+            <a class="project-link" href="https://github.com/ShashankSrivastava2002/ass-evaluate" target="_blank" rel="noopener noreferrer"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>GitHub ↗</a>
+          </div>
           <div class="project-tech">
-            <span>Generative AI</span><span>LLM</span><span>Python</span><span>Streamlit</span><span>Prompt Engineering</span>
+            <span>Agent Security</span><span>LLM Red-Teaming</span><span>Python</span><span>GPT-OSS</span><span>Gemma</span>
           </div>
         </article>
         <article class="project-card">
           <div class="project-meta">
             <span class="project-num">02</span>
-            <span class="project-status-text">MAR 2024</span>
+            <span class="project-status-text">MAY 2026</span>
           </div>
-          <h3 class="project-name">Custom Segmentation Model</h3>
-          <p class="project-desc">Implemented YOLOv8 (SOTA) for object detection and boundary delineation. Leveraged the SAM model for precise semantic segmentation from images, achieving 95% accuracy.</p>
+          <h3 class="project-name">Groot — Plant Disease Assistant</h3>
+          <ul class="project-points">
+            <li>Multimodal, multilingual plant-disease assistant (Kaggle Gemma hackathon) — photo, voice note, or text in 7 languages.</li>
+            <li>Returns cited, research-grounded diagnoses, running fully local.</li>
+            <li>A ReAct agent with an information-confirmation gate that refuses to diagnose until both plant and symptoms are confirmed.</li>
+            <li>Grounded in a ChromaDB vector store.</li>
+          </ul>
+          <svg class="project-diagram" viewBox="0 0 600 96" role="img" aria-label="Multimodal input flows through a ReAct agent to a ChromaDB vector search to a diagnosis; a confirmation gate loops the agent back to ask for the plant and symptoms before it diagnoses.">
+            <defs>
+              <marker id="m2" markerWidth="7" markerHeight="7" refX="5.5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" class="pd-arrow"/></marker>
+              <marker id="a2" markerWidth="7" markerHeight="7" refX="5.5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" class="pd-arrow-accent"/></marker>
+            </defs>
+            <path class="pd-line-accent" d="M244,30 C244,8 196,8 198,28" marker-end="url(#a2)"/>
+            <rect class="pd-box" x="0" y="30" width="126" height="34" rx="5"/>
+            <text class="pd-s" x="63" y="44" text-anchor="middle">TEXT · VOICE</text>
+            <text class="pd-s" x="63" y="55" text-anchor="middle">· IMAGE</text>
+            <rect class="pd-box" x="158" y="30" width="126" height="34" rx="5"/>
+            <text class="pd-t" x="221" y="51" text-anchor="middle">ReAct AGENT</text>
+            <rect class="pd-box" x="316" y="30" width="126" height="34" rx="5"/>
+            <text class="pd-s" x="379" y="44" text-anchor="middle">VECTOR</text>
+            <text class="pd-s" x="379" y="55" text-anchor="middle">SEARCH</text>
+            <rect class="pd-box" x="474" y="30" width="126" height="34" rx="5"/>
+            <text class="pd-t" x="537" y="51" text-anchor="middle">DIAGNOSIS</text>
+            <line class="pd-line" x1="128" y1="47" x2="156" y2="47" marker-end="url(#m2)"/>
+            <line class="pd-line" x1="286" y1="47" x2="314" y2="47" marker-end="url(#m2)"/>
+            <line class="pd-line" x1="444" y1="47" x2="472" y2="47" marker-end="url(#m2)"/>
+            <text class="pd-a" x="221" y="82" text-anchor="middle">⟳ confirm gate: plant + symptoms</text>
+          </svg>
+          <div class="project-links-row">
+            <a class="project-link" href="https://github.com/ShashankSrivastava2002/Groot" target="_blank" rel="noopener noreferrer"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>GitHub ↗</a>
+          </div>
           <div class="project-tech">
-            <span>SAM</span><span>YOLOv8</span><span>Python</span><span>Deep Learning</span>
+            <span>Gemma</span><span>FastAPI</span><span>ChromaDB</span><span>RAG</span><span>Whisper</span><span>ReAct</span>
           </div>
         </article>
         <article class="project-card">
           <div class="project-meta">
             <span class="project-num">03</span>
-            <span class="project-status-text">OCT 2023</span>
+            <span class="project-status-text">MAR 2026</span>
           </div>
-          <h3 class="project-name">Image Caption Generator</h3>
-          <p class="project-desc">Preprocessed Flickr8K with data cleaning and VGG-16 image feature extraction. Integrated captions and features with LSTM models optimized for effective learning. Evaluated caption accuracy with BLEU scores against human references.</p>
+          <h3 class="project-name">Variational Autoencoder from Scratch</h3>
+          <ul class="project-points">
+            <li>From-scratch PyTorch implementation of autoencoders and VAEs — deterministic AE → MLP-VAE → CNN-VAE.</li>
+            <li>Trained across MNIST, Fashion-MNIST, and CIFAR-10.</li>
+            <li>Implements the reparameterization trick and Gaussian ELBO by hand.</li>
+            <li>Written notes deriving the math from the original paper.</li>
+          </ul>
+          <svg class="project-diagram" viewBox="0 0 600 96" role="img" aria-label="VAE forward path: input x through the encoder to Gaussian parameters mu and log-variance, sampled by the reparameterization z equals mu plus sigma epsilon, through the decoder to reconstruction x-hat; loss is reconstruction plus KL.">
+            <defs>
+              <marker id="m3" markerWidth="7" markerHeight="7" refX="5.5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" class="pd-arrow"/></marker>
+            </defs>
+            <rect class="pd-box" x="0" y="24" width="86" height="36" rx="5"/>
+            <text class="pd-t" x="43" y="46" text-anchor="middle">x</text>
+            <rect class="pd-box" x="102" y="24" width="86" height="36" rx="5"/>
+            <text class="pd-s" x="145" y="45" text-anchor="middle">ENCODER</text>
+            <rect class="pd-box" x="204" y="24" width="86" height="36" rx="5"/>
+            <text class="pd-s" x="247" y="45" text-anchor="middle">μ, logσ²</text>
+            <rect class="pd-box-accent" x="306" y="24" width="86" height="36" rx="5"/>
+            <text class="pd-a" x="349" y="45" text-anchor="middle">z=μ+σε</text>
+            <rect class="pd-box" x="408" y="24" width="86" height="36" rx="5"/>
+            <text class="pd-s" x="451" y="45" text-anchor="middle">DECODER</text>
+            <rect class="pd-box" x="510" y="24" width="86" height="36" rx="5"/>
+            <text class="pd-t" x="553" y="46" text-anchor="middle">x̂</text>
+            <line class="pd-line" x1="88" y1="42" x2="100" y2="42" marker-end="url(#m3)"/>
+            <line class="pd-line" x1="190" y1="42" x2="202" y2="42" marker-end="url(#m3)"/>
+            <line class="pd-line" x1="292" y1="42" x2="304" y2="42" marker-end="url(#m3)"/>
+            <line class="pd-line" x1="394" y1="42" x2="406" y2="42" marker-end="url(#m3)"/>
+            <line class="pd-line" x1="496" y1="42" x2="508" y2="42" marker-end="url(#m3)"/>
+            <text class="pd-a" x="300" y="80" text-anchor="middle">reparameterize · loss = reconstruction + KL</text>
+          </svg>
+          <div class="project-links-row">
+            <a class="project-link" href="https://github.com/ShashankSrivastava2002/Vae_implementation" target="_blank" rel="noopener noreferrer"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>GitHub ↗</a>
+          </div>
           <div class="project-tech">
-            <span>Deep Learning</span><span>Python</span><span>NLP</span><span>Computer Vision</span><span>LSTM</span><span>VGG-16</span>
+            <span>PyTorch</span><span>VAE</span><span>Deep Learning</span><span>Generative Models</span>
           </div>
         </article>
         <article class="project-card">
           <div class="project-meta">
             <span class="project-num">04</span>
-            <span class="project-status-text">JUL 2023</span>
+            <span class="project-status-text">MAY 2024</span>
           </div>
-          <h3 class="project-name">Face Recognition Model</h3>
-          <p class="project-desc">Built a personalized dataset from celebrity images and names for model training. Used OpenCV and Haar Cascade Classifier for face detection, feature extraction, and model building — achieving 80% accuracy.</p>
+          <h3 class="project-name">Object Semantic Separator</h3>
+          <ul class="project-points">
+            <li>Pairs YOLOv8 detection with Meta's SAM for pixel-precise object separation.</li>
+            <li>YOLO's bounding boxes become the region prompts that focus SAM into clean per-object masks, then removes the background.</li>
+            <li>Turns coarse detection into precise segmentation without training a segmentation model from scratch.</li>
+            <li>Evaluated with IoU/Dice overlap.</li>
+          </ul>
+          <svg class="project-diagram" viewBox="0 0 600 96" role="img" aria-label="Image goes to YOLOv8 detection; the bounding boxes become region prompts for SAM, which produces per-object masks, then a background-removed cutout.">
+            <defs>
+              <marker id="m4" markerWidth="7" markerHeight="7" refX="5.5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" class="pd-arrow"/></marker>
+              <marker id="a4" markerWidth="7" markerHeight="7" refX="5.5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" class="pd-arrow-accent"/></marker>
+            </defs>
+            <rect class="pd-box" x="0" y="24" width="104" height="36" rx="5"/>
+            <text class="pd-t" x="52" y="46" text-anchor="middle">IMAGE</text>
+            <rect class="pd-box" x="124" y="24" width="104" height="36" rx="5"/>
+            <text class="pd-t" x="186" y="46" text-anchor="middle">YOLOv8</text>
+            <rect class="pd-box-accent" x="248" y="24" width="104" height="36" rx="5"/>
+            <text class="pd-a" x="310" y="46" text-anchor="middle">SAM</text>
+            <rect class="pd-box" x="372" y="24" width="104" height="36" rx="5"/>
+            <text class="pd-t" x="434" y="46" text-anchor="middle">MASKS</text>
+            <rect class="pd-box" x="496" y="24" width="104" height="36" rx="5"/>
+            <text class="pd-t" x="548" y="46" text-anchor="middle">CUTOUT</text>
+            <line class="pd-line" x1="106" y1="42" x2="122" y2="42" marker-end="url(#m4)"/>
+            <line class="pd-line-accent" x1="230" y1="42" x2="246" y2="42" marker-end="url(#a4)"/>
+            <line class="pd-line" x1="354" y1="42" x2="370" y2="42" marker-end="url(#m4)"/>
+            <line class="pd-line" x1="478" y1="42" x2="494" y2="42" marker-end="url(#m4)"/>
+            <text class="pd-a" x="248" y="80" text-anchor="middle">boxes → SAM prompts</text>
+          </svg>
+          <div class="project-links-row">
+            <a class="project-link" href="https://github.com/ShashankSrivastava2002/object_sementatic_separator" target="_blank" rel="noopener noreferrer"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>GitHub ↗</a>
+          </div>
           <div class="project-tech">
-            <span>Deep Learning</span><span>Image Classification</span><span>OpenCV</span><span>Python</span>
+            <span>YOLOv8</span><span>SAM</span><span>OpenCV</span><span>Python</span>
+          </div>
+        </article>
+        <article class="project-card">
+          <div class="project-meta">
+            <span class="project-num">05</span>
+            <span class="project-status-text">APR 2024</span>
+          </div>
+          <h3 class="project-name">Source Code Converter</h3>
+          <ul class="project-points">
+            <li>A source-to-source code translator on Streamlit + Google Gemini.</li>
+            <li>Upload a file, name a function, pick a target language — it converts that function.</li>
+            <li>Self-scores the conversion quality on a 1–5 scale with a second Gemini pass.</li>
+            <li>Custom extension-based language detection handles raw files that off-the-shelf libraries misclassify.</li>
+          </ul>
+          <svg class="project-diagram" viewBox="0 0 600 96" role="img" aria-label="A file is language-detected by extension, converted by Gemini, self-scored by a second Gemini pass on a 1 to 5 scale, then output.">
+            <defs>
+              <marker id="m5" markerWidth="7" markerHeight="7" refX="5.5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" class="pd-arrow"/></marker>
+            </defs>
+            <rect class="pd-box" x="0" y="24" width="104" height="36" rx="5"/>
+            <text class="pd-t" x="52" y="46" text-anchor="middle">FILE</text>
+            <rect class="pd-box" x="124" y="24" width="104" height="36" rx="5"/>
+            <text class="pd-s" x="186" y="39" text-anchor="middle">DETECT</text>
+            <text class="pd-s" x="186" y="51" text-anchor="middle">LANG</text>
+            <rect class="pd-box" x="248" y="24" width="104" height="36" rx="5"/>
+            <text class="pd-s" x="310" y="39" text-anchor="middle">GEMINI</text>
+            <text class="pd-s" x="310" y="51" text-anchor="middle">convert</text>
+            <rect class="pd-box-accent" x="372" y="24" width="104" height="36" rx="5"/>
+            <text class="pd-a" x="434" y="39" text-anchor="middle">GEMINI</text>
+            <text class="pd-a" x="434" y="51" text-anchor="middle">score 1–5</text>
+            <rect class="pd-box" x="496" y="24" width="104" height="36" rx="5"/>
+            <text class="pd-t" x="548" y="46" text-anchor="middle">OUTPUT</text>
+            <line class="pd-line" x1="106" y1="42" x2="122" y2="42" marker-end="url(#m5)"/>
+            <line class="pd-line" x1="230" y1="42" x2="246" y2="42" marker-end="url(#m5)"/>
+            <line class="pd-line" x1="354" y1="42" x2="370" y2="42" marker-end="url(#m5)"/>
+            <line class="pd-line" x1="478" y1="42" x2="494" y2="42" marker-end="url(#m5)"/>
+            <text class="pd-a" x="434" y="80" text-anchor="middle">self-scores the conversion</text>
+          </svg>
+          <div class="project-links-row">
+            <a class="project-link" href="https://github.com/ShashankSrivastava2002/souce_code_generator" target="_blank" rel="noopener noreferrer"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>GitHub ↗</a>
+          </div>
+          <div class="project-tech">
+            <span>Generative AI</span><span>LLM</span><span>Gemini</span><span>Streamlit</span><span>Python</span>
+          </div>
+        </article>
+        <article class="project-card">
+          <div class="project-meta">
+            <span class="project-num">06</span>
+            <span class="project-status-text">OCT 2023</span>
+          </div>
+          <h3 class="project-name">Image Caption Generator</h3>
+          <ul class="project-points">
+            <li>Preprocessed Flickr8K with data cleaning and VGG-16 image feature extraction.</li>
+            <li>Integrated captions and features with LSTM models optimized for effective learning.</li>
+            <li>Evaluated caption accuracy with BLEU scores against human references.</li>
+          </ul>
+          <svg class="project-diagram" viewBox="0 0 600 96" role="img" aria-label="An image is encoded by VGG-16 into features, decoded by an LSTM into a caption, and evaluated with BLEU against human references.">
+            <defs>
+              <marker id="m6" markerWidth="7" markerHeight="7" refX="5.5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" class="pd-arrow"/></marker>
+              <marker id="a6" markerWidth="7" markerHeight="7" refX="5.5" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" class="pd-arrow-accent"/></marker>
+            </defs>
+            <rect class="pd-box" x="0" y="24" width="86" height="36" rx="5"/>
+            <text class="pd-t" x="43" y="46" text-anchor="middle">IMAGE</text>
+            <rect class="pd-box" x="102" y="24" width="86" height="36" rx="5"/>
+            <text class="pd-s" x="145" y="45" text-anchor="middle">VGG-16</text>
+            <rect class="pd-box" x="204" y="24" width="86" height="36" rx="5"/>
+            <text class="pd-s" x="247" y="45" text-anchor="middle">FEATURES</text>
+            <rect class="pd-box" x="306" y="24" width="86" height="36" rx="5"/>
+            <text class="pd-s" x="349" y="45" text-anchor="middle">LSTM</text>
+            <rect class="pd-box" x="408" y="24" width="86" height="36" rx="5"/>
+            <text class="pd-s" x="451" y="45" text-anchor="middle">CAPTION</text>
+            <rect class="pd-box-accent" x="510" y="24" width="86" height="36" rx="5"/>
+            <text class="pd-a" x="553" y="46" text-anchor="middle">BLEU</text>
+            <line class="pd-line" x1="88" y1="42" x2="100" y2="42" marker-end="url(#m6)"/>
+            <line class="pd-line" x1="190" y1="42" x2="202" y2="42" marker-end="url(#m6)"/>
+            <line class="pd-line" x1="292" y1="42" x2="304" y2="42" marker-end="url(#m6)"/>
+            <line class="pd-line" x1="394" y1="42" x2="406" y2="42" marker-end="url(#m6)"/>
+            <line class="pd-line-accent" x1="496" y1="42" x2="508" y2="42" marker-end="url(#a6)"/>
+            <text class="pd-a" x="470" y="80" text-anchor="middle">scored vs human references</text>
+          </svg>
+          <div class="project-links-row">
+            <a class="project-link" href="https://github.com/ShashankSrivastava2002" target="_blank" rel="noopener noreferrer"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/></svg>GitHub ↗</a>
+          </div>
+          <div class="project-tech">
+            <span>Deep Learning</span><span>Python</span><span>NLP</span><span>Computer Vision</span><span>LSTM</span><span>VGG-16</span>
           </div>
         </article>
       </div>

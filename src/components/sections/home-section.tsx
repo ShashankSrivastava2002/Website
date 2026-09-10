@@ -1,14 +1,18 @@
 "use client";
 
+import DecodingName from "@/components/decoding-name";
+
 /**
- * Home is the assistant and the figure, and nothing else.
+ * Home is the name, the assistant and the figure.
  *
- * The positioning line and the proof numbers that briefly lived here are gone
- * — the chat is the thing to do on this page, and a headline above it was
- * competing with it for the same first glance. The section itself is now
- * empty on purpose: the chat dock and the figure are both fixed layers owned
- * by the page, so there is nothing left for this component to place.
+ * The chat dock and the figure are both fixed layers owned by the page, so
+ * the only thing this component places is the hero — which fills the empty
+ * top-left quarter the removed topbar left behind.
  */
-export default function HomeSection() {
-  return <div className="home" />;
+export default function HomeSection({ start = true }: { start?: boolean }) {
+  return (
+    <div className="home">
+      <DecodingName start={start} />
+    </div>
+  );
 }

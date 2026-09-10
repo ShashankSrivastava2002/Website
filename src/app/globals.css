@@ -49,6 +49,9 @@
   --text-lg: 15px;
   --text-xl: 17px;
   --text-title: 21px;
+  /* The one size above --text-title. Nothing else on the site is display
+     type, so it lives here rather than being typed into .name directly. */
+  --text-hero: clamp(34px, 5.2vw, 64px);
 
   /* Derived from what the stylesheet actually used rather than imposed on it:
      0.18 / 0.16 / 0.2em were 21 of the 24 declarations between them. */
@@ -63,16 +66,9 @@
   --radius-modal: 20px;
   --radius-pill: 999px;
 
-  --space-2: 10px;
   --space-3: 16px;
   --space-4: 26px;
   --space-5: 40px;
-
-  /* The now-playing card floats at the bottom-right of every page (22px
-     inset, ~180px wide). Page content that reaches the bottom of the stage
-     has to keep clear of it — Contact's footer links were landing underneath
-     it, a measured 95x26px overlap. */
-  --chrome-right: 214px;
 
   /* The vertical nav owns a column on the right. Measured, not guessed: the
      widest item is "05 CONTACT" and the stack renders 121px wide, so 132px
@@ -105,16 +101,15 @@
   /* ---- layer order -----------------------------------------------------
      These are the values the site already used, given names. They were 13
      ad-hoc numbers including the adjacent 40/41/42, which made every new
-     overlay a coin flip — the ticker painting over the now-playing card came
-     from exactly that. Numbers unchanged, so nothing moves; the point is that
-     the next overlay has somewhere to go. */
+     overlay a coin flip — a fixed strip painting over the now-playing card
+     came from exactly that. Numbers unchanged, so nothing moves; the point
+     is that the next overlay has somewhere to go. */
   --z-figure: 1;         /* the 3D stage, behind the page */
   --z-figure-lift: 9;    /* About: the figure is the subject, still under .stage */
   --z-stage: 10;         /* page content */
   --z-hearts: 22;
-  --z-chrome: 30;        /* topbar, chat dock */
+  --z-chrome: 30;        /* nav, chat dock */
   --z-grain: 40;
-  --z-ticker: 41;
   --z-float: 42;         /* now-playing card, utility cluster */
   --z-boot: 200;
   --z-boot-figure: 201;  /* the walk-in plays over the boot screen */
@@ -148,11 +143,11 @@ body {
 }
 
 /* The page is a fixed stage, not a scrolling document.
-   Every overlay here (topbar, ticker, now-playing, utility cluster) is
-   position:fixed while the content used to scroll underneath it, so anything
-   tall enough slid straight through them — that single mismatch was the cause
-   of the ticker/now-playing, brand-block/card and chat-dock/career collisions.
-   Density is absorbed by .scroll-col instead. Released on narrow screens,
+   Every overlay here (nav, now-playing, utility cluster) is position:fixed
+   while the content used to scroll underneath it, so anything tall enough slid
+   straight through them — that single mismatch was the cause of the
+   now-playing/card and chat-dock/career collisions. Density is absorbed by
+   .scroll-col instead. Released on narrow screens,
    where a column of stacked cards genuinely is a scrolling document. */
 @media (min-width: 769px) {
   /* Scoped to the single-screen app shell. /colophon, /privacy and the 404 are
@@ -162,109 +157,6 @@ body {
   html:has(.stage),
   html:has(.stage) body {
     overflow: hidden;
-  }
-}
-
-/* The right gutter closes up below this, so the nav gives up the column and
-   returns to a horizontal pill — centred under the brand rather than beside
-   it, because the like counter already owns the top-right corner. The long
-   labels go with it; EXPERIENCE does not fit a pill. */
-@media (max-width: 1180px) {
-  .nav {
-    top: 84px;
-    right: auto;
-    left: 50%;
-    translate: -50% 0;
-    flex-direction: row;
-    align-items: center;
-    gap: 2px;
-    padding: 5px;
-    border-radius: var(--radius-pill);
-    background: rgba(255, 255, 255, 0.72);
-    backdrop-filter: var(--glass-blur);
-    -webkit-backdrop-filter: var(--glass-blur);
-    border: 1px solid var(--glass-edge);
-    box-shadow: var(--glass-shadow);
-  }
-
-  .nav-index,
-  .nav-rule {
-    display: none;
-  }
-
-  .nav-label {
-    display: none;
-  }
-
-  .nav-label--short {
-    display: inline;
-  }
-
-  .nav-item,
-  .nav-pill {
-    border-radius: var(--radius-pill);
-  }
-
-  .nav-item {
-    padding: 8px 14px;
-  }
-
-  .nav-utils {
-    padding-right: 0;
-    margin-left: 4px;
-  }
-
-  /* the nav is a pill at the top again, so it no longer owns a column */
-  .stage {
-    padding-top: 142px;
-    padding-right: var(--gutter);
-  }
-}
-
-/* Below this the grids have already collapsed to one column and a phone
-   screen is far too short to hold a section, so the fixed stage stops making
-   sense: the page becomes an ordinary scrolling document and every inner
-   scroller stands down. Nested scroll regions on a touch screen are miserable
-   — you swipe and the wrong thing moves. */
-@media (max-width: 768px) {
-  .stage {
-    height: auto;
-    min-height: 100dvh;
-    padding: 96px 18px 84px;
-    grid-template-rows: auto;
-  }
-
-  .stage-inner,
-  .page,
-  .home {
-    flex: none;
-  }
-
-  .work-grid,
-  .about-grid,
-  .contact-grid {
-    flex: none;
-    min-height: 0;
-  }
-
-  .scroll-col {
-    overflow: visible;
-    padding-right: 0;
-    margin-right: 0;
-    padding-bottom: 0;
-    mask-image: none;
-    -webkit-mask-image: none;
-  }
-
-  /* Both of these reserve room for the now-playing card, which is only
-     alongside them on a wide screen. */
-  .site-foot {
-    padding-right: 0;
-  }
-
-  .marquee {
-    mask-image: none;
-    -webkit-mask-image: none;
   }
 }
 
@@ -418,66 +310,10 @@ body::before {
 }
 
 /* ====================================================================== */
-/* chrome: topbar + nav                                                    */
+/* chrome: nav                                                             */
 /* ====================================================================== */
 
-.topbar {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: var(--z-chrome);
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  padding: 22px 26px;
-  pointer-events: none;
-}
-
-/* The nav is a glass pill and reads over anything, but the brand block is bare
-   text on nothing. Scroll Work or Contact and card copy slid straight under
-   "shashank srivastava. / BUILDER · AI DEVELOPER · DELHIVERY" — two strings of
-   text in the same pixels. This is the same trick .ticker already uses at the
-   other end: fade the background up behind the bar so whatever passes under it
-   dissolves rather than collides. */
-.topbar::before {
-  content: "";
-  position: absolute;
-  inset: 0 0 auto;
-  /* Solid all the way past the brand's second line (which ends at ~62px), then
-     a soft tail so the edge never reads as a bar. */
-  height: 118px;
-  z-index: -1;
-  pointer-events: none;
-  background: linear-gradient(
-    to bottom,
-    var(--bg) 0,
-    var(--bg) 60%,
-    color-mix(in srgb, var(--bg) 62%, transparent) 80%,
-    transparent
-  );
-}
-
-.brand {
-  pointer-events: auto;
-}
-
-.brand h2 {
-  margin: 0;
-  font-size: 19px;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-}
-
-.brand p {
-  margin: 4px 0 0;
-  font-family: var(--mono);
-  font-size: var(--text-small);
-  letter-spacing: var(--track-ui);
-  color: var(--muted);
-}
-
-/* Out of the topbar and down the right gutter.
+/* Down the right gutter, where a topbar used to sit across the top.
    The stage is capped at 1240px, so in a 1450px viewport there is already a
    ~100px margin on each side that nothing used. Putting the nav in the right
    one clears the whole top of the page and buys the labels enough room to say
@@ -616,8 +452,12 @@ body::before {
      resolve against. min-height would let the content push the page taller
      again, which is the behaviour this replaces. */
   height: 100dvh;
-  /* asymmetric on purpose — the right side is the nav's column */
-  padding: 104px calc(var(--gutter) + var(--nav-col)) 90px var(--gutter);
+  /* Asymmetric on purpose — the right side is the nav's column.
+     The top was 104px to clear a fixed topbar and the bottom 90px to clear a
+     fixed stack strip. Both are gone, so the stage takes the space back: what
+     is left at the top is breathing room, and at the bottom just enough to
+     stay off the utility cluster, which sits 50px up from the floor. */
+  padding: 24px calc(var(--gutter) + var(--nav-col)) 62px var(--gutter);
   /* single cell — outgoing and incoming sections stack here during a crossfade */
   display: grid;
   grid-template-columns: minmax(0, 1fr);
@@ -646,22 +486,21 @@ body::before {
 }
 
 /* A column that absorbs its own overflow instead of pushing the page taller.
-   The mask fades the last stretch so a clipped card reads as "more below"
-   rather than as a hard cut, and the scrollbar is hidden because the fade
-   already says it. The bottom padding is deliberately close to the fade
-   distance, so at the end of the scroll the gradient is mostly over padding
-   and the last line stays legible. */
+   No mask. Both edges used to fade to transparent so a clipped line read as
+   "more below" rather than as a hard cut — but the price was permanently
+   half-legible text at the top and bottom of every column, on every section.
+   Text wins: the column clips like any other scroll container, and the last
+   line is either fully there or fully gone. */
 .scroll-col {
   overflow-y: auto;
   min-height: 0;
   padding-right: 14px;
   margin-right: -14px;
+  padding-top: 2px;
   padding-bottom: 40px;
   overscroll-behavior: contain;
   scrollbar-width: none;
   -ms-overflow-style: none;
-  mask-image: linear-gradient(to bottom, #000 calc(100% - 56px), transparent);
-  -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 56px), transparent);
 }
 
 /* These carry tabIndex so they can be scrolled from the keyboard, which means
@@ -679,11 +518,86 @@ body::before {
 
 /* ---------------------------- home ---------------------------- */
 
-/* Home has no content of its own any more — the chat dock and the figure are
-   both fixed layers owned by the page. This just holds the stage open. */
+/* Home. The chat dock and the figure are fixed layers owned by the page; the
+   only thing in the flow is the hero, which sits in the top-left quarter the
+   removed topbar left empty. It stays out of the figure's way (centred, lower)
+   and out of the dock's (bottom-left). */
 .home {
   flex: 1;
   min-height: 0;
+}
+
+.hero {
+  flex: none;
+  max-width: 62%;
+}
+
+/* Display type, and the only instance of it. Weight and family are the site's
+   own — there is no serif in this stylesheet, so "resolved" means the display
+   sans, and the unresolved state borrows --mono. */
+.name {
+  margin: 0;
+  font-size: var(--text-hero);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.02;
+  color: var(--ink);
+  /* Holds the line open while every character is still blank. */
+  min-height: 1.02em;
+}
+
+.name .char {
+  display: inline-block;
+  /* A noise glyph is centred in the slot its final letter will occupy — see
+     the width lock in decoding-name.tsx — and clipped if it is wider, so a
+     wide symbol can never push the line around. */
+  text-align: center;
+  overflow: hidden;
+  vertical-align: bottom;
+  /* Blank until its turn comes round, so the heading starts genuinely empty
+     rather than as a row of placeholders. */
+  opacity: 0;
+}
+
+.name .char.space {
+  /* A collapsed inline-block would swallow the word gap. */
+  width: 0.28em;
+  opacity: 1;
+}
+
+/* Unresolved: mono, lighter, accent. Reads as instrumentation. */
+.name .char.decoding {
+  opacity: 1;
+  color: var(--accent);
+  font-family: var(--mono);
+  font-weight: 400;
+}
+
+/* Resolved: the site's display face at full weight. */
+.name .char.decoded {
+  opacity: 1;
+  color: var(--ink);
+  font-family: var(--sans);
+  font-weight: 700;
+  transition: color 0.32s var(--ease);
+}
+
+/* Same line the old topbar carried under the name. Hidden until the last
+   character lands, then fade + rise. */
+.tagline {
+  margin: 14px 0 0;
+  font-family: var(--mono);
+  font-size: var(--text-small);
+  letter-spacing: var(--track-ui);
+  color: var(--muted);
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.5s var(--ease), transform 0.5s var(--ease);
+}
+
+.tagline.visible {
+  opacity: 1;
+  transform: none;
 }
 
 /* Experience opens straight on the rail, with no section intro above it. */
@@ -721,6 +635,73 @@ body::before {
    the assistant is the Home hero, not a persistent overlay. */
 .chat-dock:not([data-section="home"]) {
   display: none;
+}
+
+/* The right gutter closes up below this, so the nav gives up the column and
+   returns to a horizontal pill, centred at the top.
+
+   This block used to sit near the top of the file, ABOVE the base .nav and
+   .stage rules. Same specificity, so the base rules won on source order and
+   every property they also set — top, right, flex-direction, align-items,
+   gap, padding — was silently discarded. Only the declarations unique to this
+   block survived, which left a vertical nav wearing a full-size glass pill
+   floating in the middle of the right edge. Pre-existing; moving the block
+   below the rules it overrides is the whole fix. It used to hang 84px
+   down to clear the brand block; with that gone it sits on the top edge like
+   anything else. The long labels go with it; EXPERIENCE does not fit a
+   pill. */
+@media (max-width: 1180px) {
+  .nav {
+    top: 18px;
+    right: auto;
+    left: 50%;
+    translate: -50% 0;
+    flex-direction: row;
+    align-items: center;
+    gap: 2px;
+    padding: 5px;
+    border-radius: var(--radius-pill);
+    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: var(--glass-blur);
+    -webkit-backdrop-filter: var(--glass-blur);
+    border: 1px solid var(--glass-edge);
+    box-shadow: var(--glass-shadow);
+  }
+
+  .nav-index,
+  .nav-rule {
+    display: none;
+  }
+
+  .nav-label {
+    display: none;
+  }
+
+  .nav-label--short {
+    display: inline;
+  }
+
+  .nav-item,
+  .nav-pill {
+    border-radius: var(--radius-pill);
+  }
+
+  .nav-item {
+    padding: 8px 14px;
+  }
+
+  .nav-utils {
+    padding-right: 0;
+    margin-left: 4px;
+  }
+
+  /* The nav is a pill at the top again, so it no longer owns a column — it
+     owns a row instead, and the stage clears exactly that: 18px offset plus
+     the pill's own ~40px, plus air. */
+  .stage {
+    padding-top: 76px;
+    padding-right: var(--gutter);
+  }
 }
 
 @media (max-width: 1180px) {
@@ -1384,30 +1365,6 @@ body::before {
 
 /* --- the muted strip at the foot of both sections --- */
 
-.edu-strip {
-  flex: none;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 8px 18px;
-  margin-top: var(--space-3);
-  padding-top: 11px;
-  border-top: 1px solid var(--line);
-  font-size: var(--text-body);
-  color: var(--muted);
-}
-
-.edu-label {
-  font-family: var(--mono);
-  font-size: var(--text-nano);
-  letter-spacing: var(--track-ultra);
-  color: var(--accent);
-}
-
-.edu-row b {
-  font-weight: 600;
-  color: var(--ink-2);
-}
 
 /* ----------------------------- schematics ----------------------------- */
 
@@ -1543,6 +1500,24 @@ body::before {
   animation: dgm-fade 0.3s var(--ease) 0.85s forwards;
 }
 
+/* Three discrete positions, not a smooth slide — film grain jitters, it does
+   not pan. steps() also means three composited frames a second rather than
+   sixty. */
+@keyframes grain-shift {
+  0% {
+    transform: translate(0, 0);
+  }
+  33% {
+    transform: translate(-1.5%, 1%);
+  }
+  66% {
+    transform: translate(1%, -1.5%);
+  }
+  100% {
+    transform: translate(0, 0);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   /* final state immediately */
   .dgm-draw .dgm-edge:not(.dgm-edge--dashed),
@@ -1574,80 +1549,6 @@ body::before {
   .md-detail {
     max-height: none;
     padding: 4px 0 20px;
-    mask-image: none;
-    -webkit-mask-image: none;
-  }
-}
-
-/* --------------------------- marquee --------------------------- */
-
-.marquee {
-  flex: none;
-  margin-top: var(--space-3);
-  border-top: 1px solid var(--line);
-  padding-top: 13px;
-  overflow: hidden;
-  /* The now-playing card floats over this strip's right end (a measured
-     95x49 overlap on Work), so an opaque card sat on top of moving text.
-     Fade the strip out before the card instead: opaque until --chrome-right
-     from the edge, gone by half that, which clears the card's inner edge. */
-  mask-image: linear-gradient(
-    to right,
-    #000 calc(100% - var(--chrome-right)),
-    transparent calc(100% - var(--chrome-right) / 2)
-  );
-  -webkit-mask-image: linear-gradient(
-    to right,
-    #000 calc(100% - var(--chrome-right)),
-    transparent calc(100% - var(--chrome-right) / 2)
-  );
-}
-
-.marquee-label {
-  font-family: var(--mono);
-  font-size: var(--text-small);
-  letter-spacing: var(--track-ultra);
-  color: var(--muted);
-  margin-bottom: 12px;
-}
-
-.marquee-label b {
-  color: var(--accent);
-  font-weight: 500;
-}
-
-.marquee-track {
-  display: flex;
-  width: max-content;
-  animation: slide 46s linear infinite;
-}
-
-.marquee:hover .marquee-track {
-  animation-play-state: paused;
-}
-
-.marquee-row {
-  display: flex;
-  gap: 30px;
-  padding-right: 30px;
-}
-
-.marquee-row span {
-  font-family: var(--mono);
-  font-size: var(--text-small);
-  letter-spacing: var(--track-ui);
-  color: var(--muted);
-  white-space: nowrap;
-}
-
-.marquee-row b {
-  color: var(--accent);
-  font-weight: 500;
-}
-
-@keyframes slide {
-  to {
-    transform: translateX(-50%);
   }
 }
 
@@ -2198,42 +2099,15 @@ body::before {
 
 /* ---------------------- like counter ---------------------- */
 
-.likes {
-  pointer-events: auto;
-  position: absolute;
-  left: 50%;
-  top: 26px;
-  transform: translateX(-50%);
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  border: 0;
-  background: none;
-  cursor: pointer;
-  font-family: var(--mono);
-  font-size: var(--text-label);
-  letter-spacing: 0.1em;
-  color: var(--ink-2);
-}
-
-.likes-heart {
-  color: #e0574f;
-  transition: transform 0.26s var(--ease);
-}
-
-.likes-heart[data-pop="true"] {
-  transform: scale(1.5);
-}
-
 /* ---------------------- now playing ---------------------- */
 
-/* The ticker is a 33px fixed strip at z-index 41; at bottom:20px this card
-   ran to 786px and the strip painted straight over its artist line. Lifted to
-   clear the strip, and above it, the way the chat dock already sits. */
+/* Was lifted to 52px to clear the stack strip that used to run along the
+   bottom. That strip is gone, so it drops onto the same baseline as the
+   utility cluster and gives the stage back its last 32px. */
 .nowplaying {
   position: fixed;
   right: 22px;
-  bottom: 52px;
+  bottom: 20px;
   z-index: var(--z-float);
   display: flex;
   align-items: center;
@@ -2312,9 +2186,9 @@ body::before {
 
 /* ---------------------- utility cluster ---------------------- */
 
-/* Same ticker collision, but this row can't move up — bottom:52px is the chat
-   dock's input. It rides over the strip instead, which is what the strip's own
-   left mask fade is there for. */
+/* Staged, not rendered — the cluster has no home right now (see page.tsx).
+   Kept intact so putting it back is a one-line change. It sat on the floor,
+   under the chat dock's input, which is bottom:52px on Home. */
 .utils {
   position: fixed;
   left: 22px;
@@ -2398,10 +2272,6 @@ select:focus-visible,
   transform: translateY(1px) scale(0.985);
 }
 
-.likes:active .likes-heart {
-  transform: scale(0.9);
-}
-
 /* --- figures -----------------------------------------------------------
    Proportional digits change width as they change value, so anything that
    counts or scrambles shivers horizontally while it runs. Tabular figures
@@ -2410,7 +2280,6 @@ select:focus-visible,
 
 .stat-value,
 .boot-pct,
-.likes span,
 .panel-head b {
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum" 1;
@@ -2644,147 +2513,21 @@ body::after {
   transform: translateY(1px) scale(0.985);
 }
 
-/* ====================================================================== */
-/* site footer                                                             */
-/* ====================================================================== */
-
-.site-foot {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px 26px;
-  align-items: center;
-  justify-content: space-between;
-  flex: none;
-  margin-top: var(--space-3);
-  padding-top: var(--space-2);
-  padding-right: var(--chrome-right);
-  border-top: 1px solid var(--line);
-  font-family: var(--mono);
-  font-size: var(--text-small);
-  letter-spacing: 0.13em;
-  color: var(--muted);
-  text-transform: uppercase;
-}
-
-.site-foot nav {
-  display: flex;
-  gap: 22px;
-}
-
-.site-foot a {
-  color: var(--muted);
-  text-decoration: none;
-  transition: color 0.22s var(--ease);
-}
-
-.site-foot a:hover {
-  color: var(--ink);
-}
-
-/* ====================================================================== */
-/* bottom ticker + like hint                                               */
-/* ====================================================================== */
-
-.likes-hint {
-  margin-left: 8px;
-  font-family: var(--mono);
-  font-size: var(--text-micro);
-  font-style: normal;
-  letter-spacing: 0.14em;
-  color: var(--muted);
-  white-space: nowrap;
-}
-
-.likes-hint b {
-  padding: 1px 4px;
-  margin: 0 1px;
-  border: 1px solid var(--line-2);
-  border-radius: 4px;
-  font-weight: 500;
-  color: var(--ink-2);
-}
-
-/* The strip runs under everything except the boot screen. It sits above the
-   grain (z 40) so it isn't dulled by it, and below the floating controls. */
-.ticker {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: var(--z-ticker);
-  overflow: hidden;
-  padding: 9px 0;
-  border-top: 1px solid var(--line);
-  background: linear-gradient(to top, rgba(233, 237, 244, 0.94), rgba(233, 237, 244, 0.62));
-  backdrop-filter: blur(6px);
-  pointer-events: none;
-  mask-image: linear-gradient(to right, transparent, #000 7%, #000 93%, transparent);
-}
-
-.ticker-track {
-  display: flex;
-  width: max-content;
-  animation: ticker 48s linear infinite;
-}
-
-.ticker-row {
-  display: flex;
-  flex: none;
-}
-
-.ticker-row span {
-  display: inline-flex;
-  align-items: center;
-  gap: 22px;
-  padding-right: 22px;
-  font-family: var(--mono);
-  font-size: var(--text-small);
-  letter-spacing: var(--track-ultra);
-  color: var(--muted);
-  white-space: nowrap;
-}
-
-.ticker-row i {
-  font-style: normal;
-  color: var(--accent);
-  opacity: 0.55;
-}
-
-/* -50% is exactly one copy of the duplicated row, so the loop has no seam. */
-/* Three discrete positions, not a smooth slide — film grain jitters, it does
-   not pan. steps() also means three composited frames a second rather than
-   sixty. */
-@keyframes grain-shift {
-  0% {
-    transform: translate(0, 0);
-  }
-  33% {
-    transform: translate(-1.5%, 1%);
-  }
-  66% {
-    transform: translate(1%, -1.5%);
-  }
-  100% {
-    transform: translate(0, 0);
-  }
-}
-
-@keyframes ticker {
-  from { transform: translate3d(0, 0, 0); }
-  to { transform: translate3d(-50%, 0, 0); }
-}
-
 @media (prefers-reduced-motion: reduce) {
   /* Everything that loops forever. The earlier blocks named animations one at
-     a time and drifted out of date as new ones were added — the stack marquee
-     (46s), the now-playing EQ bars, the chat caret and the availability dot
+     a time and drifted out of date as new ones were added — the now-playing
+     EQ bars, the chat caret and the availability dot
      were all still running for someone who had asked the OS for stillness.
      Listing the elements rather than the animations means the next one added
      is covered by default. */
+  /* The decode itself is skipped in JS (see decoding-name.tsx); this is the
+     tagline, which is a plain CSS transition. */
+  .tagline {
+    transition: none;
+  }
+
   body::before,
   body::after,
-  .ticker-track,
-  .marquee-track,
   .medallion,
   .np-label i,
   .caret[data-on="true"],
@@ -2795,11 +2538,9 @@ body::after {
 
 /* Nothing ambient should keep compositing while the tab is in the background.
    Chrome throttles hidden tabs but does not reliably stop them, and a
-   full-viewport grain layer plus a 48s marquee is exactly the pair worth
-   stopping. `data-away` is set from page.tsx on visibilitychange. */
+   full-viewport grain layer is exactly the thing worth stopping. `data-away` is set from page.tsx on visibilitychange. */
 body[data-away="true"]::before,
 body[data-away="true"]::after,
-body[data-away="true"] .ticker-track,
 body[data-away="true"] .medallion {
   animation-play-state: paused;
 }
@@ -3032,4 +2773,47 @@ body[data-away="true"] .medallion {
 
 @media (prefers-reduced-motion: reduce) {
   .heart-shot { animation-duration: 0.01s !important; opacity: 0; }
+}
+
+/* Below this the grids have already collapsed to one column and a phone
+   screen is far too short to hold a section, so the fixed stage stops making
+   sense: the page becomes an ordinary scrolling document and every inner
+   scroller stands down. Nested scroll regions on a touch screen are miserable
+   — you swipe and the wrong thing moves.
+
+   Kept at the very end of the stylesheet on purpose. This block used to sit
+   near the top, above .stage, .page, .home, .scroll-col, .about-grid,
+   .contact-grid and .scroll-col — all of which set the same
+   properties at equal specificity and therefore won on source order. Every
+   one of its 17 declarations was dead: on a phone the stage stayed pinned at
+   100dvh with its inner scrollers still clipping and masking, which is the
+   exact behaviour this block exists to switch off. */
+@media (max-width: 768px) {
+  .stage {
+    height: auto;
+    min-height: 100dvh;
+    padding: 76px 18px 28px;
+    grid-template-rows: auto;
+  }
+
+  .stage-inner,
+  .page,
+  .home {
+    flex: none;
+  }
+
+  .work-grid,
+  .about-grid,
+  .contact-grid {
+    flex: none;
+    min-height: 0;
+  }
+
+  .scroll-col {
+    overflow: visible;
+    padding-right: 0;
+    margin-right: 0;
+    padding-bottom: 0;
+  }
+
 }

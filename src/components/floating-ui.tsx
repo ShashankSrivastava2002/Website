@@ -1,62 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { Heart, Volume2, VolumeX, Pause, Play, MessageSquareOff, Grid2x2, MoreHorizontal } from "lucide-react";
+import { Volume2, VolumeX, Pause, Play, MessageSquareOff, Grid2x2, MoreHorizontal } from "lucide-react";
 import { nowPlaying } from "@/lib/content";
-
-/* ------------------------------------------------------------------ */
-/* like counter — ticks up slowly, like a live visitor count           */
-/* ------------------------------------------------------------------ */
-
-export function LikeCounter({ onLike }: { onLike?: () => void }) {
-  const [n, setN] = useState(11174);
-  const [pop, setPop] = useState(false);
-
-  useEffect(() => {
-    const id = setInterval(() => {
-      // occasional organic-looking tick
-      if (Math.random() < 0.45) {
-        setN((v) => v + 1);
-        setPop(true);
-        setTimeout(() => setPop(false), 260);
-      }
-    }, 4200);
-    return () => clearInterval(id);
-  }, []);
-
-  const like = useCallback(() => {
-    setN((v) => v + 1);
-    setPop(true);
-    setTimeout(() => setPop(false), 260);
-
-    onLike?.();
-  }, [onLike]);
-
-  // The L key also likes, matching the "press L to like" affordance.
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key.toLowerCase() === "l" && !/input|textarea/i.test((e.target as HTMLElement)?.tagName ?? "")) {
-        like();
-      }
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [like]);
-
-  return (
-    <button className="likes" onClick={like} aria-label="Like — or press the L key">
-      <Heart size={13} className="likes-heart" data-pop={pop} />
-      <span>{n.toLocaleString("en-US").replace(/,/g, "")}</span>
-      {/* The L key already worked but nothing said so. The reference spells the
-          shortcut out next to the counter, which is the only way anyone finds
-          a keyboard affordance that has no other visible cue. */}
-      <em className="likes-hint">
-        PRESS <b>L</b> TO LIKE
-      </em>
-
-    </button>
-  );
-}
 
 /* ------------------------------------------------------------------ */
 /* now playing                                                         */
@@ -81,6 +26,9 @@ export function NowPlaying() {
 /* utility cluster                                                     */
 /* ------------------------------------------------------------------ */
 
+/* Not rendered anywhere at the moment. It sat bottom-left, on top of the
+   first column of every inner page; it is staged here, styled and wired,
+   until there is a corner for it. See the note in page.tsx. */
 export function UtilityCluster({
   paused,
   setPaused,

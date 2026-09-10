@@ -1,9 +1,7 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { Github } from "lucide-react";
 import { lab } from "@/lib/content";
-import { EASE } from "@/lib/motion";
 import MasterDetail, { Staggered, type MDItem } from "@/components/master-detail";
 import RichText from "@/components/rich-text";
 import Diagram from "@/components/diagrams";
@@ -110,18 +108,11 @@ export default function LabSection() {
   }));
 
   return (
+    /* Just the master-detail, the way Experience is. The EARLIER strip that
+       used to sit under it was flex:none, so it took its height off the
+       scrolling column above and drew a rule across the full width. */
     <div className="page page--flush">
       <MasterDetail items={items} label="Projects" railHead="PROJECTS" />
-
-      <motion.footer
-        className="edu-strip"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5, ease: EASE, delay: 0.5 }}
-      >
-        <span className="edu-label">EARLIER</span>
-        <span className="edu-row">{lab.earlier}</span>
-      </motion.footer>
     </div>
   );
 }

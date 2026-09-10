@@ -6,7 +6,6 @@ import { motion, AnimatePresence, MotionConfig } from "framer-motion";
 import { MessageCircle, FileText, Github } from "lucide-react";
 
 import BootPreloader from "@/components/boot-preloader";
-import BottomTicker from "@/components/bottom-ticker";
 import ChatWidget from "@/components/chat-widget";
 import HeartBurst from "@/components/heart-burst";
 import HomeSection from "@/components/sections/home-section";
@@ -14,8 +13,8 @@ import WorkSection from "@/components/sections/work-section";
 import LabSection from "@/components/sections/lab-section";
 import AboutSection from "@/components/sections/about-section";
 import ContactSection from "@/components/sections/contact-section";
-import { LikeCounter, NowPlaying, UtilityCluster } from "@/components/floating-ui";
-import { persona, sections, sectionLabels, contact, type Section, type Mood } from "@/lib/content";
+import { NowPlaying } from "@/components/floating-ui";
+import { sections, sectionLabels, contact, type Section, type Mood } from "@/lib/content";
 import { sectionFade } from "@/lib/motion";
 import type { Pose } from "@/components/robot/poses";
 
@@ -57,8 +56,11 @@ export default function Page() {
   const [bootExiting, setBootExiting] = useState(false);
   const [section, setSection] = useState<Section>("home");
   const [mood, setMood] = useState<Mood>("idle");
-  const [paused, setPaused] = useState(false);
-  const [muted, setMuted] = useState(true);
+  /* The pause control belongs to the utility cluster, which is currently
+     unplaced — see the note where it used to render. `paused` stays because
+     the robot still reads it; the setter, and the mute state that nothing
+     else read, come back with the controls. */
+  const [paused] = useState(false);
   const [returning, setReturning] = useState(false);
 
   // Skip the boot sequence on repeat visits within a session.
@@ -115,6 +117,21 @@ export default function Page() {
      escalate from a kick to the full dive. See robot/dance.ts. */
   const [danceGen, setDanceGen] = useState(0);
   const onLike = useCallback(() => setDanceGen((g) => g + 1), []);
+
+  /* The L key used to live inside the like counter. The counter is gone but
+     the shortcut is not — it costs no pixels, and it is the only way to make
+     the figure dance. Ignored while a field has focus, or L would be
+     unspellable in the chat box. */
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() !== "l" || e.metaKey || e.ctrlKey || e.altKey) return;
+      const t = e.target as HTMLElement | null;
+      if (t && (/input|textarea|select/i.test(t.tagName) || t.isContentEditable)) return;
+      onLike();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [onLike]);
   const firstSection = useRef(true);
   useEffect(() => {
     if (firstSection.current) {
@@ -206,17 +223,15 @@ export default function Page() {
       </div>
 
       {/* ------------------------------ chrome ------------------------------ */}
-      <header className="topbar">
-        <div className="brand">
-          <h2>{persona.owner}</h2>
-          <p>{persona.role}</p>
-        </div>
+      {/* There is no topbar. The name, the tagline and the like counter held
+          104px of stage padding open on every section and bought nothing back:
+          the name is in the tab title, the tagline repeats what About says at
+          length, and the counter was decoration. The L shortcut it used to
+          announce is wired straight to the page instead (see the effect
+          above), so the figure still dances and the hearts still fly.
 
-        <LikeCounter onLike={onLike} />
-
-      </header>
-
-      {/* The nav runs down the right gutter rather than across the top. The
+          What is left is the nav, which runs down the right gutter rather than
+          across the top. The
           stage is capped at 1240px inside a wider viewport, so there was
           already a ~100px margin the old horizontal pill never used — moving
           into it clears the top of the page entirely and, incidentally, gives
@@ -290,7 +305,9 @@ export default function Page() {
             the exit animation never gets a frame. */}
         <AnimatePresence>
           <motion.div key={section} {...sectionFade} className="stage-inner">
-            {section === "home" && <HomeSection />}
+            {/* The decode holds until the preloader is out of the way, or it
+                 plays behind it and is over before anyone sees it. */}
+            {section === "home" && <HomeSection start={!booting} />}
             {section === "work" && <WorkSection />}
             {section === "lab" && <LabSection />}
             {section === "about" && (
@@ -316,13 +333,12 @@ export default function Page() {
       </aside>
 
       <NowPlaying />
-      <BottomTicker />
-      <UtilityCluster
-        paused={paused}
-        setPaused={setPaused}
-        muted={muted}
-        setMuted={setMuted}
-      />
+
+      {/* The utility cluster (quality / mute / pause / feedback / more) used to
+          sit at 22,20 — bottom-left, over the first column of every inner
+          page. Pulled out until there is a place for it that isn't on top of
+          the content. The component and its styles are still here, and the
+          state below is still wired, so putting it back is one line. */}
     </div>
     </MotionConfig>
   );

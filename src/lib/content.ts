@@ -4,8 +4,11 @@ export const persona = {
   /** The AI persona that narrates the site. */
   name: "shash",
   wordmark: "shash.ai",
-  owner: "shashank srivastava.",
-  role: "BUILDER · AI DEVELOPER · DELHIVERY",
+  /* Home reads both of these: `owner` is the heading's aria-label, which is
+     what the decode animation resolves to and what a screen reader
+     announces; `role` is the tagline underneath it. */
+  owner: "Shashank Srivastava.",
+  role: "Engineer. Builder. Shipper.",
   greeting: "i'm shash — shashank's ai. ask me anything about his work.",
   greetingReturning: "welcome back. want to pick up where we left off?",
 };
@@ -453,6 +456,8 @@ export const lab = {
   /* One muted line, never cards — two of the 2023 repos are tutorials and the
      third is an empty stub with no code in it, so it is not described here at
      all, not even by name. */
+  /* No longer shown. The EARLIER strip under the projects was taking its
+     height off the scrolling column and drawing a rule across the page. */
   earlier:
     "Earlier (2023): OpenCV Haar-cascade face detection, and a car-price regressor in scikit-learn — the learning set.",
 };
@@ -498,6 +503,8 @@ export const about = {
   ],
   manifesto:
     "When he isn't wiring agents together, he's pulling apart the models underneath them — reading papers, breaking benchmarks, and rebuilding the result until it runs on something smaller. I'm what that habit looks like once it learns to talk.",
+  /* No longer shown — the TRAJECTORY marquee under the About card is gone
+     for the same reason the Lab strip is. Kept in case it lands somewhere. */
   trajectory: [
     { year: "2026", org: "DELHIVERY" },
     { year: "2024", org: "INTELIGENAI" },

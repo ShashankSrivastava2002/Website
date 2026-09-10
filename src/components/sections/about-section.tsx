@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { motion } from "framer-motion";
-import { about, persona } from "@/lib/content";
+import { about } from "@/lib/content";
 import { EASE, STAGE, bodyDelay } from "@/lib/motion";
 import { SectionIntro } from "./work-section";
 import Scramble from "@/components/scramble";
@@ -141,21 +141,6 @@ export default function AboutSection({
             <span>© {new Date().getFullYear()} SHASHANK SRIVASTAVA</span>
           </footer>
         </motion.div>
-      </div>
-
-      <div className="marquee" aria-label="Career trajectory">
-        <div className="marquee-label">TRAJECTORY</div>
-        <div className="marquee-track">
-          {[0, 1].map((dup) => (
-            <div className="marquee-row" key={dup} aria-hidden={dup === 1}>
-              {about.trajectory.map((t) => (
-                <span key={t.org + dup}>
-                  <b>{t.year}</b> {t.org}
-                </span>
-              ))}
-            </div>
-          ))}
-        </div>
       </div>
     </div>
   );

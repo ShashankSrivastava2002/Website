@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import ContactChat from "@/components/contact-chat";
 
 import { useEffect, useState } from "react";
@@ -139,20 +138,6 @@ export default function ContactSection({ onMood }: { onMood: (m: Mood) => void }
 
         </motion.div>
       </div>
-
-      {/* Contact is the last stop in the section order, so this is where the
-          site's footer belongs. Kept to one line: the checklist's four-column
-          link farm would swamp a page that only has five destinations. */}
-      <footer className="site-foot">
-        <span>© {new Date().getFullYear()} Shashank Srivastava</span>
-        <nav aria-label="Site information">
-          <a href="/shashank-resume.pdf" target="_blank" rel="noreferrer">
-            CV
-          </a>
-          <Link href="/colophon">Colophon</Link>
-          <Link href="/privacy">Privacy</Link>
-        </nav>
-      </footer>
     </div>
   );
 }

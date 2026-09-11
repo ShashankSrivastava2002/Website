@@ -3,7 +3,7 @@
 import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, useFrame } from "@react-three/fiber";
 import { ContactShadows, Environment } from "@react-three/drei";
-import { EffectComposer, Bloom, ToneMapping, Noise } from "@react-three/postprocessing";
+import { EffectComposer, ToneMapping, Noise } from "@react-three/postprocessing";
 import { ToneMappingMode, BlendFunction } from "postprocessing";
 import { suspend } from "suspend-react";
 import * as THREE from "three";
@@ -356,36 +356,25 @@ function Scene({
         />
       </group>
 
-      {/* Bloom is what makes the visor and chest read as emissive rather than
-          just bright cyan paint.
+      {/* No bloom pass.
 
-          It has to be held back hard here because the page behind it is LIGHT.
-          Bloom is additive, so on a dark site its falloff disappears into the
-          background, but over #e9edf4 it saturates to white and the halo turns
-          into a visible pale ellipse floating behind the figure. The threshold
-          is above 1 so only genuinely emissive surfaces (visor, chest sigil)
-          qualify and the chrome's specular highlights do not; the tighter
-          radius keeps what is left close to the source instead of spreading
-          into a smudge. */}
-      {/* Order matters: bloom runs on the linear HDR buffer (which is why the
-          threshold can sit above 1), tone mapping maps that to display, and the
-          grain goes on last so it lands in display space rather than being
-          crushed by the curve.
+         It was here to make the visor and chest read as emissive, but on a
+         LIGHT page it could not be made to behave. Bloom is additive: over
+         #e9edf4 its falloff saturates straight to white, so anything it
+         touched grew a pale halo. The threshold was supposed to limit it to
+         genuinely emissive surfaces, and it cannot — measured on this scene,
+         the chrome shell under the studio HDRI is BRIGHTER in the linear
+         buffer than the emissive materials are, so every threshold either
+         haloed the whole body or killed the visor. There is no value between
+         them. The emissives are simply set bright enough to read as lit
+         instead, and the figure keeps a clean silhouette.
 
-          AgX rather than the default ACES. ACES pushes bright saturated pixels
-          toward white and skews warm; the figure is chrome under a studio HDRI,
-          so its highlights were clipping to flat white and losing the roll-off
-          that reads as metal. AgX holds hue through the shoulder — it is what
-          the reference uses, and it is the single biggest difference between
-          their render and ours. */}
+         Tone mapping and grain stay. AgX rather than the default ACES: ACES
+         pushes bright saturated pixels toward white and skews warm, so the
+         chrome highlights clipped flat and lost the roll-off that reads as
+         metal. AgX holds hue through the shoulder. The grain runs last so it
+         lands in display space rather than being crushed by the curve. */}
       <EffectComposer multisampling={0}>
-        <Bloom
-          intensity={0.4}
-          luminanceThreshold={1.15}
-          luminanceSmoothing={0.12}
-          radius={0.55}
-          mipmapBlur
-        />
         <ToneMapping mode={ToneMappingMode.AGX} />
         <Noise premultiply blendFunction={BlendFunction.OVERLAY} opacity={0.1} />
       </EffectComposer>

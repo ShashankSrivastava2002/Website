@@ -385,8 +385,8 @@ export function addRobotFeatures(scene: THREE.Object3D) {
   headBox.getSize(headSize);
   const lift = headSize.y * 0.012;
 
-  const visorMaterial = emissive(VISOR_COLOUR, 3.2);
-  const amberMaterial = emissive(AMBER_COLOUR, 2.0);
+  const visorMaterial = emissive(VISOR_COLOUR, 4.5);
+  const amberMaterial = emissive(AMBER_COLOUR, 3);
 
   /* Bind-pose world into the head bone's own frame. Doing this with the bone's
      inverse matrix rather than by subtracting the head BOX's corner: the box is

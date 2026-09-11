@@ -28,6 +28,9 @@
   /* Fallbacks inside var() so a failed webfont still lands on a sane stack. */
   --sans: var(--font-sans, ui-sans-serif), system-ui, -apple-system, sans-serif;
   --mono: var(--font-mono, ui-monospace), "SF Mono", Menlo, monospace;
+  /* Display only — the Home hero. Falls back to --sans so a failed webfont
+     load degrades to the site's own face rather than to Times. */
+  --display: var(--font-display, var(--font-sans, ui-sans-serif)), system-ui, sans-serif;
 
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
 
@@ -49,9 +52,18 @@
   --text-lg: 15px;
   --text-xl: 17px;
   --text-title: 21px;
-  /* The one size above --text-title. Nothing else on the site is display
-     type, so it lives here rather than being typed into .name directly. */
-  --text-hero: clamp(34px, 5.2vw, 64px);
+  /* The one size above --text-title. It grows on the same 5vw curve as
+     .doc h1 — the site's other display heading — and caps just above its
+     50px, so Home is the largest thing here by a hair rather than by a
+     third. It was clamped at 64px, which was 28% larger than anything else
+     on the site and read as a different design entirely. */
+  /* The cap is what stops the name wrapping. Every character is its own
+     inline-block (the decode needs that), so a break lands between arbitrary
+     letters — "Shashank Srivasta / va." — not at the space. At 9vw/100px the
+     font stopped shrinking at a 1111px viewport while the column kept
+     shrinking, and the name wrapped on every width from 1180 to 1320, which
+     includes 1280. Measured against this face's real advance widths. */
+  --text-hero: clamp(26px, 4.2vw, 58px);
 
   /* Derived from what the stylesheet actually used rather than imposed on it:
      0.18 / 0.16 / 0.2em were 21 of the 24 declarations between them. */
@@ -59,6 +71,10 @@
   --track-wide: 0.16em;
   --track-ultra: 0.2em;
   --track-body: 0.01em;
+  /* Display type tightens as it grows. .co-head h3 already asked for this
+     one; it was never declared, so that heading has been rendering at
+     `normal` tracking. The hero tightens further still — see .name. */
+  --track-display: -0.02em;
 
   --radius-chip: 6px;
   --radius-control: 10px;
@@ -525,11 +541,31 @@ body::before {
 .home {
   flex: 1;
   min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
+/* Centred on the VIEWPORT, not on the stage's content box.
+   The stage reserves --nav-col on its right for the vertical nav, so its
+   content box sits half that — 86px — left of the true centre. The figure,
+   which is a fixed full-viewport canvas, stands on the real centre. Left
+   unchecked that is two different centres 86px apart, and it is exactly what
+   reads as crooked: a hard-left name above a centred figure, both sharing the
+   column the chat grows in. Padding the nav's width back onto the left puts
+   the hero's centre on the figure's axis, and the two become one vertical
+   spine with the chat and the nav as side furniture.
+
+   Centred also means the chat is free to grow. The dock is fixed bottom-left
+   and its log caps at 210px, so at full height it reaches y437 in a 839px
+   viewport while the hero ends around y170 — they no longer share a column,
+   let alone a line. */
 .hero {
   flex: none;
-  max-width: 62%;
+  padding-left: var(--nav-col);
+  text-align: center;
+  /* Out of the top-left corner and down into the empty band above the
+     figure's head. */
+  margin-top: clamp(10px, 7vh, 76px);
 }
 
 /* Display type, and the only instance of it. Weight and family are the site's
@@ -538,12 +574,28 @@ body::before {
 .name {
   margin: 0;
   font-size: var(--text-hero);
-  font-weight: 700;
-  letter-spacing: -0.025em;
-  line-height: 1.02;
+  font-family: var(--display);
+  font-weight: 900;
+  /* Orbitron is drawn for caps — its lowercase is an afterthought — so the
+     name is set the way the face wants to be set. The decode is unaffected:
+     it still resolves the real mixed-case string from aria-label, which is
+     what a screen reader announces. The transform is presentation only. */
+  text-transform: uppercase;
+  /* Caps want air, not tightening. A square face at display size closes up
+     badly under the negative tracking a grotesque asks for. */
+  letter-spacing: 0.005em;
+  line-height: 1.04;
   color: var(--ink);
   /* Holds the line open while every character is still blank. */
-  min-height: 1.02em;
+  min-height: 1.04em;
+}
+
+/* The only breakable points are the spaces between words — see the grouping
+   in decoding-name.tsx. Without this the line could break between any two
+   characters, because each one is its own inline-block, and a name too wide
+   for its column came apart as "SHASHANK SRIVASTA / VA.". */
+.name .word {
+  white-space: nowrap;
 }
 
 .name .char {
@@ -573,22 +625,29 @@ body::before {
   font-weight: 400;
 }
 
-/* Resolved: the site's display face at full weight. */
+/* Resolved: the site's display face. The weight matches .name — the shift a
+   reader sees is family and colour, mono/accent to sans/ink, which carries it
+   without needing a weight jump too. */
 .name .char.decoded {
   opacity: 1;
   color: var(--ink);
-  font-family: var(--sans);
-  font-weight: 700;
+  font-family: var(--display);
+  font-weight: 900;
   transition: color 0.32s var(--ease);
 }
 
 /* Same line the old topbar carried under the name. Hidden until the last
    character lands, then fade + rise. */
+/* Identical treatment to .about-role, which is the same line under the same
+   name on About — mono, --text-small, --track-ui, muted. The offset is the
+   same proportion of the heading above it that About uses (6px under 36px). */
 .tagline {
-  margin: 14px 0 0;
+  margin: 12px 0 0;
   font-family: var(--mono);
-  font-size: var(--text-small);
-  letter-spacing: var(--track-ui);
+  /* Up a step from --text-small. At 10px it was the same size as a field
+     label sitting under a 58px name — too far apart to read as a pair. */
+  font-size: var(--text-body);
+  letter-spacing: var(--track-wide);
   color: var(--muted);
   opacity: 0;
   transform: translateY(8px);
@@ -701,6 +760,12 @@ body::before {
   .stage {
     padding-top: 76px;
     padding-right: var(--gutter);
+  }
+
+  /* With the column gone the stage box is symmetric on its own, so the
+     viewport-centre correction would over-shift the hero to the right. */
+  .hero {
+    padding-left: 0;
   }
 }
 

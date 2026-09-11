@@ -7,9 +7,9 @@ export const persona = {
   /* Home reads both of these: `owner` is the heading's aria-label, which is
      what the decode animation resolves to and what a screen reader
      announces; `role` is the tagline underneath it. */
-  owner: "Shashank Srivastava.",
-  role: "Engineer. Builder. Shipper.",
-  greeting: "i'm shash — shashank's ai. ask me anything about his work.",
+  owner: "Shashank Srivastava",
+  role: "ENGINEER . BUILDER . SHIPPER ",
+  greeting: "i'm shashank's ai. ask me anything about his work.",
   greetingReturning: "welcome back. want to pick up where we left off?",
 };
 

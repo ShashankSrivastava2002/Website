@@ -54,7 +54,7 @@ export const chromeDark = new THREE.MeshStandardMaterial({
 export const visor = new THREE.MeshStandardMaterial({
   color: "#3fe4d8",
   emissive: "#3fe4d8",
-  emissiveIntensity: 3.2,
+  emissiveIntensity: 4.5,
   toneMapped: false,
 });
 
@@ -62,7 +62,7 @@ export const visor = new THREE.MeshStandardMaterial({
 export const amber = new THREE.MeshStandardMaterial({
   color: "#ff5e05",
   emissive: "#e64a00",
-  emissiveIntensity: 1.5,
+  emissiveIntensity: 3,
   toneMapped: false,
 });
 

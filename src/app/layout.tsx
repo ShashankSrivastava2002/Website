@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Space_Grotesk, JetBrains_Mono } from "next/font/google";
+import { Space_Grotesk, JetBrains_Mono, Orbitron } from "next/font/google";
 import "./globals.css";
 
 /**
@@ -11,6 +11,8 @@ import "./globals.css";
  *
  * Both are variable, which is what makes the 500/600 weights available for
  * hierarchy instead of jumping straight from 400 to 700.
+ *
+ * The Home hero runs on its own third face — see `display` below.
  */
 const sans = Space_Grotesk({
   subsets: ["latin"],
@@ -20,6 +22,32 @@ const sans = Space_Grotesk({
 const mono = JetBrains_Mono({
   subsets: ["latin"],
   variable: "--font-mono",
+  display: "swap",
+});
+
+/**
+ * Display only — the Home hero, and nothing else.
+ *
+ * Deliberately a third slot rather than a change to `sans`. This is a racing
+ * display cut; running the whole site on it would take every heading, card
+ * and micro-label with it. Isolated here, the name can be as loud as it likes
+ * while Experience, Lab, About and Contact stay on Space Grotesk.
+ *
+ * To try another, change the import and this one call — nothing else moves.
+ * Faces on Google Fonts with the same angular/sporty character:
+ *   Orbitron      900         — square and futuristic, upright, caps-forward
+ *   Chakra_Petch  700 italic  — angular sheared terminals, closest to Rushblade
+ *   Exo_2         800 italic  — wider and rounder, more motorsport
+ *   Bai_Jamjuree  700 italic  — same angular family, a little narrower
+ *   Saira         800 italic  — techno grotesque, cleaner
+
+ * Orbitron has no italic and no real lowercase character — it is drawn to be
+ * set in caps, which is why .name carries text-transform: uppercase.
+ */
+const display = Orbitron({
+  subsets: ["latin"],
+  weight: "900",
+  variable: "--font-display",
   display: "swap",
 });
 
@@ -49,7 +77,7 @@ export default function RootLayout({
   // The font variables go on <html> so that :root can build --sans / --mono
   // from them; defining them on <body> would leave those :root tokens empty.
   return (
-    <html lang="en" className={`${sans.variable} ${mono.variable}`}>
+    <html lang="en" className={`${sans.variable} ${mono.variable} ${display.variable}`}>
       <body>
         {/* Keyboard users land here first and can jump the nav and the 3D
             layer in one keystroke. Visible only when focused. */}

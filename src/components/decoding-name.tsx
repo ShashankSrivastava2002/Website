@@ -73,14 +73,36 @@ export default function DecodingName({ start = true }: { start?: boolean }) {
     // Array.from, not a spread: the tsconfig target predates downlevel
     // iteration, and this still splits on code points rather than UTF-16
     // units, so an accented or non-Latin name stays intact.
-    const chars = Array.from(text).map((ch) => {
+    /* Characters are grouped into words. Each .char is an inline-block, which
+       the decode needs — but it also means the browser may break the line
+       between ANY two of them, so a name too wide for its column came apart
+       as "SHASHANK SRIVASTA / VA.". Wrapping each word in a nowrap span makes
+       the spaces the only break opportunities, so a narrow screen stacks the
+       name by word the way it should. */
+    const chars: { el: HTMLSpanElement; ch: string; space: boolean }[] = [];
+    let word: HTMLSpanElement | null = null;
+
+    for (const ch of Array.from(text)) {
+      if (ch === " ") {
+        word = null;
+        const el = document.createElement("span");
+        el.className = "char space";
+        el.textContent = " ";
+        host.appendChild(el);
+        chars.push({ el, ch, space: true });
+        continue;
+      }
+      if (!word) {
+        word = document.createElement("span");
+        word.className = "word";
+        host.appendChild(word);
+      }
       const el = document.createElement("span");
-      const space = ch === " ";
-      el.className = space ? "char space" : "char";
-      el.textContent = space ? " " : "";
-      host.appendChild(el);
-      return { el, ch, space };
-    });
+      el.className = "char";
+      el.textContent = "";
+      word.appendChild(el);
+      chars.push({ el, ch, space: false });
+    }
 
     /* Lock every slot to the width of the letter it will become, measured in
        the resolved style. Proportional type means a noise glyph is rarely the

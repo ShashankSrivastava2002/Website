@@ -1,118 +1,146 @@
 "use client";
 
-import { Github } from "lucide-react";
+import { useState } from "react";
 import { lab } from "@/lib/content";
-import MasterDetail, { Staggered, type MDItem } from "@/components/master-detail";
-import RichText from "@/components/rich-text";
-import Diagram from "@/components/diagrams";
+import WorkCard from "@/components/work-card";
+import CaseStudyDialog, {
+  CsLead,
+  CsNumbered,
+  CsProse,
+  CsSection,
+  type CaseStudy,
+} from "@/components/case-study";
 
 /**
- * Personal projects, on the same master-detail model as Experience — the brief
- * asks the two to read as one system, so they run the same component.
- *
- * The rail item is the card face: name, hook, headline technologies, status.
- * Ordering is by strength, not date.
+ * Lab: the projects as cards, each opening the same case study Experience
+ * uses, so the two sections still read as one system. Ordered by strength,
+ * not date.
  */
-export default function LabSection() {
-  const items: MDItem[] = lab.projects.map((p) => ({
-    id: p.id,
-    label: p.name,
-    rail: (
+
+type Project = (typeof lab.projects)[number];
+type Note = { label: string; text: string; warn?: boolean };
+
+function study(p: Project): CaseStudy {
+  const repo = (p as { repo?: string }).repo;
+  const note = ("note" in p ? p.note : undefined) as Note | undefined;
+  const framing = "framing" in p ? (p.framing as string | undefined) : undefined;
+
+  return {
+    pill: `PROJ_${p.id.toUpperCase()}`,
+    title: p.name,
+    meta: [p.status.charAt(0) + p.status.slice(1).toLowerCase(), p.repoName],
+    diagram: p.diagram,
+    diagramAlt: p.diagramAlt,
+    glance: [
+      ["Type", p.status.charAt(0) + p.status.slice(1).toLowerCase()],
+      ["Repo", repo ? <a href={repo} target="_blank" rel="noreferrer"><code>{p.repoName}</code></a> : <code>{p.repoName}</code>],
+      ["Built on", p.headline.join(" · ")],
+    ],
+    stack: p.stack,
+    body: (
       <>
-        <span className="pj-top">
-          <span className="pj-index">{p.index}</span>
-          <span className="pj-status">{p.status}</span>
-        </span>
-        <span className="md-tab-name">{p.name}</span>
-        <span className="pj-hook">{p.hook}</span>
-        <span className="pj-tech">
-          {p.headline.map((t) => (
-            <em key={t}>{t}</em>
-          ))}
-        </span>
-      </>
-    ),
-    detail: (
-      <>
-        <header className="co-head">
-          <h3>{p.name}</h3>
-          <p className="co-meta">
-            {p.status} · <code>{p.repoName}</code>
-          </p>
-        </header>
+        <CsLead text={p.hook} />
 
-        <Staggered i={0}>
-          <div className="area-head">
-            <span className="area-index">01</span>
-            <h4>Context</h4>
-          </div>
-          {p.diagram && <Diagram id={p.diagram} alt={p.diagramAlt} />}
-          <p className="area-lead">
-            <RichText text={p.context} />
-          </p>
-          {"framing" in p && p.framing && <p className="pj-framing">{p.framing}</p>}
-        </Staggered>
+        <CsSection n="01" label="Context">
+          <CsProse text={p.context} />
+        </CsSection>
 
-        <Staggered i={1}>
-          <div className="area-head">
-            <span className="area-index">02</span>
-            <h4>The hard part — {p.hardPart.title}</h4>
-          </div>
-          {p.hardPart.intro && <p className="area-lead">{p.hardPart.intro}</p>}
-          <ul className="area-points">
-            {p.hardPart.points.map((pt, i) => (
-              <li key={i}>
-                <RichText text={pt.text} />
-              </li>
-            ))}
-          </ul>
-        </Staggered>
-
-        {"note" in p && p.note && (
-          <Staggered i={2}>
-            <aside className="pj-note" data-warn={"warn" in p.note && p.note.warn ? "true" : undefined}>
-              <span className="pj-note-label">{p.note.label}</span>
-              <p>
-                <RichText text={String(p.note.text)} />
-              </p>
-            </aside>
-          </Staggered>
+        {framing && (
+          <CsSection label="Framing" tone="callout">
+            <CsProse text={framing} />
+          </CsSection>
         )}
 
-        <Staggered i={4}>
-          <div className="area-head">
-            <span className="area-index">—</span>
-            <h4>Stack</h4>
-          </div>
-          <div className="tagrow">
-            {p.stack.map((t) => (
-              <span className="tag" key={t}>
-                {t}
-              </span>
-            ))}
-          </div>
-          {/* Only rendered when a repo is actually public and safe to link.
-              None are set yet: the brief flags a hardcoded API key in the
-              converter's history, and the others have not been confirmed
-              public. Add `repo` to the entry in content.ts to light this up. */}
-          {(p as { repo?: string }).repo && (
-            <div className="project-links">
-              <a href={(p as { repo?: string }).repo} target="_blank" rel="noreferrer">
-                <Github size={12} /> CODE
-              </a>
-            </div>
-          )}
-        </Staggered>
+        <CsSection n="02" label="The hard part" tone="card">
+          <h4 className="cs-subtitle">{p.hardPart.title}</h4>
+          {p.hardPart.intro && <CsProse text={p.hardPart.intro} />}
+          <CsNumbered items={p.hardPart.points} />
+        </CsSection>
+
+        {/* Warn notes are messages to the site owner, not to visitors — the
+            converter's says a live API key is still in the repo's history.
+            Rendering it publicly would point straight at the key. */}
+        {note && !note.warn && (
+          <CsSection label={note.label} tone="impact">
+            <CsProse text={note.text} />
+          </CsSection>
+        )}
       </>
     ),
-  }));
+  };
+}
+
+const studies = lab.projects.map(study);
+
+export default function LabSection() {
+  const [open, setOpen] = useState<number | null>(null);
+  const [active, setActive] = useState(0);
+
+  const count = String(lab.projects.length).padStart(2, "0");
 
   return (
-    /* Just the master-detail, the way Experience is. The EARLIER strip that
-       used to sit under it was flex:none, so it took its height off the
-       scrolling column above and drew a rule across the full width. */
-    <div className="page page--flush">
-      <MasterDetail items={items} label="Projects" railHead="PROJECTS" />
+    /* The same three zones as Experience, so moving between the two sections
+       the figure does not jump: an index rail left, the figure in the middle,
+       the cards right. The rail and the column share one active item —
+       pointing at either lights both. */
+    <div className="page page--flush page--split lab">
+      <div className="md">
+        <nav className="md-rail" aria-label="Project index">
+          <div className="md-rail-head" aria-hidden>
+            <span>INDEX</span>
+            <b>{count}</b>
+          </div>
+          {lab.projects.map((p, i) => (
+            <button
+              key={p.id}
+              type="button"
+              className="md-tab"
+              data-active={i === active}
+              onMouseEnter={() => setActive(i)}
+              onFocus={() => setActive(i)}
+              onClick={() => setOpen(i)}
+              aria-haspopup="dialog"
+            >
+              <span className="md-tab-period">{p.status}</span>
+              <span className="md-tab-name">{p.name}</span>
+              <span className="md-tab-role">{p.repoName}</span>
+            </button>
+          ))}
+        </nav>
+
+        <div className="md-detail scroll-col" tabIndex={0} aria-label="Projects">
+          <div className="md-detail-inner">
+            <div className="md-rail-head" aria-hidden>
+              <span>PROJECTS</span>
+              <b>{count}</b>
+            </div>
+            <div className="wgrid">
+              {lab.projects.map((p, i) => (
+                <WorkCard
+                  key={p.id}
+                  index={p.index}
+                  kicker={p.status}
+                  title={p.name}
+                  body={p.hook}
+                  chips={p.headline}
+                  art={p.diagram}
+                  active={i === active}
+                  onActivate={() => setActive(i)}
+                  onOpen={() => setOpen(i)}
+                />
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <CaseStudyDialog
+        items={studies}
+        open={open}
+        section="lab"
+        onClose={() => setOpen(null)}
+        onStep={setOpen}
+      />
     </div>
   );
 }

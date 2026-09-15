@@ -479,3 +479,79 @@ the content.
 **Not taken:** their two-column career-plus-cards layout. The Work brief mandates master-detail —
 rail fixed, detail column the only thing that scrolls — and theirs is a flat list with no detail
 view at all.
+
+## Their Work page, read properly — cards and the case study
+
+Recorded on a third pass, after a critique that our Work and Lab "read like documentation".
+The earlier notes had the card as one line and never opened one. Both halves matter.
+
+### The list is cards, not prose
+
+`SELECTED WORK … 08`, a masked scrolling column (18px side padding, 14px gap). Each item is a
+`<button class="liquid-glass liquid-glass--noisy work-card-tilt">` — the whole card is the
+click target.
+
+- Grid `168px | 1fr`, radius 14px, 135° white gradient fill, one soft drop shadow
+  (`0 16px 32px rgba(40,60,90,.18)`).
+- **Art panel** 168px: a line-art illustration on a tinted field. Decorative, not informative.
+- **Text panel** padding 18px, gap 8px:
+  - meta row: `02 · Government` — JetBrains Mono 10px / 500 / 1.4px tracking, **accent**;
+    metric right-aligned in the same row at weight 700 (`12M+`)
+  - title: Inter 16px / 600 / -0.32px
+  - body: 13px, 60% ink, **`-webkit-line-clamp: 2`**
+  - chips: mono 10px / 500 / 0.6px, 60% ink, 1px border at 12% ink, pill radius, `3px 7px`
+- An ↗ appears top-right on the active card.
+
+Nothing in the list is longer than two lines. The page is scannable in one pass.
+
+### Clicking a card opens a full case study
+
+A full-viewport overlay (`?project=PROJ_UAE_PASS`) — the page underneath stays put.
+
+- **Chrome:** `← back` pill left; `Share` and a `‹ 02 / 08 ›` pager right. Nav is hidden.
+- **Header:** id pill in mono with an accent dot (`PROJ_UAE_PASS`), title ~56px bold, meta
+  line `Lead CX Designer · 2022 Present`.
+- **Two columns.** Left ~730px: hero art on a tinted panel with a `CLICK TO EXPAND` chip, then
+  the body. Right ~430px, sticky: `AT A GLANCE` glass card of key/value rows (role, timeline,
+  the metric in accent), a `STACK` chip card, an `ASK` chat card, and `NEXT ARTIFACT →`.
+- **The body is what keeps it from reading as documentation — no two sections look alike:**
+  1. intro sentence, large (~19px), full ink
+  2. `01 · CONTEXT` — prose with a 2px accent rule on the left
+  3. `02 · THE PROBLEM` — tinted accent panel, thicker left border
+  4. `03 · ROLE` / `04 · PROCESS` — **two white cards side by side**
+  5. `05 · …` — white card holding a numbered list, numerals in accent mono
+  6. `06 · CONSTRAINTS` — **full-sentence pill chips**, not bullets
+  7. `07 · THE IMPACT` — tinted panel, larger and heavier type: the payoff, last
+- Section labels are always `• NN · LABEL` in accent mono with wide tracking.
+
+### Why ours read as documentation
+
+Heading, schematic, a run of identical bullets — repeated eleven times down one column, with
+every item fully expanded. One block treatment, no summary layer, no entry point smaller than
+the whole thing. Theirs has a two-line summary layer on top and varies the rhythm below it.
+
+### What is being taken
+
+The card list and the case-study overlay, for both Experience and Lab — shared components, so
+the two still read as one system. Our schematics become the card art (text stripped at thumbnail
+size, so they read as line art the way their illustrations do) and then the full legible hero
+in the case study, which is the first place they have ever had the room they need.
+
+**Not taken:** fabricated metrics for the card's right slot (we have none that are substantiated),
+the `ASK` card, and `Share` — the site has no per-project URLs yet.
+
+### Correction — the composition, which the first card build ignored
+
+The card build above took the card's anatomy and dropped the page around it. Rebuilt after the
+result was called ugly. What actually makes their Work page:
+
+- **Three zones, not two.** `CAREER` rail left (~280px, bare) · **the 3D figure standing in the
+  empty middle** · `SELECTED WORK` as **one column** of 487px cards on the right. The figure is a
+  compositional element of the page, not something hidden while content shows.
+- **One active card.** The active card is a solid raised glass surface with colour art and the ↗;
+  every other card is translucent, text faded, **art fully greyscale**. Hover moves the active
+  state. It is the same reveal-on-focus behaviour as the rail, applied to the cards.
+- **Art is illustration**, one or two line drawings on a tinted field with a single accent. A
+  schematic with its labels removed does not substitute: it reads as empty placeholder boxes.
+  Ours now uses a line icon over an offset accent copy — a misregistered two-plate print — on the
+  same halftone field, which is the closest honest equivalent without commissioned artwork.

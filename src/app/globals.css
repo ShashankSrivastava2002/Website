@@ -51,8 +51,7 @@
   --text-md: 14px;
   --text-lg: 15px;
   --text-xl: 17px;
-  --text-title: 21px;
-  /* The one size above --text-title. It grows on the same 5vw curve as
+  /* The one size above --text-xl. It grows on the same 5vw curve as
      .doc h1 — the site's other display heading — and caps just above its
      50px, so Home is the largest thing here by a hair rather than by a
      third. It was clamped at 64px, which was 28% larger than anything else
@@ -71,9 +70,8 @@
   --track-wide: 0.16em;
   --track-ultra: 0.2em;
   --track-body: 0.01em;
-  /* Display type tightens as it grows. .co-head h3 already asked for this
-     one; it was never declared, so that heading has been rendering at
-     `normal` tracking. The hero tightens further still — see .name. */
+  /* Display type tightens as it grows — card and case-study titles. The
+     hero tightens further still; see .name. */
   --track-display: -0.02em;
 
   --radius-chip: 6px;
@@ -299,10 +297,6 @@ body::before {
   z-index: var(--z-figure);
   pointer-events: none;
   transition: opacity 0.5s var(--ease);
-}
-
-.robot-layer[data-hidden="true"] {
-  opacity: 0;
 }
 
 /* During boot the robot sits ABOVE the boot screen, so the walk-in plays on
@@ -1017,31 +1011,6 @@ body::before {
 
 /* Only rendered when a link actually exists — see the note on lab in
    content.ts. An empty CODE button is worse than no button. */
-.project-links {
-  display: flex;
-  gap: 8px;
-  margin-top: 12px;
-}
-
-.project-links a {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-family: var(--mono);
-  font-size: var(--text-nano);
-  letter-spacing: var(--track-wide);
-  color: var(--accent);
-  text-decoration: none;
-  padding: 5px 10px;
-  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
-  border-radius: var(--radius-pill);
-  transition: background-color 0.2s var(--ease), color 0.2s var(--ease);
-}
-
-.project-links a:hover {
-  background: var(--accent-soft);
-}
-
 .tagrow {
   display: flex;
   flex-wrap: wrap;
@@ -1095,20 +1064,21 @@ body::before {
   grid-column: 2;
   grid-row: 1 / -1;
   min-height: 0;
+  /* Outgoing and incoming panels share one cell during the crossfade, the
+     way the stage does for sections. In normal flow they stacked: switching
+     company dropped the new card grid below the old one for 0.4s and then
+     snapped it up the page. */
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
 }
 
 .md-detail-inner {
+  grid-area: 1 / 1;
   display: grid;
   gap: 26px;
   align-content: start;
 }
-
-.md-block {
-  display: grid;
-  gap: 10px;
-  align-content: start;
-}
-
 /* --- the rail item ---
 
    Taken from the reference's career rail rather than invented: a continuous
@@ -1231,103 +1201,7 @@ body::before {
 }
 
 /* --- company header --- */
-
-.co-head {
-  display: grid;
-  gap: 8px;
-}
-
-.co-head h3 {
-  margin: 0;
-  font-size: var(--text-title);
-  font-weight: 650;
-  letter-spacing: var(--track-display);
-}
-
-.co-meta {
-  margin: 0;
-  font-family: var(--mono);
-  font-size: var(--text-nano);
-  letter-spacing: var(--track-wide);
-  color: var(--accent);
-}
-
 /* --- a capability area --- */
-
-.area-head {
-  display: flex;
-  align-items: baseline;
-  gap: 11px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--line);
-}
-
-.area-index {
-  font-family: var(--mono);
-  font-size: var(--text-small);
-  letter-spacing: var(--track-ui);
-  color: var(--accent);
-  font-variant-numeric: tabular-nums;
-}
-
-.area-head h4 {
-  margin: 0;
-  font-size: var(--text-lg);
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
-
-.area-lead {
-  margin: 0;
-  max-width: 70ch;
-  font-size: var(--text-md);
-  line-height: 1.62;
-  color: var(--ink-2);
-}
-
-.area-points {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: 9px;
-  max-width: 74ch;
-}
-
-.area-points li {
-  position: relative;
-  padding-left: 16px;
-  font-size: var(--text-body);
-  line-height: 1.62;
-  color: var(--ink-2);
-}
-
-.area-points li::before {
-  content: "";
-  position: absolute;
-  left: 0;
-  top: 8px;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  border: 1px solid var(--line-2);
-}
-
-.area-points b {
-  font-weight: 600;
-  color: var(--ink);
-}
-
-.area-points code,
-.co-meta code,
-.area-lead code {
-  font-family: var(--mono);
-  font-size: 0.92em;
-  padding: 1px 4px;
-  border-radius: var(--radius-chip);
-  background: rgba(20, 25, 29, 0.05);
-}
-
 /* Inferred from the nature of the work rather than stated in the source. The
    marker is deliberately visible: these are the claims to confirm or cut. */
 .inferred {
@@ -1339,97 +1213,7 @@ body::before {
 }
 
 /* --- Lab-specific rail + detail --- */
-
-.pj-top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-
-.pj-index {
-  font-family: var(--mono);
-  font-size: var(--text-nano);
-  letter-spacing: var(--track-ui);
-  color: var(--muted);
-}
-
-.pj-status {
-  font-family: var(--mono);
-  font-size: 7px;
-  letter-spacing: var(--track-wide);
-  color: var(--accent);
-  padding: 3px 7px;
-  border: 1px solid color-mix(in srgb, var(--accent) 26%, transparent);
-  border-radius: var(--radius-pill);
-}
-
-.pj-hook {
-  font-size: var(--text-body);
-  line-height: 1.5;
-  color: var(--muted);
-}
-
-.pj-tech {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-  margin-top: 3px;
-}
-
-.pj-tech em {
-  font-family: var(--mono);
-  font-style: normal;
-  font-size: 7px;
-  letter-spacing: var(--track-wide);
-  color: var(--muted);
-  padding: 3px 6px;
-  border: 1px solid var(--line);
-  border-radius: var(--radius-chip);
-}
-
-.pj-framing {
-  margin: 8px 0 0;
-  font-family: var(--mono);
-  font-size: var(--text-nano);
-  letter-spacing: var(--track-wide);
-  color: var(--accent);
-}
-
-.pj-note {
-  display: grid;
-  gap: 6px;
-  padding: 13px 15px;
-  border-radius: var(--radius-control);
-  border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.5);
-}
-
-.pj-note[data-warn="true"] {
-  border-color: color-mix(in srgb, #c0453c 34%, transparent);
-  background: color-mix(in srgb, #c0453c 5%, rgba(255, 255, 255, 0.5));
-}
-
-.pj-note-label {
-  font-family: var(--mono);
-  font-size: 7px;
-  letter-spacing: var(--track-ultra);
-  color: var(--muted);
-}
-
-.pj-note[data-warn="true"] .pj-note-label {
-  color: #a83b33;
-}
-
-.pj-note p {
-  margin: 0;
-  font-size: var(--text-body);
-  line-height: 1.58;
-  color: var(--ink-2);
-}
-
 /* --- the muted strip at the foot of both sections --- */
-
 
 /* ----------------------------- schematics ----------------------------- */
 
@@ -2146,7 +1930,6 @@ body::before {
   color: var(--muted);
 }
 
-
 .prompts {
   display: grid;
   gap: 8px;
@@ -2786,7 +2569,6 @@ body[data-away="true"] .medallion {
   transform: translateY(1px) scale(0.99);
 }
 
-
 /* ====================================================================== */
 /* love shots                                                              */
 /* ====================================================================== */
@@ -2838,6 +2620,806 @@ body[data-away="true"] .medallion {
 
 @media (prefers-reduced-motion: reduce) {
   .heart-shot { animation-duration: 0.01s !important; opacity: 0; }
+}
+
+/* ====================================================================== */
+/* work cards — Experience and Lab, built to the reference's Work page      */
+/* ====================================================================== */
+
+/* Three zones: rail left, the figure standing in the open middle, one column
+   of 487px cards right. See docs/design-reference-fuch.md, "Correction — the
+   composition". */
+.page--split .md {
+  grid-template-columns: minmax(220px, 280px) minmax(0, 1fr);
+}
+
+.page--split .md-detail {
+  justify-self: end;
+  width: min(100%, 487px);
+}
+
+.wgrid {
+  display: grid;
+  gap: 14px;
+  align-content: start;
+  /* Room for the active card's lift and shadow, which the scroller would clip. */
+  padding-top: 4px;
+}
+
+/* --- the card: translucent and faded until it is the active one ----------- */
+
+.wcard {
+  position: relative;
+  display: grid;
+  grid-template-columns: 168px minmax(0, 1fr);
+  min-height: 155px;
+  padding: 0;
+  overflow: hidden;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.55);
+  border-radius: var(--radius-card);
+  background: rgba(255, 255, 255, 0.28);
+  transition:
+    background 0.4s var(--ease),
+    border-color 0.4s var(--ease),
+    box-shadow 0.4s var(--ease),
+    transform 0.4s var(--ease);
+}
+
+.wcard[data-active] {
+  border-color: var(--glass-edge);
+  background: var(--glass-fill);
+  box-shadow:
+    inset 0 1px 1px rgba(255, 255, 255, 0.95),
+    0 16px 32px -14px rgba(40, 60, 90, 0.26),
+    0 3px 10px -4px rgba(40, 60, 90, 0.1);
+  transform: translateY(-1px);
+}
+
+.wcard:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 3px;
+}
+
+/* --- art: a two-plate print on a halftone field ---------------------------- */
+
+.wcard-art {
+  display: grid;
+  place-items: center;
+  border-right: 1px solid var(--line);
+  background:
+    radial-gradient(circle, color-mix(in srgb, var(--accent) 26%, transparent) 0.8px, transparent 1.3px) 0 0 / 8px 8px,
+    color-mix(in srgb, var(--accent) 12%, var(--panel-solid));
+  /* Everything but the active card is printed in grey, like the reference. */
+  filter: grayscale(1);
+  opacity: 0.55;
+  transition: filter 0.45s var(--ease), opacity 0.45s var(--ease);
+}
+
+.wcard[data-active] .wcard-art {
+  filter: none;
+  opacity: 1;
+}
+
+.wcard-icon {
+  position: relative;
+  width: 60px;
+  height: 60px;
+  transition: transform 0.6s var(--ease);
+}
+
+/* A soft paper disc under the drawing, the light fill their illustrations sit on. */
+.wcard-icon::before {
+  content: "";
+  position: absolute;
+  inset: -16px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--accent) 10%, #ffffff);
+  box-shadow: 0 10px 22px -14px color-mix(in srgb, var(--accent) 60%, transparent);
+}
+
+.wcard-icon svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* The accent plate, knocked out of register. */
+.wcard-plate {
+  color: var(--accent);
+  opacity: 0.75;
+  transform: translate(3px, 3px);
+}
+
+.wcard-line {
+  color: var(--ink);
+}
+
+.wcard[data-active] .wcard-icon {
+  transform: scale(1.06) rotate(-3deg);
+}
+
+/* --- text ----------------------------------------------------------------- */
+
+.wcard-text {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  padding: 18px;
+}
+
+.wcard-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.wcard-kicker {
+  overflow: hidden;
+  font-family: var(--mono);
+  font-size: var(--text-small);
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: color-mix(in srgb, var(--accent) 55%, transparent);
+  transition: color 0.4s var(--ease);
+}
+
+.wcard-go {
+  flex: none;
+  color: var(--accent);
+  opacity: 0;
+  transform: translate(-3px, 3px);
+  transition: opacity 0.3s var(--ease), transform 0.3s var(--ease);
+}
+
+.wcard-title {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  color: color-mix(in srgb, var(--ink) 45%, transparent);
+  transition: color 0.4s var(--ease);
+}
+
+.wcard-body {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  font-size: var(--text-body);
+  line-height: 1.5;
+  color: color-mix(in srgb, var(--ink) 36%, transparent);
+  transition: color 0.4s var(--ease);
+}
+
+.wcard-body b {
+  font-weight: 500;
+}
+
+.wcard-body code {
+  font-family: var(--mono);
+  font-size: 0.9em;
+}
+
+.wcard-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  max-height: 22px;
+  margin-top: auto;
+  overflow: hidden;
+  opacity: 0.6;
+  transition: opacity 0.4s var(--ease);
+}
+
+.wcard-chip {
+  padding: 3px 7px;
+  border: 1px solid color-mix(in srgb, var(--ink) 12%, transparent);
+  border-radius: var(--radius-pill);
+  font-family: var(--mono);
+  font-size: var(--text-small);
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  white-space: nowrap;
+  color: color-mix(in srgb, var(--ink) 60%, transparent);
+}
+
+.wcard[data-active] .wcard-kicker {
+  color: var(--accent);
+}
+
+.wcard[data-active] .wcard-go {
+  opacity: 1;
+  transform: none;
+}
+
+.wcard[data-active] .wcard-title {
+  color: var(--ink);
+}
+
+.wcard[data-active] .wcard-body {
+  color: color-mix(in srgb, var(--ink) 60%, transparent);
+}
+
+.wcard[data-active] .wcard-chips {
+  opacity: 1;
+}
+
+/* Below the three-zone width there is no middle for the figure to stand in:
+   the column takes the full width and the figure steps out (see page rules). */
+@media (max-width: 1100px) {
+  .page--split .md-detail {
+    justify-self: stretch;
+    width: auto;
+  }
+
+  [data-section="work"] .robot-layer,
+  [data-section="lab"] .robot-layer {
+    opacity: 0;
+  }
+}
+
+/* ====================================================================== */
+/* case study                                                              */
+/* ====================================================================== */
+
+/* Opens with a CSS animation and closes with a CSS transition — see the note
+   in case-study.tsx. `data-closing` makes the layer click-through the same
+   instant it starts to fade, so nothing on the page is ever blocked by a
+   dialog that is on its way out. */
+@keyframes cs-in {
+  from {
+    opacity: 0;
+  }
+}
+
+.cs {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  animation: cs-in 0.28s var(--ease);
+  transition: opacity 0.28s var(--ease);
+  background-color: var(--bg);
+  /* A faint drafting grid, so the full-screen sheet has a surface rather than
+     a flat fill. */
+  background-image:
+    linear-gradient(color-mix(in srgb, var(--ink) 3.5%, transparent) 1px, transparent 1px),
+    linear-gradient(90deg, color-mix(in srgb, var(--ink) 3.5%, transparent) 1px, transparent 1px);
+  background-size: 64px 64px;
+}
+
+.cs[data-closing] {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.cs-panel {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  outline: none;
+}
+
+.cs-bar {
+  position: absolute;
+  inset: 0 0 auto;
+  z-index: 2;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px var(--gutter);
+  /* Solid, not a fade. Text scrolling under a gradient dissolves into it —
+     the half-legible edge this site has already removed everywhere else. */
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+  pointer-events: none;
+}
+
+.cs-bar > * {
+  pointer-events: auto;
+}
+
+.cs-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  height: 36px;
+  padding: 0 15px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.62);
+  font-family: var(--mono);
+  font-size: var(--text-label);
+  letter-spacing: 0.06em;
+  color: var(--ink-2);
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+}
+
+.cs-btn:hover {
+  border-color: color-mix(in srgb, var(--accent) 40%, transparent);
+  background: #fff;
+  color: var(--ink);
+}
+
+.cs-btn:focus-visible,
+.cs-next:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.cs-btn--icon {
+  width: 36px;
+  padding: 0;
+}
+
+.cs-pager {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.cs-count {
+  min-width: 64px;
+  text-align: center;
+  font-family: var(--mono);
+  font-size: var(--text-label);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--track-ui);
+  color: var(--muted);
+}
+
+.cs-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 96px var(--gutter) 88px;
+}
+
+.cs-doc {
+  max-width: 1180px;
+  margin: 0 auto;
+}
+
+.cs-head {
+  display: grid;
+  gap: 12px;
+  margin-bottom: 30px;
+}
+
+.cs-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.cs-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 12px;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-radius: var(--radius-pill);
+  background: var(--accent-soft);
+  font-family: var(--mono);
+  font-size: var(--text-small);
+  letter-spacing: var(--track-wide);
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.cs-pill::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.cs-pill--quiet {
+  border-color: var(--line-2);
+  background: rgba(255, 255, 255, 0.62);
+  color: var(--ink-2);
+}
+
+.cs-pill--quiet::before {
+  display: none;
+}
+
+.cs-title {
+  margin: 0;
+  font-size: clamp(30px, 4.2vw, 52px);
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
+  text-wrap: balance;
+  color: var(--ink);
+}
+
+.cs-meta {
+  margin: 0;
+  font-size: var(--text-lg);
+  color: var(--muted);
+}
+
+.cs-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: 32px;
+  align-items: start;
+}
+
+.cs-main {
+  display: grid;
+  gap: 22px;
+  min-width: 0;
+}
+
+.cs-side {
+  position: sticky;
+  top: 0;
+  display: grid;
+  gap: 14px;
+}
+
+.cs-hero {
+  margin: 0;
+  padding: 28px 24px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius-card);
+  background:
+    radial-gradient(circle, color-mix(in srgb, var(--accent) 16%, transparent) 0.8px, transparent 1.3px) 0 0 / 12px 12px,
+    color-mix(in srgb, var(--accent) 5%, var(--panel-solid));
+}
+
+.cs-hero .dgm {
+  margin: 0;
+}
+
+.cs-hero .dgm-svg {
+  max-width: none;
+  margin: 0 auto;
+}
+
+.cs-card {
+  padding: 18px 20px;
+  border: 1px solid var(--glass-edge);
+  border-radius: var(--radius-card);
+  background: var(--glass-fill);
+  box-shadow: var(--glass-shadow);
+}
+
+.cs-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 10px;
+  font-family: var(--mono);
+  font-size: var(--text-small);
+  font-weight: 500;
+  letter-spacing: var(--track-ultra);
+  text-transform: uppercase;
+  color: var(--accent);
+}
+
+.cs-label i {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* Sidebar labels sit back; the body's section labels carry the accent. */
+.cs-side .cs-label {
+  color: var(--muted);
+}
+
+.cs-glance {
+  display: grid;
+  margin: 0;
+}
+
+.cs-glance > div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 9px 0;
+  border-top: 1px solid var(--line);
+}
+
+.cs-glance > div:first-child {
+  padding-top: 2px;
+  border-top: 0;
+}
+
+.cs-glance dt {
+  flex: none;
+  font-family: var(--mono);
+  font-size: var(--text-small);
+  letter-spacing: var(--track-wide);
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+.cs-glance dd {
+  margin: 0;
+  text-align: right;
+  font-size: var(--text-md);
+  color: var(--ink);
+}
+
+.cs-glance dd code {
+  font-family: var(--mono);
+  font-size: var(--text-label);
+}
+
+.cs-glance a {
+  color: var(--accent);
+}
+
+.cs-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.cs-next {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 12px;
+  padding: 16px 4px 4px;
+  border: 0;
+  border-top: 1px solid var(--line);
+  background: none;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.cs-next .cs-label {
+  margin: 0;
+}
+
+.cs-next-title {
+  font-size: var(--text-xl);
+  font-weight: 600;
+  letter-spacing: var(--track-display);
+  color: var(--ink);
+}
+
+.cs-next-arrow {
+  grid-row: 1 / span 2;
+  grid-column: 2;
+  align-self: center;
+  color: var(--accent);
+  transition: transform 0.3s var(--ease);
+}
+
+.cs-next:hover .cs-next-arrow {
+  transform: translateX(4px);
+}
+
+/* --- body blocks: deliberately different surfaces, so a case study has
+       rhythm rather than one treatment repeated ----------------------- */
+
+.cs-lead {
+  margin: 0;
+  font-size: clamp(17px, 1.45vw, 20px);
+  line-height: 1.55;
+  letter-spacing: -0.005em;
+  text-wrap: pretty;
+  color: var(--ink);
+}
+
+.cs-lead b {
+  font-weight: 600;
+}
+
+.cs-lead code,
+.cs-prose code,
+.cs-list code {
+  padding: 1px 5px;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--ink) 6%, transparent);
+  font-family: var(--mono);
+  font-size: 0.86em;
+}
+
+.cs-sec {
+  display: grid;
+  gap: 4px;
+}
+
+.cs-sec--rule {
+  padding-left: 18px;
+  border-left: 2px solid color-mix(in srgb, var(--accent) 45%, transparent);
+}
+
+.cs-sec--callout {
+  padding: 18px 22px;
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--radius-control) var(--radius-control) 0;
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+}
+
+.cs-sec--card {
+  padding: 20px 24px;
+  border: 1px solid var(--glass-edge);
+  border-radius: var(--radius-card);
+  background: rgba(255, 255, 255, 0.74);
+  box-shadow: 0 14px 30px -20px rgba(40, 60, 90, 0.3);
+}
+
+/* The payoff, last: bigger, darker type on a tinted plate. */
+.cs-sec--impact {
+  padding: 22px 26px;
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  border-radius: var(--radius-card);
+  background: color-mix(in srgb, var(--accent) 9%, transparent);
+}
+
+.cs-sec--impact .cs-prose {
+  font-size: var(--text-xl);
+  line-height: 1.6;
+  color: var(--ink);
+}
+
+.cs-prose {
+  margin: 0;
+  font-size: var(--text-lg);
+  line-height: 1.7;
+  color: var(--ink-2);
+}
+
+.cs-prose b {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.cs-subtitle {
+  margin: 0 0 6px;
+  font-size: var(--text-xl);
+  font-weight: 600;
+  letter-spacing: var(--track-display);
+  color: var(--ink);
+}
+
+.cs-list {
+  display: grid;
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.cs-list li {
+  display: grid;
+  grid-template-columns: 30px minmax(0, 1fr);
+  gap: 10px;
+  padding: 13px 0;
+  border-top: 1px solid var(--line);
+  font-size: var(--text-lg);
+  line-height: 1.65;
+  color: var(--ink-2);
+}
+
+.cs-list li:first-child {
+  padding-top: 4px;
+  border-top: 0;
+}
+
+.cs-list b {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.cs-num {
+  padding-top: 3px;
+  font-family: var(--mono);
+  font-size: var(--text-label);
+  font-variant-numeric: tabular-nums;
+  color: var(--accent);
+}
+
+.cs-pillrow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.cs-phrase {
+  padding: 8px 14px;
+  border: 1px solid var(--line-2);
+  border-radius: var(--radius-pill);
+  background: rgba(255, 255, 255, 0.66);
+  font-size: var(--text-md);
+  line-height: 1.35;
+  color: var(--ink-2);
+}
+
+.cs-foot {
+  margin: 0;
+  font-family: var(--mono);
+  font-size: var(--text-small);
+  letter-spacing: 0.04em;
+  color: var(--muted);
+}
+
+@media (max-width: 1100px) {
+  .cs-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  /* At a glance belongs near the top once it cannot sit alongside. */
+  .cs-side {
+    position: static;
+    order: -1;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    align-items: start;
+  }
+
+  .cs-next {
+    display: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .wcard {
+    grid-template-columns: 104px minmax(0, 1fr);
+  }
+
+  .wcard-icon {
+    width: 44px;
+    height: 44px;
+  }
+
+  .cs-scroll {
+    padding: 72px 16px 56px;
+  }
+
+  .cs-bar {
+    padding: 12px 16px;
+  }
+
+  .cs-sec--callout,
+  .cs-sec--card,
+  .cs-sec--impact {
+    padding: 16px 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wcard,
+  .wcard-go,
+  .wcard-art,
+  .wcard-icon,
+  .wcard-kicker,
+  .wcard-title,
+  .wcard-body,
+  .wcard-chips,
+  .cs-next-arrow,
+  .cs {
+    transition: none;
+    animation: none;
+  }
+
+  .wcard[data-active],
+  .wcard[data-active] .wcard-icon {
+    transform: none;
+  }
 }
 
 /* Below this the grids have already collapsed to one column and a phone

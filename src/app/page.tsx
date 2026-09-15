@@ -33,11 +33,12 @@ const FIGURE_X: Record<Section, number> = {
   /* Centred. It sat right of centre to clear the hero copy that used to
      occupy the left half; with that gone there is nothing to clear. */
   home: 0,
-  work: 0,
-  /* Lab has no gutter — its cards want the width — so the figure goes left,
-     under the tracks panel, where the column is empty below y470. At 0 it
-     stood behind the first card and the blurb was reading through chrome. */
-  lab: -2.2,
+  /* Experience and Lab share the reference's three zones — rail, open middle,
+     card column — so the figure stands in that middle, and at the same spot
+     in both, so it does not slide when moving between them. Measured, not
+     guessed: see the placement check in the redesign notes. */
+  work: -0.84,
+  lab: -0.84,
   about: -1.62,
   contact: 0,
 };
@@ -201,7 +202,6 @@ export default function Page() {
         className="robot-layer"
         data-boot={booting}
         data-front={section === "about"}
-        data-hidden={section === "work" || section === "lab"}
         aria-hidden
       >
         <RobotStage

@@ -17,9 +17,11 @@ export default function RichText({ text }: { text: string }) {
   while ((m = re.exec(text))) {
     if (m.index > last) out.push(text.slice(last, m.index));
     const tok = m[0];
-    if (tok.startsWith("**")) out.push(<b key={k++}>{tok.slice(2, -2)}</b>);
+    // Bold and italic recurse, so code inside emphasis — "**`url` wins**" —
+    // renders as code rather than as literal backticks. Code never recurses.
+    if (tok.startsWith("**")) out.push(<b key={k++}><RichText text={tok.slice(2, -2)} /></b>);
     else if (tok.startsWith("`")) out.push(<code key={k++}>{tok.slice(1, -1)}</code>);
-    else out.push(<i key={k++}>{tok.slice(1, -1)}</i>);
+    else out.push(<i key={k++}><RichText text={tok.slice(1, -1)} /></i>);
     last = m.index + tok.length;
   }
   if (last < text.length) out.push(text.slice(last));

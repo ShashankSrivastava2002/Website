@@ -151,17 +151,3 @@ export default function MasterDetail({
     </div>
   );
 }
-
-/** Areas arrive in sequence so the eye lands on 01 first. */
-export function Staggered({ i, children }: { i: number; children: ReactNode }) {
-  return (
-    <motion.section
-      className="md-block"
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5, ease: EASE, delay: 0.08 + i * 0.09 }}
-    >
-      {children}
-    </motion.section>
-  );
-}
